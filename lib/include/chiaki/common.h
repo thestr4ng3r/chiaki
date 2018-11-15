@@ -24,6 +24,20 @@ extern "C" {
 
 #define CHIAKI_EXPORT
 
+
+typedef enum
+{
+	CHIAKI_ERR_SUCCESS = 0,
+	CHIAKI_ERR_PARSE_ADDR = 1,
+	CHIAKI_ERR_THREAD = 2,
+	CHIAKI_ERR_MEMORY = 3,
+	CHIAKI_ERR_NETWORK = 4,
+	CHIAKI_ERR_INVALID_DATA = 5
+} ChiakiErrorCode;
+
+CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
+
+
 #ifdef __cplusplus
 }
 #endif

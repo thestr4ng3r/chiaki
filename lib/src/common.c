@@ -15,29 +15,25 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_THREAD_H
-#define CHIAKI_THREAD_H
+#include <chiaki/common.h>
 
-#include "common.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <pthread.h>
-
-typedef struct chiaki_thread_t
+CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 {
-	pthread_t thread;
-} ChiakiThread;
-
-typedef void *(*ChiakiThreadFunc)(void *);
-
-CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **retval);
-
-#ifdef __cplusplus
+	switch(code)
+	{
+		case CHIAKI_ERR_SUCCESS:
+			return "Success";
+		case CHIAKI_ERR_PARSE_ADDR:
+			return "Failed to parse host address";
+		case CHIAKI_ERR_THREAD:
+			return "Thread error";
+		case CHIAKI_ERR_MEMORY:
+			return "Memory error";
+		case CHIAKI_ERR_NETWORK:
+			return "Network error";
+		case CHIAKI_ERR_INVALID_DATA:
+			return "Invalid data";
+		default:
+			return "Unknown";
+	}
 }
-#endif
-
-#endif // CHIAKI_THREAD_H

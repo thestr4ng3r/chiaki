@@ -20,24 +20,18 @@
 #include <stdio.h>
 
 
-CHIAKI_EXPORT bool chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg)
 {
 	int r = pthread_create(&thread->thread, NULL, func, arg);
 	if(r != 0)
-	{
-		perror("pthread_create");
-		return false;
-	}
-	return true;
+		return CHIAKI_ERR_THREAD;
+	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT bool chiaki_thread_join(ChiakiThread *thread, void **retval)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **retval)
 {
 	int r = pthread_join(thread->thread, retval);
 	if(r != 0)
-	{
-		perror("pthread_join");
-		return false;
-	}
-	return true;
+		return CHIAKI_ERR_THREAD;
+	return CHIAKI_ERR_SUCCESS;
 }

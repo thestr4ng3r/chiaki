@@ -22,6 +22,7 @@
 #include "thread.h"
 
 #include <stdint.h>
+#include <netdb.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +41,8 @@ typedef struct chiaki_session_t
 {
 	struct
 	{
-		char *host;
+		struct addrinfo *host_addrinfos;
+		struct addrinfo *host_addrinfo_selected;
 		char *regist_key;
 		char *ostype;
 		char auth[0x10];
@@ -50,10 +52,10 @@ typedef struct chiaki_session_t
 	ChiakiThread session_thread;
 } ChiakiSession;
 
-CHIAKI_EXPORT void chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
-CHIAKI_EXPORT bool chiaki_session_start(ChiakiSession *session);
-CHIAKI_EXPORT void chiaki_session_join(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 
 #ifdef __cplusplus
 }
