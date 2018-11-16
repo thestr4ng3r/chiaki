@@ -37,6 +37,37 @@ typedef struct chiaki_connect_info_t
 	uint8_t morning[0x10];
 } ChiakiConnectInfo;
 
+
+typedef enum {
+	CHIAKI_QUIT_REASON_NONE,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH
+} ChiakiQuitReason;
+
+typedef struct chiaki_quit_event_t
+{
+	ChiakiQuitReason reason;
+} ChiakiQuitEvent;
+
+
+typedef enum { CHIAKI_EVENT_QUIT } ChiakiEventType;
+
+typedef struct chiaki_event_t
+{
+	ChiakiEventType type;
+	union
+	{
+		ChiakiQuitEvent quit;
+	};
+} ChiakiEvent;
+
+typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
+
+
+#define CHIAKI_KEY_BYTES 0x10
+
 typedef struct chiaki_session_t
 {
 	struct
@@ -45,9 +76,16 @@ typedef struct chiaki_session_t
 		struct addrinfo *host_addrinfo_selected;
 		char *regist_key;
 		char *ostype;
-		char auth[0x10];
-		uint8_t morning[0x10];
+		char auth[CHIAKI_KEY_BYTES];
+		uint8_t morning[CHIAKI_KEY_BYTES];
 	} connect_info;
+
+	uint8_t nonce[CHIAKI_KEY_BYTES];
+
+	ChiakiQuitReason quit_reason;
+
+	ChiakiEventCallback event_cb;
+	void *event_cb_user;
 
 	ChiakiThread session_thread;
 } ChiakiSession;
@@ -56,6 +94,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
+
+static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
+{
+	session->event_cb = cb;
+	session->event_cb_user = user;
+}
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,7 @@ project(chiaki)
 option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 
 add_subdirectory(lib)
+add_subdirectory(gui)
 
 if(CHIAKI_ENABLE_TESTS)
 	enable_testing()

@@ -25,8 +25,8 @@ int main(int argc, const char *argv[])
 		memset(connect_info.auth + auth_len, 0, sizeof(connect_info.auth) - auth_len);
 
 	size_t morning_size = sizeof(connect_info.morning);
-	bool r = chiaki_base64_decode(argv[5], strlen(argv[5]), connect_info.morning, &morning_size);
-	if(!r || morning_size != sizeof(connect_info.morning))
+	ChiakiErrorCode err = chiaki_base64_decode(argv[5], strlen(argv[5]), connect_info.morning, &morning_size);
+	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(connect_info.morning))
 	{
 		printf("morning invalid.\n");
 		return 1;

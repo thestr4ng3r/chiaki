@@ -40,7 +40,7 @@ static const unsigned char d[] = {
 		66,66,66,66,66,66
 };
 
-CHIAKI_EXPORT bool chiaki_base64_decode(const char *in, size_t in_size, uint8_t *out, size_t *out_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_base64_decode(const char *in, size_t in_size, uint8_t *out, size_t *out_size)
 {
 	const char *end = in + in_size;
 	char iter = 0;
@@ -56,7 +56,7 @@ CHIAKI_EXPORT bool chiaki_base64_decode(const char *in, size_t in_size, uint8_t 
 			case WHITESPACE:
 				continue;		// skip whitespace
 			case INVALID:
-				return false;   // invalid input
+				return CHIAKI_ERR_INVALID_DATA;   // invalid input
 			case EQUALS:		// pad character, end of data
 				in = end;
 				continue;
@@ -67,7 +67,7 @@ CHIAKI_EXPORT bool chiaki_base64_decode(const char *in, size_t in_size, uint8_t 
 				if(iter == 4)
 				{
 					if((len += 3) > *out_size)
-						return false; // buffer overflow
+						return CHIAKI_ERR_BUF_TOO_SMALL;
 					*(out++) = (unsigned char)((buf >> 16) & 0xff);
 					*(out++) = (unsigned char)((buf >> 8) & 0xff);
 					*(out++) = (unsigned char)(buf & 0xff);
@@ -79,17 +79,17 @@ CHIAKI_EXPORT bool chiaki_base64_decode(const char *in, size_t in_size, uint8_t 
 	if(iter == 3)
 	{
 		if((len += 2) > *out_size)
-			return false; // buffer overflow
+			return CHIAKI_ERR_BUF_TOO_SMALL;
 		*(out++) = (unsigned char)((buf >> 10) & 0xff);
 		*(out++) = (unsigned char)((buf >> 2) & 0xff);
 	}
 	else if(iter == 2)
 	{
 		if(++len > *out_size)
-			return 1; // buffer overflow
+			return CHIAKI_ERR_BUF_TOO_SMALL;
 		*(out++) = (unsigned char)((buf >> 4) & 0xff);
 	}
 
 	*out_size = len;
-	return true;
+	return CHIAKI_ERR_SUCCESS;
 }

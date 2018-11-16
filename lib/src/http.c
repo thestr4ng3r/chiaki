@@ -35,7 +35,61 @@ CHIAKI_EXPORT void chiaki_http_header_free(ChiakiHttpHeader *header)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_http_header_parse(ChiakiHttpHeader **header, char *buf, size_t buf_size)
 {
 	*header = NULL;
+#define FAIL(reason) do { chiaki_http_header_free(*header); return (reason); } while(0);
+	char *key_ptr = buf;
+	char *value_ptr = NULL;
+
+	for(char *end = buf + buf_size; buf<end; buf++)
+	{
+		char c = *buf;
+		if(!c)
+			break;
+
+		if(!value_ptr)
+		{
+			if(c == ':')
+			{
+				if(key_ptr == buf)
+					FAIL(CHIAKI_ERR_INVALID_DATA);
+				*buf = '\0';
+				buf++;
+				if(buf == end || *buf != ' ')
+					FAIL(CHIAKI_ERR_INVALID_DATA);
+				buf++;
+				if(buf == end)
+					FAIL(CHIAKI_ERR_INVALID_DATA);
+				value_ptr = buf;
+			}
+			else if(c == '\r' || c == '\n')
+			{
+				if(key_ptr + 1 < buf) // no : encountered yet
+					FAIL(CHIAKI_ERR_INVALID_DATA);
+				key_ptr = buf + 1;
+			}
+		}
+		else
+		{
+			if(c == '\r' || c == '\n')
+			{
+				if(value_ptr == buf) // empty value
+					FAIL(CHIAKI_ERR_INVALID_DATA);
+
+				*buf = '\0';
+				ChiakiHttpHeader *entry = malloc(sizeof(ChiakiHttpHeader));
+				if(!entry)
+					FAIL(CHIAKI_ERR_MEMORY);
+				entry->key = key_ptr;
+				entry->value = value_ptr;
+				entry->next = *header;
+				*header = entry;
+
+				key_ptr = buf + 1;
+				value_ptr = NULL;
+			}
+		}
+	}
 	return CHIAKI_ERR_SUCCESS;
+#undef FAIL
 }
 
 CHIAKI_EXPORT void chiaki_http_response_fini(ChiakiHttpResponse *response)

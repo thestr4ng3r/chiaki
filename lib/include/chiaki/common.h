@@ -32,7 +32,8 @@ typedef enum
 	CHIAKI_ERR_THREAD = 2,
 	CHIAKI_ERR_MEMORY = 3,
 	CHIAKI_ERR_NETWORK = 4,
-	CHIAKI_ERR_INVALID_DATA = 5
+	CHIAKI_ERR_INVALID_DATA = 5,
+	CHIAKI_ERR_BUF_TOO_SMALL = 6
 } ChiakiErrorCode;
 
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
