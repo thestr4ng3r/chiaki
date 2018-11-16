@@ -1,5 +1,11 @@
 
-add_executable(chiaki-test
-		main.c)
+add_library(munit "${CMAKE_CURRENT_SOURCE_DIR}/munit/munit.c")
+target_include_directories(munit PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/munit")
 
-target_link_libraries(chiaki-test chiaki-lib)
+add_executable(chiaki-unit
+		main.c
+		http.c)
+
+target_link_libraries(chiaki-unit chiaki-lib munit)
+
+add_test(unit chiaki-unit)

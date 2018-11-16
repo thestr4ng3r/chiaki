@@ -1,42 +1,29 @@
 
-#include <chiaki/session.h>
-#include <chiaki/base64.h>
 
-#include <stdio.h>
-#include <string.h>
+#include <munit.h>
 
-int main(int argc, const char *argv[])
+extern MunitTest tests_http[];
+
+static MunitSuite suites[] = {
+	{
+		"/http",
+		tests_http,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{ NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
+};
+
+static const MunitSuite suite_main = {
+	"/chiaki",
+	NULL,
+	suites,
+	1,
+	MUNIT_SUITE_OPTION_NONE
+};
+
+int main(int argc, char *argv[])
 {
-	if(argc != 6)
-	{
-		printf("Usage: %s <host> <registkey> <ostype> <auth> <morning (base64)>\n", argv[0]);
-		return 1;
-	}
-
-	ChiakiConnectInfo connect_info;
-	connect_info.host = argv[1];
-	connect_info.regist_key = argv[2];
-	connect_info.ostype = argv[3];
-
-	size_t auth_len = strlen(argv[4]);
-	if(auth_len > sizeof(connect_info.auth))
-		auth_len = sizeof(connect_info.auth);
-	memcpy(connect_info.auth, argv[4], auth_len);
-	if(auth_len < sizeof(connect_info.auth))
-		memset(connect_info.auth + auth_len, 0, sizeof(connect_info.auth) - auth_len);
-
-	size_t morning_size = sizeof(connect_info.morning);
-	bool r = chiaki_base64_decode(argv[5], strlen(argv[5]), connect_info.morning, &morning_size);
-	if(!r || morning_size != sizeof(connect_info.morning))
-	{
-		printf("morning invalid.\n");
-		return 1;
-	}
-
-	ChiakiSession session;
-	chiaki_session_init(&session, &connect_info);
-	chiaki_session_start(&session);
-	chiaki_session_join(&session);
-	chiaki_session_fini(&session);
-	return 0;
+	return munit_suite_main(&suite_main, NULL, argc, argv);
 }
