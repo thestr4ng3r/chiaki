@@ -4,14 +4,16 @@ set(HEADER_FILES
 		include/chiaki/common.h
 		include/chiaki/thread.h
 		include/chiaki/base64.h
-		include/chiaki/http.h)
+		include/chiaki/http.h
+		include/chiaki/log.h)
 
 set(SOURCE_FILES
 		src/common.c
 		src/session.c
 		src/thread.c
 		src/base64.c
-		src/http.c)
+		src/http.c
+		src/log.c)
 
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES})
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)

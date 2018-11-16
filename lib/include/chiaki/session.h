@@ -20,6 +20,7 @@
 
 #include "common.h"
 #include "thread.h"
+#include "log.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -88,6 +89,8 @@ typedef struct chiaki_session_t
 	void *event_cb_user;
 
 	ChiakiThread session_thread;
+
+	ChiakiLog log;
 } ChiakiSession;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
