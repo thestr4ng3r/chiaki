@@ -82,7 +82,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt,
 	return CHIAKI_ERR_SUCCESS;
 }
 
-static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *buf, size_t buf_size, bool encrypt)
+static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *in, uint8_t *out, size_t sz, bool encrypt)
 {
 	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 	if(!ctx)
@@ -109,60 +109,32 @@ static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t cou
 	if(!EVP_CIPHER_CTX_set_padding(ctx, 0))
 		FAIL(CHIAKI_ERR_UNKNOWN);
 
-	if(buf_size % CHIAKI_KEY_BYTES)
+	int outl;
+	if(encrypt)
 	{
-		size_t padded_size = ((buf_size + CHIAKI_KEY_BYTES - 1) / CHIAKI_KEY_BYTES) * CHIAKI_KEY_BYTES;
-		uint8_t *tmp = malloc(padded_size);
-		if(!tmp)
-			FAIL(CHIAKI_ERR_MEMORY);
-		memcpy(tmp, buf, buf_size);
-		memset(tmp + buf_size, 0, padded_size - buf_size);
-		int outl = (int)padded_size;
-
-		int success;
-		if(encrypt)
-			success = EVP_EncryptUpdate(ctx, tmp, &outl, tmp, outl);
-		else
-			success = EVP_DecryptUpdate(ctx, tmp, &outl, tmp, outl);
-
-		if(!success || outl != (int)padded_size)
-		{
-			free(tmp);
+		if(!EVP_EncryptUpdate(ctx, out, &outl, in, (int)sz))
 			FAIL(CHIAKI_ERR_UNKNOWN);
-		}
-
-		memcpy(buf, tmp, buf_size);
-		free(tmp);
 	}
 	else
 	{
-		int outl = (int)buf_size;
-		if(encrypt)
-		{
-			if(!EVP_EncryptUpdate(ctx, buf, &outl, buf, outl))
-				FAIL(CHIAKI_ERR_UNKNOWN);
-		}
-		else
-		{
-			if(!EVP_DecryptUpdate(ctx, buf, &outl, buf, outl))
-				FAIL(CHIAKI_ERR_UNKNOWN);
-		}
-
-		if(outl != (int)buf_size)
+		if(!EVP_DecryptUpdate(ctx, out, &outl, in, (int)sz))
 			FAIL(CHIAKI_ERR_UNKNOWN);
 	}
+
+	if(outl != (int)sz)
+		FAIL(CHIAKI_ERR_UNKNOWN);
 
 #undef FAIL
 	EVP_CIPHER_CTX_free(ctx);
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_encrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_encrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *in, uint8_t *out, size_t sz)
 {
-	return chiaki_rpcrypt_crypt(rpcrypt, counter, buf, buf_size, true);
+	return chiaki_rpcrypt_crypt(rpcrypt, counter, in, out, sz, true);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_decrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_decrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *in, uint8_t *out, size_t sz)
 {
-	return chiaki_rpcrypt_crypt(rpcrypt, counter, buf, buf_size, false);
+	return chiaki_rpcrypt_crypt(rpcrypt, counter, in, out, sz, false);
 }

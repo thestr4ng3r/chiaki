@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 
 #define SESSION_CTRL_PORT 9295
@@ -78,19 +79,24 @@ static ChiakiErrorCode ctrl_thread_connect(ChiakiCtrl *ctrl)
 
 	CHIAKI_LOGI(&session->log, "Connected to %s:%d\n", session->connect_info.hostname, SESSION_CTRL_PORT);
 
+	char request[512];
 	static const char request_fmt[] =
 			"GET /sce/rp/session/ctrl HTTP/1.1\r\n"
 			"Host: %s:%d\r\n"
 			"User-Agent: remoteplay Windows\r\n"
 			"Connection: keep-alive\r\n"
 			"Content-Length: 0\r\n"
-			"RP-Auth: %s\r\n"
+   			"RP-Auth: %s\r\n"
 			"RP-Version: 8.0\r\n"
 			"RP-Did: %s\r\n"
 			"RP-ControllerType: 3\r\n"
 			"RP-ClientType: 11\r\n"
 			"RP-OSType: %s\r\n"
 			"RP-ConPath: 1\r\n\r\n";
+
+	uint8_t auth_enc[CHIAKI_KEY_BYTES];
+
+
 
 	close(sock);
 	return CHIAKI_ERR_SUCCESS;
