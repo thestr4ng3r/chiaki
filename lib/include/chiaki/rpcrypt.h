@@ -30,10 +30,15 @@ extern "C" {
 
 typedef struct chiaki_rpcrypt_t
 {
-
+	uint8_t bright[CHIAKI_KEY_BYTES];
+	uint8_t ambassador[CHIAKI_KEY_BYTES];
+	struct hmac_ctx_st *hmac_ctx;
 } ChiakiRPCrypt;
 
 CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *ambassador, const uint8_t *nonce, const uint8_t *morning);
+
+CHIAKI_EXPORT void chiaki_rpcrypt_init(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, const uint8_t *morning);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter);
 
 #ifdef __cplusplus
 }

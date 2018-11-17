@@ -17,6 +17,7 @@
 
 #include <chiaki/common.h>
 
+
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 {
 	switch(code)
