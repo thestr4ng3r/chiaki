@@ -19,8 +19,84 @@
 
 #include <stdint.h>
 
-// Implementation taken from
+// Implementations taken from
 // https://en.wikibooks.org/wiki/Algorithm_Implementation/Miscellaneous/Base64
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_base64_encode(const uint8_t *in, size_t in_size, char *out, size_t out_size)
+{
+	const char base64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	size_t result_index = 0;
+	size_t x;
+	uint32_t n = 0;
+	size_t pad_count = in_size % 3;
+	uint8_t n0, n1, n2, n3;
+
+	// increment over the length of the string, three characters at a time
+	for(x = 0; x < in_size; x += 3)
+	{
+		// these three 8-bit (ASCII) characters become one 24-bit number
+		n = ((uint32_t)in[x]) << 16;
+
+		if((x+1) < in_size)
+			n += ((uint32_t)in[x+1]) << 8;
+
+		if((x+2) < in_size)
+			n += in[x+2];
+
+		// this 24-bit number gets separated into four 6-bit numbers
+		n0 = (uint8_t)(n >> 18) & 63;
+		n1 = (uint8_t)(n >> 12) & 63;
+		n2 = (uint8_t)(n >> 6) & 63;
+		n3 = (uint8_t)n & 63;
+
+		// if we have one byte available, then its encoding is spread
+		// out over two characters
+		if(result_index >= out_size)
+			return CHIAKI_ERR_BUF_TOO_SMALL;
+		out[result_index++] = base64chars[n0];
+		if(result_index >= out_size)
+			return CHIAKI_ERR_BUF_TOO_SMALL;
+		out[result_index++] = base64chars[n1];
+
+		// if we have only two bytes available, then their encoding is
+		// spread out over three chars
+		if((x+1) < in_size)
+		{
+			if(result_index >= out_size)
+				return CHIAKI_ERR_BUF_TOO_SMALL;
+			out[result_index++] = base64chars[n2];
+		}
+
+		// if we have all three bytes available, then their encoding is spread
+		// out over four characters
+		if((x+2) < in_size)
+		{
+			if(result_index >= out_size)
+				return CHIAKI_ERR_BUF_TOO_SMALL;
+			out[result_index++] = base64chars[n3];
+		}
+	}
+
+	// create and add padding that is required if we did not have a multiple of 3
+	// number of characters available
+	if (pad_count > 0)
+	{
+		for (; pad_count < 3; pad_count++)
+		{
+			if(result_index >= out_size)
+				return CHIAKI_ERR_BUF_TOO_SMALL;
+			out[result_index++] = '=';
+		}
+	}
+	if(result_index >= out_size)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+	out[result_index] = 0;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+
+
 
 #define WHITESPACE 64
 #define EQUALS     65
