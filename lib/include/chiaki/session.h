@@ -22,6 +22,7 @@
 #include "thread.h"
 #include "log.h"
 #include "ctrl.h"
+#include "rpcrypt.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -70,7 +71,6 @@ typedef struct chiaki_event_t
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
 
 
-#define CHIAKI_KEY_BYTES 0x10
 
 typedef struct chiaki_session_t
 {

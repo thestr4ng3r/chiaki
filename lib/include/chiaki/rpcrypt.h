@@ -15,38 +15,28 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <munit.h>
+#ifndef CHIAKI_RPCRYPT_H
+#define CHIAKI_RPCRYPT_H
 
-extern MunitTest tests_http[];
-extern MunitTest tests_rpcrypt[];
+#include "common.h"
 
-static MunitSuite suites[] = {
-	{
-		"/http",
-		tests_http,
-		NULL,
-		1,
-		MUNIT_SUITE_OPTION_NONE
-	},
-	{
-		"/rpcrypt",
-		tests_rpcrypt,
-		NULL,
-		1,
-		MUNIT_SUITE_OPTION_NONE
-	},
-	{ NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
-};
+#include <stdint.h>
 
-static const MunitSuite suite_main = {
-	"/chiaki",
-	NULL,
-	suites,
-	1,
-	MUNIT_SUITE_OPTION_NONE
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-int main(int argc, char *argv[])
+#define CHIAKI_KEY_BYTES 0x10
+
+typedef struct chiaki_rpcrypt_t
 {
-	return munit_suite_main(&suite_main, NULL, argc, argv);
+
+} ChiakiRPCrypt;
+
+CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *ambassador, const uint8_t *nonce, const uint8_t *morning);
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif // CHIAKI_RPCRYPT_H
