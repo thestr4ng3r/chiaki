@@ -21,6 +21,7 @@
 #include "common.h"
 #include "thread.h"
 #include "log.h"
+#include "ctrl.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -41,10 +42,12 @@ typedef struct chiaki_connect_info_t
 
 typedef enum {
 	CHIAKI_QUIT_REASON_NONE,
-	CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE,
-	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH,
+	CHIAKI_QUIT_REASON_CTRL_UNKNOWN,
+	CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED
 } ChiakiQuitReason;
 
 typedef struct chiaki_quit_event_t
@@ -75,6 +78,7 @@ typedef struct chiaki_session_t
 	{
 		struct addrinfo *host_addrinfos;
 		struct addrinfo *host_addrinfo_selected;
+		char hostname[128];
 		char *regist_key;
 		char *ostype;
 		char auth[CHIAKI_KEY_BYTES];
@@ -89,6 +93,7 @@ typedef struct chiaki_session_t
 	void *event_cb_user;
 
 	ChiakiThread session_thread;
+	ChiakiCtrl ctrl;
 
 	ChiakiLog log;
 } ChiakiSession;
