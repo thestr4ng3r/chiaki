@@ -6,9 +6,9 @@
 
 int main(int argc, const char *argv[])
 {
-	if(argc != 6)
+	if(argc != 7)
 	{
-		printf("Usage: %s <host> <registkey> <ostype> <auth> <morning (base64)>\n", argv[0]);
+		printf("Usage: %s <host> <registkey> <ostype> <auth> <morning (base64)> <did>\n", argv[0]);
 		return 1;
 	}
 
@@ -29,6 +29,14 @@ int main(int argc, const char *argv[])
 	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(connect_info.morning))
 	{
 		printf("morning invalid.\n");
+		return 1;
+	}
+
+	size_t did_size = sizeof(connect_info.did);
+	err = chiaki_base64_decode(argv[6], strlen(argv[6]), connect_info.did, &did_size);
+	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(connect_info.did))
+	{
+		printf("did invalid.\n");
 		return 1;
 	}
 

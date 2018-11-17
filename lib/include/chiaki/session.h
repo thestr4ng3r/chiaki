@@ -31,13 +31,17 @@
 extern "C" {
 #endif
 
+
+#define CHIAKI_RP_DID_SIZE 32
+
 typedef struct chiaki_connect_info_t
 {
-	const char *host;
-	const char *regist_key;
-	const char *ostype;
-	char auth[0x10];
+	const char *host; // null terminated
+	const char *regist_key; // null terminated
+	const char *ostype; // null terminated
+	char auth[0x10]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
+	uint8_t did[CHIAKI_RP_DID_SIZE];
 } ChiakiConnectInfo;
 
 
@@ -72,6 +76,7 @@ typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
 
 
 
+
 typedef struct chiaki_session_t
 {
 	struct
@@ -83,9 +88,11 @@ typedef struct chiaki_session_t
 		char *ostype;
 		char auth[CHIAKI_KEY_BYTES];
 		uint8_t morning[CHIAKI_KEY_BYTES];
+		uint8_t did[CHIAKI_RP_DID_SIZE];
 	} connect_info;
 
 	uint8_t nonce[CHIAKI_KEY_BYTES];
+	ChiakiRPCrypt rpcrypt;
 
 	ChiakiQuitReason quit_reason;
 
@@ -107,6 +114,13 @@ static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEve
 {
 	session->event_cb = cb;
 	session->event_cb_user = user;
+}
+
+static inline void chiaki_session_set_quit_reason(ChiakiSession *session, ChiakiQuitReason reason)
+{
+	if(session->quit_reason != CHIAKI_QUIT_REASON_NONE)
+		return;
+	session->quit_reason = reason;
 }
 
 #ifdef __cplusplus

@@ -29,6 +29,7 @@ typedef struct chiaki_ctrl_t
 {
 	struct chiaki_session_t *session;
 	ChiakiThread thread;
+	int sock;
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
