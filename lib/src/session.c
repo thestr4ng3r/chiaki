@@ -117,7 +117,7 @@ static void *session_thread_func(void *arg)
 
 	chiaki_rpcrypt_init(&session->rpcrypt, session->nonce, session->connect_info.morning);
 
-	usleep(10000);
+	usleep(5000);
 
 	CHIAKI_LOGI(&session->log, "Starting ctrl\n");
 
@@ -273,7 +273,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 	size_t header_size;
 	size_t received_size;
-	ChiakiErrorCode err = chiaki_recv_http_header(session_sock, buf, sizeof(buf)-1, &header_size, &received_size);
+	ChiakiErrorCode err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Failed to receive session request response\n");
@@ -281,8 +281,6 @@ static bool session_thread_request_session(ChiakiSession *session)
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
-
-	buf[received_size] = '\0';
 
 	ChiakiHttpResponse http_response;
 	err = chiaki_http_response_parse(&http_response, buf, header_size);

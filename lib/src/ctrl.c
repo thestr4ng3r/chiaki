@@ -44,22 +44,73 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl)
 }
 
 
-static ChiakiErrorCode ctrl_thread_connect(ChiakiCtrl *ctrl);
+static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl);
+static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size);
 
 static void *ctrl_thread_func(void *user)
 {
 	ChiakiCtrl *ctrl = user;
 
-	ChiakiErrorCode err = ctrl_thread_connect(ctrl);
+	ChiakiErrorCode err = ctrl_connect(ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 		return NULL;
 	}
 
-	// ...
+	CHIAKI_LOGI(&ctrl->session->log, "Ctrl connected\n");
+
+	while(true)
+	{
+		bool overflow = false;
+		while(ctrl->recv_buf_size >= 8)
+		{
+			uint32_t payload_size = *((uint32_t *)ctrl->recv_buf);
+			payload_size = ntohl(payload_size);
+
+			if(ctrl->recv_buf_size < 8 + payload_size)
+			{
+				if(8 + payload_size > sizeof(ctrl->recv_buf))
+				{
+					CHIAKI_LOGE(&ctrl->session->log, "Ctrl buffer overflow!\n");
+					overflow = true;
+				}
+				break;
+			}
+
+			uint16_t msg_type = *((uint16_t *)(ctrl->recv_buf + 4));
+			msg_type = ntohs(msg_type);
+
+			ctrl_message_received(ctrl, msg_type, ctrl->recv_buf + 8, (size_t)payload_size);
+			ctrl->recv_buf_size -= 8 + payload_size;
+			if(ctrl->recv_buf_size > 0)
+				memmove(ctrl->recv_buf, ctrl->recv_buf + 8 + payload_size, ctrl->recv_buf_size);
+		}
+
+		if(overflow)
+		{
+			chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			break;
+		}
+
+		ssize_t received = recv(ctrl->sock, ctrl->recv_buf + ctrl->recv_buf_size, sizeof(ctrl->recv_buf) - ctrl->recv_buf_size, 0);
+		if(received <= 0)
+		{
+			if(received < 0)
+				chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			break;
+		}
+
+		ctrl->recv_buf_size += received;
+	}
 
 	return NULL;
+}
+
+
+static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size)
+{
+	CHIAKI_LOGI(&ctrl->session->log, "Received Ctrl Message Type %#x\n", msg_type);
 }
 
 
@@ -93,7 +144,7 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 	}
 }
 
-static ChiakiErrorCode ctrl_thread_connect(ChiakiCtrl *ctrl)
+static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 {
 	ChiakiSession *session = ctrl->session;
 	struct addrinfo *addr = session->connect_info.host_addrinfo_selected;
@@ -196,14 +247,12 @@ static ChiakiErrorCode ctrl_thread_connect(ChiakiCtrl *ctrl)
 
 	size_t header_size;
 	size_t received_size;
-	err = chiaki_recv_http_header(sock, buf, sizeof(buf)-1, &header_size, &received_size);
+	err = chiaki_recv_http_header(sock, buf, sizeof(buf), &header_size, &received_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Failed to receive ctrl request response\n");
 		goto error;
 	}
-
-	buf[received_size] = '\0';
 
 	ChiakiHttpResponse http_response;
 	err = chiaki_http_response_parse(&http_response, buf, header_size);
@@ -233,7 +282,12 @@ static ChiakiErrorCode ctrl_thread_connect(ChiakiCtrl *ctrl)
 		CHIAKI_LOGE(&session->log, "No valid Server Type in ctrl response\n");
 
 	ctrl->sock = sock;
-	close(sock); // TODO: remove
+
+	// if we already got more data than the header, put the rest in the buffer.
+	ctrl->recv_buf_size = received_size - header_size;
+	if(ctrl->recv_buf_size > 0)
+		memcpy(ctrl->recv_buf, buf + header_size, ctrl->recv_buf_size);
+
 	return CHIAKI_ERR_SUCCESS;
 
 error:

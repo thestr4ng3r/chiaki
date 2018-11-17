@@ -21,6 +21,8 @@
 #include "common.h"
 #include "thread.h"
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,6 +32,8 @@ typedef struct chiaki_ctrl_t
 	struct chiaki_session_t *session;
 	ChiakiThread thread;
 	int sock;
+	uint8_t recv_buf[512];
+	size_t recv_buf_size;
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);

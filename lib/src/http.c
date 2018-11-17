@@ -166,7 +166,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 					break;
 			}
 			if(nl_state == 4)
+			{
+				received--;
 				break;
+			}
 		}
 
 		if(nl_state == 4)
