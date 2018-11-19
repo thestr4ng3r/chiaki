@@ -18,6 +18,7 @@
 #include <chiaki/thread.h>
 
 #include <stdio.h>
+#include <errno.h>
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg)
@@ -33,5 +34,49 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **re
 	int r = pthread_join(thread->thread, retval);
 	if(r != 0)
 		return CHIAKI_ERR_THREAD;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex)
+{
+	int r = pthread_mutex_init(&mutex->mutex, NULL);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_fini(ChiakiMutex *mutex)
+{
+	int r = pthread_mutex_destroy(&mutex->mutex);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_lock(ChiakiMutex *mutex)
+{
+	int r = pthread_mutex_lock(&mutex->mutex);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_trylock(ChiakiMutex *mutex)
+{
+	int r = pthread_mutex_trylock(&mutex->mutex);
+	if(r == EBUSY)
+		return CHIAKI_ERR_MUTEX_LOCKED;
+	else if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex)
+{
+	int r = pthread_mutex_unlock(&mutex->mutex);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
 	return CHIAKI_ERR_SUCCESS;
 }
