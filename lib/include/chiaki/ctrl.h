@@ -34,6 +34,7 @@ typedef struct chiaki_ctrl_t
 	int sock;
 	uint8_t recv_buf[512];
 	size_t recv_buf_size;
+	uint64_t crypt_counter_remote;
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);

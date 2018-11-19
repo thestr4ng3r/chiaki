@@ -33,6 +33,7 @@ extern "C" {
 
 
 #define CHIAKI_RP_DID_SIZE 32
+#define CHIAKI_SESSION_ID_SIZE_MAX 80
 
 typedef struct chiaki_connect_info_t
 {
@@ -93,6 +94,7 @@ typedef struct chiaki_session_t
 
 	uint8_t nonce[CHIAKI_KEY_BYTES];
 	ChiakiRPCrypt rpcrypt;
+	char session_id[CHIAKI_SESSION_ID_SIZE_MAX];
 
 	ChiakiQuitReason quit_reason;
 

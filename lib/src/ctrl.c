@@ -29,6 +29,10 @@
 
 #define SESSION_CTRL_PORT 9295
 
+typedef enum ctrl_message_type_t {
+	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33
+} CtrlMessageType;
+
 
 static void *ctrl_thread_func(void *user);
 
@@ -108,9 +112,67 @@ static void *ctrl_thread_func(void *user)
 }
 
 
+static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size)
 {
-	CHIAKI_LOGI(&ctrl->session->log, "Received Ctrl Message Type %#x\n", msg_type);
+	if(payload_size > 0)
+	{
+		ChiakiErrorCode err = chiaki_rpcrypt_decrypt(&ctrl->session->rpcrypt, ctrl->crypt_counter_remote++, payload, payload, payload_size);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(&ctrl->session->log, "Failed to decrypt payload for Ctrl Message type %#x\n", msg_type);
+			return;
+		}
+	}
+
+	switch(msg_type)
+	{
+		case CTRL_MESSAGE_TYPE_SESSION_ID:
+			ctrl_message_received_session_id(ctrl, payload, payload_size);
+			break;
+		default:
+			CHIAKI_LOGW(&ctrl->session->log, "Received Ctrl Message with unknown type %#x\n", msg_type);
+			break;
+	}
+}
+
+
+static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(payload_size < 2 || (char)payload[0] != 'J')
+	{
+		CHIAKI_LOGE(&ctrl->session->log, "Invalid Session Id received\n");
+		return;
+	}
+
+	// skip the 'J'
+	payload++;
+	payload_size--;
+
+	if(payload_size >= CHIAKI_SESSION_ID_SIZE_MAX - 1)
+	{
+		CHIAKI_LOGE(&ctrl->session->log, "Received Session Id is too long\n");
+		return;
+	}
+
+	for(uint8_t *cur=payload; cur<payload+payload_size; cur++)
+	{
+		char c = *cur;
+		if(c >= 'a' && c <= 'z')
+			continue;
+		if(c >= 'A' && c <= 'Z')
+			continue;
+		if(c >= '0' && c <= '9')
+			continue;
+		CHIAKI_LOGE(&ctrl->session->log, "Received Session Id contains invalid characters\n");
+		return;
+	}
+
+	memcpy(ctrl->session->session_id, payload, payload_size);
+	ctrl->session->session_id[payload_size] = '\0';
+
+	CHIAKI_LOGI(&ctrl->session->log, "Received valid Session Id: %s\n", ctrl->session->session_id);
 }
 
 
@@ -146,6 +208,8 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 
 static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 {
+	ctrl->crypt_counter_remote = 0;
+
 	ChiakiSession *session = ctrl->session;
 	struct addrinfo *addr = session->connect_info.host_addrinfo_selected;
 	struct sockaddr *sa = malloc(addr->ai_addrlen);
@@ -274,7 +338,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	if(response.server_type_valid)
 	{
-		ChiakiErrorCode err2 = chiaki_rpcrypt_decrypt(&session->rpcrypt, 0, response.rp_server_type, response.rp_server_type, sizeof(response.rp_server_type));
+		ChiakiErrorCode err2 = chiaki_rpcrypt_decrypt(&session->rpcrypt,
+				ctrl->crypt_counter_remote++,
+				response.rp_server_type,
+				response.rp_server_type,
+				sizeof(response.rp_server_type));
 		response.server_type_valid = err2 == CHIAKI_ERR_SUCCESS;
 	}
 
