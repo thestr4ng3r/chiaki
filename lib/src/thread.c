@@ -80,3 +80,48 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex)
 		return CHIAKI_ERR_UNKNOWN;
 	return CHIAKI_ERR_SUCCESS;
 }
+
+
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
+{
+	int r = pthread_cond_init(&cond->cond, NULL);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_fini(ChiakiCond *cond)
+{
+	int r = pthread_cond_destroy(&cond->cond);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mutex)
+{
+	int r = pthread_cond_wait(&cond->cond, &mutex->mutex);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond)
+{
+	int r = pthread_cond_signal(&cond->cond);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond)
+{
+	int r = pthread_cond_broadcast(&cond->cond);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
