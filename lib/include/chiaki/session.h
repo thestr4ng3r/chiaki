@@ -23,6 +23,7 @@
 #include "log.h"
 #include "ctrl.h"
 #include "rpcrypt.h"
+#include "takion.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -107,6 +108,8 @@ typedef struct chiaki_session_t
 	ChiakiCond ctrl_cond;
 	ChiakiMutex ctrl_cond_mutex;
 	bool ctrl_session_id_received;
+
+	ChiakiTakion takion;
 
 	ChiakiLog log;
 } ChiakiSession;

@@ -39,10 +39,10 @@ typedef struct chiaki_log_t
 void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...);
 void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size);
 
-#define CHIAKI_LOGD(log, ...) do { chiaki_log((log), CHIAKI_LOG_DEBUG, __VA_ARGS__); } while(0);
-#define CHIAKI_LOGI(log, ...) do { chiaki_log((log), CHIAKI_LOG_INFO, __VA_ARGS__); } while(0);
-#define CHIAKI_LOGW(log, ...) do { chiaki_log((log), CHIAKI_LOG_WARNING, __VA_ARGS__); } while(0);
-#define CHIAKI_LOGE(log, ...) do { chiaki_log((log), CHIAKI_LOG_ERROR, __VA_ARGS__); } while(0);
+#define CHIAKI_LOGD(log, ...) do { chiaki_log((log), CHIAKI_LOG_DEBUG, __VA_ARGS__); } while(0)
+#define CHIAKI_LOGI(log, ...) do { chiaki_log((log), CHIAKI_LOG_INFO, __VA_ARGS__); } while(0)
+#define CHIAKI_LOGW(log, ...) do { chiaki_log((log), CHIAKI_LOG_WARNING, __VA_ARGS__); } while(0)
+#define CHIAKI_LOGE(log, ...) do { chiaki_log((log), CHIAKI_LOG_ERROR, __VA_ARGS__); } while(0)
 
 #ifdef __cplusplus
 }

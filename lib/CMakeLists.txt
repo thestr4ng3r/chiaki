@@ -7,7 +7,8 @@ set(HEADER_FILES
 		include/chiaki/http.h
 		include/chiaki/log.h
 		include/chiaki/ctrl.h
-		include/chiaki/rpcrypt.h)
+		include/chiaki/rpcrypt.h
+		include/chiaki/takion.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -17,7 +18,8 @@ set(SOURCE_FILES
 		src/http.c
 		src/log.c
 		src/ctrl.c
-		src/rpcrypt.c)
+		src/rpcrypt.c
+		src/takion.c)
 
 
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES})

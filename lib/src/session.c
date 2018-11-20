@@ -151,9 +151,19 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
-	CHIAKI_LOGI(&session->log, "Looking good, we should now start the Senkusha\n");
+	CHIAKI_LOGI(&session->log, "Starting Senkusha\n");
 
+	// just testing...
+	struct sockaddr *sa = malloc(session->connect_info.host_addrinfo_selected->ai_addrlen);
+	memcpy(sa, session->connect_info.host_addrinfo_selected->ai_addr, session->connect_info.host_addrinfo_selected->ai_addrlen);
+	if(sa->sa_family == AF_INET)
+		((struct sockaddr_in *)sa)->sin_port = 9297;
+	else if(sa->sa_family == AF_INET6)
+		((struct sockaddr_in6 *)sa)->sin6_port = 9297;
+	chiaki_takion_connect(&session->takion, &session->log, sa, session->connect_info.host_addrinfo_selected->ai_addrlen);
+	free(sa);
 
+	CHIAKI_LOGI(&session->log, "Senkusha started\n");
 
 quit_ctrl:
 	chiaki_ctrl_join(&session->ctrl);
