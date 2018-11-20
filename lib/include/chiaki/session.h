@@ -102,7 +102,11 @@ typedef struct chiaki_session_t
 	void *event_cb_user;
 
 	ChiakiThread session_thread;
+
 	ChiakiCtrl ctrl;
+	ChiakiCond ctrl_cond;
+	ChiakiMutex ctrl_cond_mutex;
+	bool ctrl_session_id_received;
 
 	ChiakiLog log;
 } ChiakiSession;

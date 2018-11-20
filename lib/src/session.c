@@ -45,6 +45,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 
+	if(chiaki_cond_init(&session->ctrl_cond) != CHIAKI_ERR_SUCCESS)
+	{
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(chiaki_mutex_init(&session->ctrl_cond_mutex) != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_cond_fini(&session->ctrl_cond);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
 	if(r != 0)
 	{
@@ -77,6 +88,8 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 {
 	if(!session)
 		return;
+	chiaki_cond_fini(&session->ctrl_cond);
+	chiaki_mutex_fini(&session->ctrl_cond_mutex);
 	free(session->connect_info.regist_key);
 	free(session->connect_info.ostype);
 	freeaddrinfo(session->connect_info.host_addrinfos);
@@ -121,12 +134,29 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(&session->log, "Starting ctrl\n");
 
+	chiaki_mutex_lock(&session->ctrl_cond_mutex);
+	session->ctrl_session_id_received = false;
+
 	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto quit;
 
-	chiaki_ctrl_join(&session->ctrl);
+	chiaki_cond_wait(&session->ctrl_cond, &session->ctrl_cond_mutex);
+	chiaki_mutex_unlock(&session->ctrl_cond_mutex);
 
+	if(!session->ctrl_session_id_received)
+	{
+		CHIAKI_LOGE(&session->log, "Ctrl has failed, shutting down\n");
+		chiaki_ctrl_join(&session->ctrl);
+		goto quit_ctrl;
+	}
+
+	CHIAKI_LOGI(&session->log, "Looking good, we should now start the Senkusha\n");
+
+
+
+quit_ctrl:
+	chiaki_ctrl_join(&session->ctrl);
 	CHIAKI_LOGI(&session->log, "Ctrl stopped\n");
 
 	ChiakiEvent quit_event;

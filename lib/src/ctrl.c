@@ -59,6 +59,9 @@ static void *ctrl_thread_func(void *user)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		chiaki_mutex_lock(&ctrl->session->ctrl_cond_mutex);
+		chiaki_cond_signal(&ctrl->session->ctrl_cond);
+		chiaki_mutex_unlock(&ctrl->session->ctrl_cond_mutex);
 		return NULL;
 	}
 
@@ -140,6 +143,12 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
+	if(ctrl->session->ctrl_session_id_received)
+	{
+		CHIAKI_LOGW(&ctrl->session->log, "Received another Session Id Message\n");
+		return;
+	}
+
 	if(payload_size < 2 || (char)payload[0] != 'J')
 	{
 		CHIAKI_LOGE(&ctrl->session->log, "Invalid Session Id received\n");
@@ -171,6 +180,10 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';
+	ctrl->session->ctrl_session_id_received = true;
+	chiaki_mutex_lock(&ctrl->session->ctrl_cond_mutex);
+	chiaki_cond_signal(&ctrl->session->ctrl_cond);
+	chiaki_mutex_unlock(&ctrl->session->ctrl_cond_mutex);
 
 	CHIAKI_LOGI(&ctrl->session->log, "Received valid Session Id: %s\n", ctrl->session->session_id);
 }
