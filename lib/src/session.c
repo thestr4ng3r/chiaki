@@ -157,10 +157,16 @@ static void *session_thread_func(void *arg)
 	struct sockaddr *sa = malloc(session->connect_info.host_addrinfo_selected->ai_addrlen);
 	memcpy(sa, session->connect_info.host_addrinfo_selected->ai_addr, session->connect_info.host_addrinfo_selected->ai_addrlen);
 	if(sa->sa_family == AF_INET)
-		((struct sockaddr_in *)sa)->sin_port = 9297;
+		((struct sockaddr_in *)sa)->sin_port = htons(9297);
 	else if(sa->sa_family == AF_INET6)
-		((struct sockaddr_in6 *)sa)->sin6_port = 9297;
-	chiaki_takion_connect(&session->takion, &session->log, sa, session->connect_info.host_addrinfo_selected->ai_addrlen);
+		((struct sockaddr_in6 *)sa)->sin6_port = htons(9297);
+	else
+		CHIAKI_LOGE(&session->log, "wtf\n");
+	err = chiaki_takion_connect(&session->takion, &session->log, sa, session->connect_info.host_addrinfo_selected->ai_addrlen);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Senkusha connect failed\n");
+	}
 	free(sa);
 
 	CHIAKI_LOGI(&session->log, "Senkusha started\n");

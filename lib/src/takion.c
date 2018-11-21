@@ -67,12 +67,19 @@ typedef struct takion_message_payload_init_ack_t
 
 
 static void *takion_thread_func(void *user);
+static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload);
+
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiLog *log, struct sockaddr *sa, socklen_t sa_len)
 {
 	ChiakiErrorCode ret;
 
 	takion->log = log;
+
+	takion->tag_local = 0x4823; // "random" tag
+	takion->tag_remote = 0;
 
 	CHIAKI_LOGI(takion->log, "Takion connecting\n");
 
@@ -112,8 +119,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_sock;
 	}
 
-	uint8_t init_test_packet[] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x14\x00\x00H#\x00\x01\x90\x00\x00d\x00d\x00\x00H#";
-	chiaki_takion_send(takion, init_test_packet, sizeof(init_test_packet));
+
+	TakionMessagePayloadInit init_payload;
+	init_payload.tag0 = takion->tag_local;
+	init_payload.something = 0x19000; // TODO: find out what this exactly is
+	init_payload.min = 0x64; // TODO: find out what this exactly is
+	init_payload.max = 0x64; // TODO: find out what this exactly is
+	init_payload.tag1 = takion->tag_remote;
+	r = takion_send_message_init(takion, &init_payload);
+	if(r != CHIAKI_ERR_SUCCESS)
+	{
+		ret = r;
+		goto error_sock;
+	}
+
 
 	return CHIAKI_ERR_SUCCESS;
 
@@ -143,13 +162,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 		CHIAKI_LOGD(takion->log, "Takion send failed\n");
 		return CHIAKI_ERR_NETWORK;
 	}
+	else
+	{
+		CHIAKI_LOGD(takion->log, "Takion sent %lu\n", r);
+	}
 	return CHIAKI_ERR_SUCCESS;
 }
 
 
 
-static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
-static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 
 static void *takion_thread_func(void *user)
 {
@@ -163,16 +184,16 @@ static void *takion_thread_func(void *user)
 		FD_SET(takion->sock, &fds);
 		FD_SET(takion->stop_pipe[1], &fds);
 
-		CHIAKI_LOGD(takion->log, "Takion select\n");
-
-		int r = select(1, &fds, NULL, NULL, NULL);
+		int nfds = takion->sock;
+		if(takion->stop_pipe[1] > nfds)
+			nfds = takion->stop_pipe[1];
+		nfds++;
+		int r = select(nfds, &fds, NULL, NULL, NULL);
 		if(r < 0)
 		{
 			CHIAKI_LOGE(takion->log, "Takion select failed: %s\n", strerror(errno));
 			break;
 		}
-
-		CHIAKI_LOGD(takion->log, "Takion select returned\n");
 
 		if(FD_ISSET(takion->sock, &fds))
 		{
@@ -216,10 +237,11 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 	}
 }
 
+#define MESSAGE_HEADER_SIZE 0x10
 
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
 {
-	if(buf_size < 0x10)
+	if(buf_size < MESSAGE_HEADER_SIZE)
 	{
 		CHIAKI_LOGE(takion->log, "Takion message received that is too short\n");
 		return;
@@ -229,7 +251,7 @@ static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, siz
 	msg.tag = htonl(*((uint32_t *)buf));
 	msg.key_pos = htonl(*((uint32_t *)(buf + 0x8)));
 	msg.type_a = buf[0xc];
-	msg.type_a = buf[0xd];
+	msg.type_b = buf[0xd];
 	msg.payload_size = htons(*((uint16_t *)(buf + 0xe)));
 
 	if(buf_size != msg.payload_size + 0xc)
@@ -247,4 +269,39 @@ static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, siz
 
 	CHIAKI_LOGI(takion->log, "Takion received message with tag %#x, key pos %#x, type (%#x, %#x), payload size %#x, payload:\n", msg.tag, msg.key_pos, msg.type_a, msg.type_b, msg.payload_size);
 	chiaki_log_hexdump(takion->log, CHIAKI_LOG_INFO, msg.payload, msg.payload_size);
+}
+
+
+/**
+ * Write a Takion message header of size MESSAGE_HEADER_SIZE to buf.
+ *
+ * This includes type_a, type_b and payload_size
+ *
+ * @param raw_payload_size size of the actual data of the payload excluding type_a, type_b and payload_size
+ */
+static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t type_a, uint8_t type_b, size_t payload_data_size)
+{
+	*((uint32_t *)(buf + 0)) = htonl(tag);
+	*((uint32_t *)(buf + 4)) = 0;
+	*((uint32_t *)(buf + 8)) = htonl(key_pos);
+	*(buf + 0xc) = type_a;
+	*(buf + 0xd) = type_b;
+	*((uint16_t *)(buf + 0xe)) = htons((uint16_t)(payload_data_size + 4));
+}
+
+
+static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload)
+{
+	uint8_t message[1 + MESSAGE_HEADER_SIZE + 0x10];
+	message[0] = TAKION_PACKET_TYPE_MESSAGE;
+	takion_write_message_header(message + 1, takion->tag_remote, 0, 1, 0, 0x10);
+
+	uint8_t *pl = message + 1 + MESSAGE_HEADER_SIZE;
+	*((uint32_t *)(pl + 0)) = htonl(payload->tag0);
+	*((uint32_t *)(pl + 4)) = htonl(payload->something);
+	*((uint16_t *)(pl + 8)) = htons(payload->min);
+	*((uint16_t *)(pl + 0xa)) = htons(payload->max);
+	*((uint32_t *)(pl + 0xc)) = htonl(payload->tag1);
+
+	return chiaki_takion_send(takion, message, sizeof(message));
 }

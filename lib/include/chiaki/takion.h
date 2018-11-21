@@ -36,6 +36,8 @@ typedef struct chiaki_takion_t
 	int sock;
 	ChiakiThread thread;
 	int stop_pipe[2];
+	uint32_t tag_local;
+	uint32_t tag_remote;
 } ChiakiTakion;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiLog *log, struct sockaddr *sa, socklen_t sa_len);
