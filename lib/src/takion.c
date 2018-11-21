@@ -46,6 +46,26 @@ typedef struct takion_message_t
 } TakionMessage;
 
 
+typedef struct takion_message_payload_init_t
+{
+	uint32_t tag0;
+	uint32_t something;
+	uint16_t min;
+	uint16_t max;
+	uint32_t tag1;
+} TakionMessagePayloadInit;
+
+typedef struct takion_message_payload_init_ack_t
+{
+	uint32_t tag;
+	uint32_t unknown0;
+	uint16_t min;
+	uint16_t max;
+	uint32_t unknown1;
+	char data[32];
+} TakionMessagePayloadInitAck;
+
+
 static void *takion_thread_func(void *user);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiLog *log, struct sockaddr *sa, socklen_t sa_len)
