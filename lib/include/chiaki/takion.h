@@ -36,6 +36,8 @@ typedef struct chiaki_takion_t
 	int sock;
 	ChiakiThread thread;
 	int stop_pipe[2];
+	struct timeval recv_timeout;
+	int send_retries;
 	uint32_t tag_local;
 	uint32_t tag_remote;
 } ChiakiTakion;
