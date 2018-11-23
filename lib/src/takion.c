@@ -255,7 +255,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 {
 	// TODO: can we make this more memory-efficient?
 	// TODO: split packet if necessary?
-	
+
 	size_t packet_size = 1 + MESSAGE_HEADER_SIZE + 9 + buf_size;
 	uint8_t *packet_buf = malloc(packet_size);
 	if(!packet_buf)

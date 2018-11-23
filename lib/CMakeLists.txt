@@ -24,8 +24,13 @@ set(SOURCE_FILES
 		src/senkusha.c
 		src/utils.h)
 
+add_subdirectory(protobuf)
+include_directories("${NANOPB_SOURCE_DIR}")
+set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
+include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
 
-add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES})
+add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES})
+add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

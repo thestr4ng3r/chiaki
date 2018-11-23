@@ -1,0 +1,415 @@
+syntax = "proto2";
+
+package tkproto;
+
+message TakionMessage {
+    required PayloadType type = 1;
+    enum PayloadType {
+        BIG = 0;
+        BANG = 1;
+        INFO = 2;
+        HEARTBEAT = 3;
+        PACKETLOSS = 4;
+        CORRUPTFRAME = 5;
+        CURSOR = 6;
+        TIMER = 7;
+        DISCONNECT = 8;
+        LOG = 9;
+        HEADERREQUEST = 10;
+        DEBUG = 11;
+        SENKUSHA = 12;
+        STREAMINFO = 13;
+        STREAMINFOACK = 14;
+        XMBCOMMAND = 15;
+        CONNECTIONQUALITY = 16;
+        CLIENTMETRIC = 17;
+        PLAYTIMELEFT = 18;
+        SERVERMESSAGE = 19;
+        FPSCHANGE = 20;
+        CONTROLLERCONNECTION = 21;
+        CLIENTINFO = 22;
+        VIDEOCAPTURE = 23;
+        AUDIOCAPTURE = 24;
+        IDRREQUEST = 25;
+        GKTRACE = 26;
+        PERIODICTIMESTAMP = 27;
+        SERVERSETTINGS = 28;
+        DIRECTMESSAGE = 29;
+    }
+    
+    optional BigPayload big_payload = 2;
+    optional BangPayload bang_payload = 3;
+    optional InfoPayload info_payload = 4;
+    optional PacketLossPayload loss_payload = 5;
+    optional CorruptFramePayload corrupt_payload = 6;
+    optional CursorPayload cursor_payload = 8;
+    optional TimerPayload timer_payload = 9;
+    optional DisconnectPayload disconnect_payload = 10;
+    optional LogPayload log_payload = 11;
+    optional HeaderRequestPayload header_payload = 12;
+    optional DebugOption debug_payload = 13;
+    optional SenkushaPayload senkusha_payload = 14;
+    optional StreamInfoPayload stream_info_payload = 15;
+    optional XmbCommandPayload xmb_command_payload = 16;
+    optional ConnectionQualityPayload connection_quality_payload = 17;
+    optional ClientMetricPayload client_metric_payload = 18;
+    optional PlayTimeLeftPayload play_time_left_payload = 19;
+    optional ServerMessagePayload server_message_payload = 20;
+    optional FpsChangePayload fps_change_payload = 21;
+    optional ControllerConnectionPayload controller_connection_payload = 22;
+    optional ClientInfoPayload client_info_payload = 23;
+    optional VideoCapturePayload video_capture_payload = 24;
+    optional AudioCapturePayload audio_capture_payload = 25;
+    optional GkTracePayload gk_trace_payload = 26;
+    optional PeriodicTimestampPayload periodic_timestamp_payload = 27;
+    optional ServerSettingsPayload server_settings_payload = 28;
+    optional DirectMessagePayload direct_message_payload = 29;
+}
+
+message EventCode {
+    required string event_code = 1;
+    optional string name = 2;
+    optional string description = 3;
+}
+
+message BigPayload {
+    required uint32 client_version = 1;
+    required string session_key = 2;
+    required string launch_spec = 3;
+    required bytes encrypted_key = 4;
+    optional bytes ecdh_pub_key = 5;
+    optional bytes ecdh_sig = 6;
+}
+
+message BangPayload {
+    required uint32 server_version = 1;
+    required uint32 token = 2;
+    required bool encrypted_key_accepted = 3;
+    required bool version_accepted = 4;
+    required string session_key = 5;
+    optional EventCode extended_info = 6;
+    optional string server_version_string = 7;
+    optional bytes ecdh_pub_key = 8;
+    optional bytes ecdh_sig = 9;
+}
+
+message InfoPayload {
+    required uint32 effective_bw = 1;
+    required uint32 bitrate = 2;
+    required uint32 min_bitrate = 3;
+    required uint32 target_bitrate = 4;
+    required uint32 corrupt_frame_freq = 5;
+    required uint32 mtu = 6;
+    required uint32 fps = 7;
+    required uint32 monitor_interval = 8;
+    required uint32 ext_overhead = 9;
+    required uint32 int_overhead = 10;
+    required uint32 timeout_interval = 11;
+    required uint32 min_resume_quality = 12;
+    required uint32 min_fps = 13;
+}
+
+message CursorPayload {
+    required uint32 id = 1;
+    required uint32 width = 2;
+    required uint32 height = 3;
+    required uint32 hotspot_x = 4;
+    required uint32 hotspot_y = 5;
+    optional bytes pixels = 6;
+}
+
+message TimerPayload {
+    required uint32 seconds_left = 1;
+    required uint32 total_seconds = 2;
+}
+
+message CorruptFramePayload {
+    required uint32 start = 1;
+    required uint32 end = 2;
+}
+
+message PacketLossPayload {
+    required uint32 start = 1;
+    required uint32 end = 2;
+    required uint32 packets_received = 3;
+}
+
+message FpsChangePayload {
+    required uint32 fps = 1;
+}
+
+message DisconnectPayload {
+    required string reason = 1;
+    optional EventCode extended_info = 2;
+}
+
+message LogMessage {
+    required int64 timestamp = 1;
+    
+    required LogLevel level = 2;
+    enum LogLevel {
+        CRITICAL = 0;
+        ERROR = 1;
+        WARNING = 2;
+        INFO = 3;
+        DEBUG = 4;
+        TRACE = 5;
+    }
+    
+    required string component = 3;
+    required string message = 4;
+    optional double timestampdouble = 5;
+}
+
+message LogPayload {
+    repeated LogMessage messages = 1;
+}
+
+message ClientMetric {
+    required Category category = 1;
+    enum Category {
+        VIDEO_FRAMELIFETIME = 0;
+        VIDEO_FRAMENALUSCOMPLETE = 1;
+        VIDEO_FECCORRECTION = 2;
+        VIDEO_FRAMEQUEUE = 3;
+        VIDEO_DECODERFRAMEQUEUE = 4;
+        VIDEO_SUBMITTODECODER = 5;
+        VIDEO_DECODE = 6;
+        VIDEO_DECODEDPICTUREDROP = 7;
+        VIDEO_YUVCOPY = 8;
+        VIDEO_TEXTURECOPY = 9;
+        VIDEO_RENDER = 10;
+        GRAPHICS_PRERENDER = 11;
+        GRAPHICS_PRESENT = 12;
+        AUDIO_FRAMELIFETIME = 13;
+        AUDIO_FRAMENALUSCOMPLETE = 14;
+        AUDIO_FECCORRECTION = 15;
+        AUDIO_FRAMEQUEUE = 16;
+        AUDIO_SUBMITTODECODER = 17;
+        AUDIO_DECODE = 18;
+        AUDIO_BUFFERCOPY = 19;
+        AUDIO_RENDER = 20;
+    }
+    
+    required int32 start_frame = 2;
+    required int32 end_frame = 3;
+    required int32 count = 5;
+    required float average = 6;
+    required float std_dev = 7;
+    required float min_val = 8;
+    required float max_val = 9;
+}
+
+message ClientMetricPayload {
+    repeated ClientMetric messages = 1;
+}
+
+message HeaderRequestPayload {
+    required HeaderType type = 1;
+    enum HeaderType {
+        AUDIO = 0;
+        VIDEO = 1;
+    }
+}
+
+message DebugOption {
+    required Type type = 1;
+    enum Type {
+        OVERLAY = 0;
+        BITRATE = 1;
+    }
+    
+    optional OverlayPayload overlay = 2;
+    optional BitratePayload bitrate = 3;
+}
+
+message OverlayPayload {
+    optional bool enable = 1;
+    optional bool toggle = 2;
+    
+    optional LogLocation location = 3;
+    enum LogLocation {
+        TOP_LEFT = 0;
+        TOP_RIGHT = 1;
+        BOTTOM_LEFT = 2;
+        BOTTOM_RIGHT = 3;
+    }
+    
+    optional uint32 level = 4;
+}
+
+message BitratePayload {
+    optional bool toggle = 1;
+    optional float bitrate_change = 2;
+}
+
+message ResolutionPayload {
+    required uint32 width = 1;
+    required uint32 height = 2;
+    required bytes video_header = 3;
+}
+
+message StreamInfoPayload {
+    repeated ResolutionPayload resolution = 1;
+    required bytes audio_header = 2;
+    optional uint32 start_timeout = 3;
+    optional uint32 afk_timeout = 4;
+    optional uint32 afk_timeout_disconnect = 5;
+    optional uint32 congestion_control_interval = 6;
+}
+
+message XmbCommandPayload {
+    required XmbCommand command = 1;
+    enum XmbCommand {
+        OFF = 0;
+        ON = 1;
+        TOGGLE = 2;
+    }
+    
+    optional uint32 player_id = 2;
+}
+
+message ConnectionQualityPayload {
+    optional uint32 target_bitrate = 1;
+    optional uint32 upstream_bitrate = 2;
+    optional float upstream_loss = 3;
+    optional bool disable_upstream_audio = 4;
+}
+
+message PlayTimeLeftPayload {
+    optional uint32 time_left = 1;
+    optional string reason = 2;
+}
+
+message ServerMessagePayload {
+    optional string payload = 1;
+}
+
+message ControllerConnectionPayload {
+    optional int32 controller_id = 1;
+    optional bool connected = 2;
+    
+    optional ControllerType controller_type = 3;
+    enum ControllerType {
+        NOTSET = 0;
+        DUALSHOCK3 = 1;
+        DUALSHOCK4 = 2;
+        VITA = 3;
+        XINPUT = 4;
+    }
+}
+
+message ClientInfoPayload {
+    required string session_key = 1;
+    optional uint32 gcm_tag = 2;
+    optional uint32 key_pos = 3;
+}
+
+message VideoCapturePayload {
+    optional bool server_side = 1 [default = false];
+    optional uint32 idr_period = 2 [default = 0];
+}
+
+message AudioCapturePayload {
+    optional bool server_side = 1 [default = false];
+}
+
+message ServerSettingsPayload {
+    optional uint32 idr_period = 1 [default = 0];
+    optional bool send_periodic_timestamp = 2 [default = false];
+}
+
+message GkTracePayload {
+    required uint32 seq_no = 1;
+    required uint32 gcm_tag = 2;
+    required uint32 key_pos = 3;
+}
+
+message PeriodicTimestampPayload {
+    required bytes periodic_ts_info = 1;
+    required uint32 version = 2;
+}
+
+message DeepLinkPayload {
+    required DeepLinkType deep_link_type = 1;
+    enum DeepLinkType {
+        SAVE_DATA = 0;
+        INVITE = 1;
+        GAME_ALERT = 2;
+        SYSTEM_SERVICE_STATUS = 3;
+        DEBUG_VSH_MENU = 4;
+    }
+    
+    optional uint32 request_id = 2;
+    optional uint32 pad_unique_id = 3;
+    optional string invitation_id = 4;
+    optional string session_id = 5;
+    optional string item_id = 6;
+    optional string is_system_ui_qverlaid = 7;
+    optional uint32 result = 8;
+    optional bool should_show = 9;
+}
+
+message DirectMessagePayload {
+    required DirectMessageType direct_message_type = 1;
+    enum DirectMessageType {
+        DEEPLINK = 0;
+    }
+    
+    required Destination destination = 2;
+    enum Destination {
+        GAIKAI_CONTROLLER = 1000;
+        CLIENT = 1001;
+    }
+    
+    optional bytes data = 3;
+}
+
+
+
+message SenkushaPayload {
+    required Command command = 1;
+    enum Command {
+        ECHO_COMMAND = 0;
+        MTU_COMMAND = 1;
+        BANDWIDTH_COMMAND = 3;
+        CLIENT_MTU_COMMAND = 4;
+    }
+
+    optional SenkushaEchoCommand echo_command = 2;
+    optional SenkushaMtuCommand mtu_command = 3;
+    optional SenkushaBandwidthCommand bandwidth_command = 4;
+    optional SenkushaClientMtuCommand client_mtu_command = 5;
+}
+
+message SenkushaEchoCommand {
+    required bool state = 1;
+}
+
+message SenkushaMtuCommand {
+    required uint32 id = 1;
+    required uint32 mtu_req = 2;
+    optional uint32 mtu_sent = 3;
+    optional uint32 num = 4;
+    optional uint32 send_delay = 5;
+    optional uint32 delta = 6;
+}
+
+message SenkushaBandwidthCommand {
+    required uint32 id = 1;
+    required uint32 time = 2;
+    optional uint32 bandwidth = 3;
+    optional uint32 fps = 4;
+    optional uint32 mtu = 5;
+    optional uint32 nalu_count = 6;
+    optional uint32 total_sent = 7;
+    optional bool upstream = 8;
+    optional double loss = 9;
+}
+
+message SenkushaClientMtuCommand {
+    required uint32 id = 1;
+    required uint32 mtu_req = 2;
+    required bool state = 3;
+    optional uint32 mtu_down = 4;
+}

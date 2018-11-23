@@ -1,3 +1,6 @@
 [submodule "test/munit"]
 	path = test/munit
 	url = https://github.com/nemequ/munit.git
+[submodule "third-party/nanopb"]
+	path = third-party/nanopb
+	url = https://github.com/nanopb/nanopb.git

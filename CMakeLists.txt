@@ -5,6 +5,8 @@ project(chiaki)
 
 option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 
+add_subdirectory(third-party)
+
 add_subdirectory(lib)
 add_subdirectory(gui)
 
