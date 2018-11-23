@@ -15,6 +15,7 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chiaki/senkusha.h>
 #include <chiaki/session.h>
 #include <chiaki/http.h>
 #include <chiaki/base64.h>
@@ -25,9 +26,12 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <sys/socket.h>
 #include <netdb.h>
+
+#include "utils.h"
 
 
 #define SESSION_PORT					9295
@@ -153,23 +157,15 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(&session->log, "Starting Senkusha\n");
 
-	// just testing...
-	struct sockaddr *sa = malloc(session->connect_info.host_addrinfo_selected->ai_addrlen);
-	memcpy(sa, session->connect_info.host_addrinfo_selected->ai_addr, session->connect_info.host_addrinfo_selected->ai_addrlen);
-	if(sa->sa_family == AF_INET)
-		((struct sockaddr_in *)sa)->sin_port = htons(9297);
-	else if(sa->sa_family == AF_INET6)
-		((struct sockaddr_in6 *)sa)->sin6_port = htons(9297);
-	else
-		CHIAKI_LOGE(&session->log, "wtf\n");
-	err = chiaki_takion_connect(&session->takion, &session->log, sa, session->connect_info.host_addrinfo_selected->ai_addrlen);
+	err = chiaki_senkusha_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha connect failed\n");
+		CHIAKI_LOGE(&session->log, "Senkusha failed\n");
 	}
-	free(sa);
-
-	CHIAKI_LOGI(&session->log, "Senkusha started\n");
+	else
+	{
+		CHIAKI_LOGE(&session->log, "Senkusha completed successfully\n");
+	}
 
 quit_ctrl:
 	chiaki_ctrl_join(&session->ctrl);
@@ -233,15 +229,13 @@ static bool session_thread_request_session(ChiakiSession *session)
 			continue;
 		memcpy(sa, ai->ai_addr, ai->ai_addrlen);
 
-		if(sa->sa_family == AF_INET)
-			((struct sockaddr_in *)sa)->sin_port = htons(SESSION_PORT);
-		else if(sa->sa_family == AF_INET6)
-			((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_PORT);
-		else
+		if(sa->sa_family != AF_INET && sa->sa_family != AF_INET6)
 		{
 			free(sa);
 			continue;
 		}
+
+		set_port(sa, htons(SESSION_PORT));
 
 		int r = getnameinfo(sa, ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, 0);
 		if(r != 0)

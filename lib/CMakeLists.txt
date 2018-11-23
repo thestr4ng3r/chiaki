@@ -8,7 +8,8 @@ set(HEADER_FILES
 		include/chiaki/log.h
 		include/chiaki/ctrl.h
 		include/chiaki/rpcrypt.h
-		include/chiaki/takion.h)
+		include/chiaki/takion.h
+		include/chiaki/senkusha.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -19,7 +20,9 @@ set(SOURCE_FILES
 		src/log.c
 		src/ctrl.c
 		src/rpcrypt.c
-		src/takion.c)
+		src/takion.c
+		src/senkusha.c
+		src/utils.h)
 
 
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES})

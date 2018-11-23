@@ -109,8 +109,6 @@ typedef struct chiaki_session_t
 	ChiakiMutex ctrl_cond_mutex;
 	bool ctrl_session_id_received;
 
-	ChiakiTakion takion;
-
 	ChiakiLog log;
 } ChiakiSession;
 

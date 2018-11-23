@@ -30,9 +30,24 @@ extern "C" {
 #endif
 
 
+typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
+
+
+typedef struct chiaki_takion_connect_info_t
+{
+	ChiakiLog *log;
+	struct sockaddr *sa;
+	socklen_t sa_len;
+	ChiakiTakionDataCallback data_cb;
+	void *data_cb_user;
+} ChiakiTakionConnectInfo;
+
+
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
+	ChiakiTakionDataCallback data_cb;
+	void *data_cb_user;
 	int sock;
 	ChiakiThread thread;
 	int stop_pipe[2];
@@ -40,12 +55,12 @@ typedef struct chiaki_takion_t
 	int send_retries;
 	uint32_t tag_local;
 	uint32_t tag_remote;
+	uint32_t seq_num_local;
 } ChiakiTakion;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiLog *log, struct sockaddr *sa, socklen_t sa_len);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
-
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }
