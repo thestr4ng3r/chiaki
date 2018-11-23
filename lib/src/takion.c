@@ -38,6 +38,7 @@ typedef enum takion_packet_type_t {
 #define TAKION_LOCAL_MIN 0x64
 #define TAKION_LOCAL_MAX 0x64
 
+#define MESSAGE_HEADER_SIZE 0x10
 
 typedef struct takion_message_t
 {
@@ -78,6 +79,7 @@ static void *takion_thread_func(void *user);
 static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, TakionMessage *msg);
+static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t type_a, uint8_t type_b, size_t payload_data_size);
 static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload);
 static ChiakiErrorCode takion_send_message_cookie(ChiakiTakion *takion, uint8_t *cookie);
 static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, struct timeval *timeout);
@@ -249,6 +251,30 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint32_t key_pos, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size)
+{
+	// TODO: can we make this more memory-efficient?
+	// TODO: split packet if necessary?
+	
+	size_t packet_size = 1 + MESSAGE_HEADER_SIZE + 9 + buf_size;
+	uint8_t *packet_buf = malloc(packet_size);
+	if(!packet_buf)
+		return CHIAKI_ERR_MEMORY;
+	packet_buf[0] = TAKION_PACKET_TYPE_MESSAGE;
+	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, 0, type_b, 9 + buf_size);
+
+	uint8_t *msg_payload = packet_buf + 1 + MESSAGE_HEADER_SIZE;
+	*((uint32_t *)(msg_payload + 0)) = htonl(takion->seq_num_local++);
+	*((uint16_t *)(msg_payload + 4)) = htons(channel);
+	*((uint16_t *)(msg_payload + 6)) = 0;
+	*(msg_payload + 8) = 0;
+	memcpy(msg_payload + 9, buf, buf_size);
+
+	// TODO: instead of just sending and forgetting about it, make sure to receive data ack, resend if necessary, etc.
+	ChiakiErrorCode err = chiaki_takion_send_raw(takion, packet_buf, packet_size);
+	free(packet_buf);
+	return err;
+}
 
 
 static void *takion_thread_func(void *user)
@@ -331,7 +357,6 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 	}
 }
 
-#define MESSAGE_HEADER_SIZE 0x10
 
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
 {
