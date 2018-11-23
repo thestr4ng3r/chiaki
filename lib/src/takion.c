@@ -140,7 +140,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	init_payload.something = TAKION_LOCAL_SOMETHING;
 	init_payload.min = TAKION_LOCAL_MIN;
 	init_payload.max = TAKION_LOCAL_MIN;
-	init_payload.tag1 = takion->tag_remote;
+	init_payload.tag1 = takion->tag_local;
 	ChiakiErrorCode err = takion_send_message_init(takion, &init_payload);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
@@ -395,11 +395,11 @@ static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, 
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
-	msg->tag = htonl(*((uint32_t *)buf));
-	msg->key_pos = htonl(*((uint32_t *)(buf + 0x8)));
+	msg->tag = ntohl(*((uint32_t *)buf));
+	msg->key_pos = ntohl(*((uint32_t *)(buf + 0x8)));
 	msg->type_a = buf[0xc];
 	msg->type_b = buf[0xd];
-	msg->payload_size = htons(*((uint16_t *)(buf + 0xe)));
+	msg->payload_size = ntohs(*((uint16_t *)(buf + 0xe)));
 
 	if(msg->tag != takion->tag_local)
 	{
@@ -490,11 +490,11 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 	assert(msg.payload_size == 0x10 + TAKION_COOKIE_SIZE);
 
 	uint8_t *pl = msg.payload;
-	payload->tag = htonl(*((uint32_t *)(pl + 0)));
-	payload->unknown0 = htonl(*((uint32_t *)(pl + 4)));
-	payload->min = htons(*((uint16_t *)(pl + 8)));
-	payload->max = htons(*((uint16_t *)(pl + 0xa)));
-	payload->unknown1 = htonl(*((uint16_t *)(pl + 0xc)));
+	payload->tag = ntohl(*((uint32_t *)(pl + 0)));
+	payload->unknown0 = ntohl(*((uint32_t *)(pl + 4)));
+	payload->min = ntohs(*((uint16_t *)(pl + 8)));
+	payload->max = ntohs(*((uint16_t *)(pl + 0xa)));
+	payload->unknown1 = ntohl(*((uint16_t *)(pl + 0xc)));
 	memcpy(payload->cookie, pl + 0x10, TAKION_COOKIE_SIZE);
 
 	return CHIAKI_ERR_SUCCESS;

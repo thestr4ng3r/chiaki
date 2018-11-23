@@ -25,6 +25,11 @@
 #include <zconf.h>
 
 #include "utils.h"
+#include "pb_utils.h"
+
+#include <takion.pb.h>
+#include <pb_encode.h>
+#include <pb.h>
 
 
 #define SENKUSHA_SOCKET 9297
@@ -37,7 +42,8 @@ typedef struct senkusha_t
 } Senkusha;
 
 
-void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user);
+static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user);
+static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 {
@@ -65,16 +71,61 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 		return err;
 	}
 
+	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
+
+	err = senkusha_send_big(&senkusha);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Senkusha failed to send big\n");
+		return err;
+		// TODO: close takion
+	}
+
 	while(true)
 		sleep(1);
 
 	return CHIAKI_ERR_SUCCESS;
 }
 
-void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
+static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
 {
 	Senkusha *senkusha = user;
 
 	CHIAKI_LOGD(senkusha->log, "Senkusha received data:\n");
 	chiaki_log_hexdump(senkusha->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
+
+static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+	CHIAKI_LOGD(senkusha->log, "sizeof(tkproto_TakionMessage) = %lu\n", sizeof(tkproto_TakionMessage));
+
+	msg.type = tkproto_TakionMessage_PayloadType_BIG;
+	msg.has_big_payload = true;
+	msg.big_payload.client_version = 7;
+	msg.big_payload.session_key.arg = "";
+	msg.big_payload.session_key.funcs.encode = chiaki_pb_encode_string;
+	msg.big_payload.launch_spec.arg = "";
+	msg.big_payload.launch_spec.funcs.encode = chiaki_pb_encode_string;
+	msg.big_payload.encrypted_key.arg = "";
+	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_string;
+
+	uint8_t buf[512];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha big protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 0, 1, 1, buf, buf_size);
+
+	return err;
+}
+
+

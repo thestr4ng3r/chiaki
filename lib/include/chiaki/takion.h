@@ -62,7 +62,7 @@ typedef struct chiaki_takion_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_send_message_data(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint32_t key_pos, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

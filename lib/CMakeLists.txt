@@ -22,7 +22,8 @@ set(SOURCE_FILES
 		src/rpcrypt.c
 		src/takion.c
 		src/senkusha.c
-		src/utils.h)
+		src/utils.h
+		src/pb_utils.h)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
@@ -40,3 +41,5 @@ target_link_libraries(chiaki-lib Threads::Threads)
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(chiaki-lib OpenSSL::Crypto)
+
+target_link_libraries(chiaki-lib protobuf-nanopb-static)
