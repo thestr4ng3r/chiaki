@@ -9,7 +9,9 @@ set(HEADER_FILES
 		include/chiaki/ctrl.h
 		include/chiaki/rpcrypt.h
 		include/chiaki/takion.h
-		include/chiaki/senkusha.h)
+		include/chiaki/senkusha.h
+		include/chiaki/nagare.h
+		include/chiaki/mirai.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -23,7 +25,9 @@ set(SOURCE_FILES
 		src/takion.c
 		src/senkusha.c
 		src/utils.h
-		src/pb_utils.h)
+		src/pb_utils.h
+		src/nagare.c
+		src/mirai.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")

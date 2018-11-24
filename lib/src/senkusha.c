@@ -17,6 +17,7 @@
 
 #include <chiaki/senkusha.h>
 #include <chiaki/session.h>
+#include <chiaki/mirai.h>
 
 #include <string.h>
 #include <assert.h>
@@ -43,10 +44,7 @@ typedef struct senkusha_t
 	ChiakiLog *log;
 	ChiakiTakion takion;
 
-	bool bang_expected;
-	bool bang_received;
-	ChiakiMutex bang_mutex;
-	ChiakiCond bang_cond;
+	ChiakiMirai bang_mirai;
 } Senkusha;
 
 
@@ -58,14 +56,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 {
 	Senkusha senkusha;
 	senkusha.log = &session->log;
-	senkusha.bang_expected = false;
-	senkusha.bang_received = false;
-	ChiakiErrorCode err = chiaki_mutex_init(&senkusha.bang_mutex);
+	ChiakiErrorCode err = chiaki_mirai_init(&senkusha.bang_mirai);
 	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
-	err = chiaki_cond_init(&senkusha.bang_cond);
-	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_bang_mutex;
+		goto error_bang_mirai;
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = senkusha.log;
@@ -85,15 +78,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha connect failed\n");
-		goto error_bang_cond;
+		goto error_bang_mirai;
 	}
 
 	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
 
-	err = chiaki_mutex_lock(&senkusha.bang_mutex);
+	err = chiaki_mirai_expect_begin(&senkusha.bang_mirai);
 	assert(err == CHIAKI_ERR_SUCCESS);
-
-	senkusha.bang_expected = true;
 
 	err = senkusha_send_big(&senkusha);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -102,11 +93,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 		goto error_takion;
 	}
 
-	err = chiaki_cond_timedwait(&senkusha.bang_cond, &senkusha.bang_mutex, BIG_TIMEOUT_MS);
-	senkusha.bang_expected = false;
-	chiaki_mutex_unlock(&senkusha.bang_mutex);
+	err = chiaki_mirai_expect_wait(&senkusha.bang_mirai, BIG_TIMEOUT_MS);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
-	if(!senkusha.bang_received)
+	if(!senkusha.bang_mirai.success)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout\n");
@@ -126,10 +116,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 error_takion:
 	chiaki_takion_close(&senkusha.takion);
 	CHIAKI_LOGI(&session->log, "Senkusha closed takion\n");
-error_bang_cond:
-	chiaki_cond_init(&senkusha.bang_cond);
-error_bang_mutex:
-	chiaki_mutex_fini(&senkusha.bang_mutex);
+error_bang_mirai:
+	chiaki_mirai_fini(&senkusha.bang_mirai);
 	return err;
 }
 
@@ -148,17 +136,14 @@ static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
 		return;
 	}
 
-	if(senkusha->bang_expected)
+	if(senkusha->bang_mirai.expected)
 	{
 		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 		{
 			CHIAKI_LOGE(senkusha->log, "Senkusha expected bang payload but received something else\n");
 			return;
 		}
-		chiaki_mutex_lock(&senkusha->bang_mutex);
-		senkusha->bang_received = true;
-		chiaki_cond_signal(&senkusha->bang_cond);
-		chiaki_mutex_unlock(&senkusha->bang_mutex);
+		chiaki_mirai_signal(&senkusha->bang_mirai, true);
 	}
 }
 

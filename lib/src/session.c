@@ -151,7 +151,6 @@ static void *session_thread_func(void *arg)
 	if(!session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGE(&session->log, "Ctrl has failed, shutting down\n");
-		chiaki_ctrl_join(&session->ctrl);
 		goto quit_ctrl;
 	}
 
@@ -161,6 +160,7 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha failed\n");
+		goto quit_ctrl;
 	}
 	else
 	{

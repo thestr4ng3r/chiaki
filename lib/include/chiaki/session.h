@@ -18,6 +18,7 @@
 #ifndef CHIAKI_SESSION_H
 #define CHIAKI_SESSION_H
 
+#include "nagare.h"
 #include "common.h"
 #include "thread.h"
 #include "log.h"
@@ -110,6 +111,8 @@ typedef struct chiaki_session_t
 	bool ctrl_session_id_received;
 
 	ChiakiLog log;
+
+	ChiakiNagare nagare;
 } ChiakiSession;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
