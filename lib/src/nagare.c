@@ -18,6 +18,8 @@
 
 #include <chiaki/nagare.h>
 #include <chiaki/session.h>
+#include <chiaki/launchspec.h>
+#include <chiaki/base64.h>
 
 #include <string.h>
 #include <assert.h>
@@ -43,6 +45,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 {
 	ChiakiNagare *nagare = &session->nagare;
+	nagare->session = session;
 	nagare->log = &session->log;
 
 	ChiakiErrorCode err = chiaki_mirai_init(&nagare->bang_mirai);
@@ -144,20 +147,71 @@ static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 	}
 }
 
+
+static bool chiaki_pb_encode_zero_encrypted_key(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+	if (!pb_encode_tag_for_field(stream, field))
+		return false;
+	uint8_t data[] = { 0, 0, 0, 0 };
+	return pb_encode_string(stream, data, sizeof(data));
+}
+
+#define LAUNCH_SPEC_JSON_BUF_SIZE 1024
+
 static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 {
+	ChiakiSession *session = nagare->session;
+
+	ChiakiLaunchSpec launch_spec;
+	launch_spec.mtu = session->mtu;
+	launch_spec.rtt = session->rtt;
+	launch_spec.handshake_key = session->handshake_key;
+
+	union
+	{
+		char json[LAUNCH_SPEC_JSON_BUF_SIZE];
+		char b64[LAUNCH_SPEC_JSON_BUF_SIZE * 2];
+	} launch_spec_buf;
+	ssize_t launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
+	if(launch_spec_json_size != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to format LaunchSpec json\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	launch_spec_json_size += 1; // we also want the trailing 0
+
+	uint8_t launch_spec_json_enc[LAUNCH_SPEC_JSON_BUF_SIZE];
+	memset(launch_spec_json_enc, 0, (size_t)launch_spec_json_size);
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 0, launch_spec_json_enc, launch_spec_json_enc,
+			(size_t)launch_spec_json_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to encrypt LaunchSpec\n");
+		return err;
+	}
+
+	xor_bytes(launch_spec_json_enc, (uint8_t *)launch_spec_buf.json, (size_t)launch_spec_json_size);
+	err = chiaki_base64_encode(launch_spec_json_enc, (size_t)launch_spec_json_size, launch_spec_buf.b64, sizeof(launch_spec_buf.b64));
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to encode LaunchSpec as base64\n");
+		return err;
+	}
+
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
 
 	msg.type = tkproto_TakionMessage_PayloadType_BIG;
 	msg.has_big_payload = true;
 	msg.big_payload.client_version = 9;
-	msg.big_payload.session_key.arg = "";
+	msg.big_payload.session_key.arg = session->session_id;
 	msg.big_payload.session_key.funcs.encode = chiaki_pb_encode_string;
-	msg.big_payload.launch_spec.arg = "";
+	msg.big_payload.launch_spec.arg = launch_spec_buf.b64;
 	msg.big_payload.launch_spec.funcs.encode = chiaki_pb_encode_string;
-	msg.big_payload.encrypted_key.arg = "";
-	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_string;
+	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_zero_encrypted_key;
+
+	// TODO: msg.big_payload.ecdh_pub_key
+	// TODO: msg.big_payload.ecdh_sig
 
 	uint8_t buf[12];
 	size_t buf_size;
@@ -171,7 +225,7 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
+	err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
 
 	return err;
 }

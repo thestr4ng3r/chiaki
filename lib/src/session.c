@@ -19,6 +19,7 @@
 #include <chiaki/session.h>
 #include <chiaki/http.h>
 #include <chiaki/base64.h>
+#include <chiaki/random.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -163,7 +164,18 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
+	// TODO: Senkusha should set that
+	session->mtu = 1454;
+	session->rtt = 12;
+
 	CHIAKI_LOGI(&session->log, "Senkusha completed successfully\n");
+
+	err = chiaki_random_bytes(session->handshake_key, sizeof(session->handshake_key));
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Session failed to generate handshake key\n");
+		goto quit_ctrl;
+	}
 
 	err = chiaki_nagare_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -375,4 +387,3 @@ static bool session_thread_request_session(ChiakiSession *session)
 	close(session_sock);
 	return response.success;
 }
-

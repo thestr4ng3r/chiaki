@@ -15,32 +15,25 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_UTILS_H
-#define CHIAKI_UTILS_H
+#ifndef CHIAKI_ECDH_H
+#define CHIAKI_ECDH_H
 
-#include <chiaki/common.h>
-#include <netinet/in.h>
+#include "common.h"
 
-static inline ChiakiErrorCode set_port(struct sockaddr *sa, in_port_t port)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct chiaki_ecdh_t
 {
-	if(sa->sa_family == AF_INET)
-		((struct sockaddr_in *)sa)->sin_port = port;
-	else if(sa->sa_family == AF_INET6)
-		((struct sockaddr_in6 *)sa)->sin6_port = port;
-	else
-		return CHIAKI_ERR_INVALID_DATA;
-	return CHIAKI_ERR_SUCCESS;
-}
 
-static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)
-{
-	while(sz > 0)
-	{
-		*dst ^= *src;
-		dst++;
-		src++;
-		sz--;
-	}
-}
+} ChiakiECDH;
 
-#endif // CHIAKI_UTILS_H
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh);
+CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // CHIAKI_ECDH_H

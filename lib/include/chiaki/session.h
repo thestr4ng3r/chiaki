@@ -36,6 +36,7 @@ extern "C" {
 
 #define CHIAKI_RP_DID_SIZE 32
 #define CHIAKI_SESSION_ID_SIZE_MAX 80
+#define CHIAKI_HANDSHAKE_KEY_SIZE 0x10
 
 typedef struct chiaki_connect_info_t
 {
@@ -96,7 +97,10 @@ typedef struct chiaki_session_t
 
 	uint8_t nonce[CHIAKI_KEY_BYTES];
 	ChiakiRPCrypt rpcrypt;
-	char session_id[CHIAKI_SESSION_ID_SIZE_MAX];
+	char session_id[CHIAKI_SESSION_ID_SIZE_MAX]; // zero-terminated
+	uint8_t handshake_key[CHIAKI_HANDSHAKE_KEY_SIZE];
+	unsigned int mtu;
+	unsigned int rtt;
 
 	ChiakiQuitReason quit_reason;
 
