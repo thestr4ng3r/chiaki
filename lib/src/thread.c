@@ -86,9 +86,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
 {
-	int r = pthread_cond_init(&cond->cond, NULL);
+	pthread_condattr_t attr;
+	int r = pthread_condattr_init(&attr);
 	if(r != 0)
 		return CHIAKI_ERR_UNKNOWN;
+	r = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+	if(r != 0)
+	{
+		pthread_condattr_destroy(&attr);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	r = pthread_cond_init(&cond->cond, &attr);
+	if(r != 0)
+	{
+		pthread_condattr_destroy(&attr);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	pthread_condattr_destroy(&attr);
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -107,6 +121,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mu
 	int r = pthread_cond_wait(&cond->cond, &mutex->mutex);
 	if(r != 0)
 		return CHIAKI_ERR_UNKNOWN;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
+{
+	struct timespec timeout;
+	clock_gettime(CLOCK_MONOTONIC, &timeout);
+	timeout.tv_sec += timeout_ms / 1000;
+	timeout.tv_nsec += (timeout_ms % 1000) * 1000000;
+	if(timeout.tv_nsec > 1000000000)
+	{
+		timeout.tv_sec += timeout.tv_nsec / 1000000000;
+		timeout.tv_nsec %= 1000000000;
+	}
+	int r = pthread_cond_timedwait(&cond->cond, &mutex->mutex, &timeout);
+	if(r != 0)
+	{
+		if(r == ETIMEDOUT)
+			return CHIAKI_ERR_TIMEOUT;
+		return CHIAKI_ERR_UNKNOWN;
+	}
 	return CHIAKI_ERR_SUCCESS;
 }
 

@@ -29,26 +29,43 @@
 
 #include <takion.pb.h>
 #include <pb_encode.h>
+#include <pb_decode.h>
 #include <pb.h>
 
 
 #define SENKUSHA_SOCKET 9297
+
+#define BIG_TIMEOUT_MS 5000
 
 
 typedef struct senkusha_t
 {
 	ChiakiLog *log;
 	ChiakiTakion takion;
+
+	bool bang_expected;
+	bool bang_received;
+	ChiakiMutex bang_mutex;
+	ChiakiCond bang_cond;
 } Senkusha;
 
 
 static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha);
+static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 {
 	Senkusha senkusha;
 	senkusha.log = &session->log;
+	senkusha.bang_expected = false;
+	senkusha.bang_received = false;
+	ChiakiErrorCode err = chiaki_mutex_init(&senkusha.bang_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	err = chiaki_cond_init(&senkusha.bang_cond);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_bang_mutex;
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = senkusha.log;
@@ -57,7 +74,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	if(!takion_info.sa)
 		return CHIAKI_ERR_MEMORY;
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
-	ChiakiErrorCode err = set_port(takion_info.sa, htons(SENKUSHA_SOCKET));
+	err = set_port(takion_info.sa, htons(SENKUSHA_SOCKET));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	takion_info.data_cb = senkusha_takion_data;
@@ -68,38 +85,87 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha connect failed\n");
-		return err;
+		goto error_bang_cond;
 	}
 
 	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
+
+	err = chiaki_mutex_lock(&senkusha.bang_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	senkusha.bang_expected = true;
 
 	err = senkusha_send_big(&senkusha);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha failed to send big\n");
-		return err;
-		// TODO: close takion
+		goto error_takion;
 	}
 
-	while(true)
-		sleep(1);
+	err = chiaki_cond_timedwait(&senkusha.bang_cond, &senkusha.bang_mutex, BIG_TIMEOUT_MS);
+	senkusha.bang_expected = false;
+	chiaki_mutex_unlock(&senkusha.bang_mutex);
 
-	return CHIAKI_ERR_SUCCESS;
+	if(!senkusha.bang_received)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout\n");
+
+		CHIAKI_LOGE(&session->log, "Senkusha didn't receive bang\n");
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_takion;
+	}
+
+	CHIAKI_LOGI(&session->log, "Senkusha successfully received bang\n");
+
+	CHIAKI_LOGI(&session->log, "Senkusha is disconnecting\n");
+
+	senkusha_send_disconnect(&senkusha);
+
+	err = CHIAKI_ERR_SUCCESS;
+error_takion:
+	chiaki_takion_close(&senkusha.takion);
+	CHIAKI_LOGI(&session->log, "Senkusha closed takion\n");
+error_bang_cond:
+	chiaki_cond_init(&senkusha.bang_cond);
+error_bang_mutex:
+	chiaki_mutex_fini(&senkusha.bang_mutex);
+	return err;
 }
 
 static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
 {
 	Senkusha *senkusha = user;
 
-	CHIAKI_LOGD(senkusha->log, "Senkusha received data:\n");
-	chiaki_log_hexdump(senkusha->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
+	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!r)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha failed to decode data protobuf\n");
+		return;
+	}
+
+	if(senkusha->bang_expected)
+	{
+		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
+		{
+			CHIAKI_LOGE(senkusha->log, "Senkusha expected bang payload but received something else\n");
+			return;
+		}
+		chiaki_mutex_lock(&senkusha->bang_mutex);
+		senkusha->bang_received = true;
+		chiaki_cond_signal(&senkusha->bang_cond);
+		chiaki_mutex_unlock(&senkusha->bang_mutex);
+	}
 }
 
 static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
 {
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
-	CHIAKI_LOGD(senkusha->log, "sizeof(tkproto_TakionMessage) = %lu\n", sizeof(tkproto_TakionMessage));
 
 	msg.type = tkproto_TakionMessage_PayloadType_BIG;
 	msg.has_big_payload = true;
@@ -111,7 +177,7 @@ static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
 	msg.big_payload.encrypted_key.arg = "";
 	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_string;
 
-	uint8_t buf[512];
+	uint8_t buf[12];
 	size_t buf_size;
 
 	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
@@ -119,6 +185,33 @@ static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
 	if(!pbr)
 	{
 		CHIAKI_LOGE(senkusha->log, "Senkusha big protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 0, 1, 1, buf, buf_size);
+
+	return err;
+}
+
+static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	msg.type = tkproto_TakionMessage_PayloadType_DISCONNECT;
+	msg.has_disconnect_payload = true;
+	msg.disconnect_payload.reason.arg = "Client Disconnecting";
+	msg.disconnect_payload.reason.funcs.encode = chiaki_pb_encode_string;
+
+	uint8_t buf[26];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha disconnect protobuf encoding failed\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 

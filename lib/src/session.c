@@ -164,7 +164,7 @@ static void *session_thread_func(void *arg)
 	}
 	else
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha completed successfully\n");
+		CHIAKI_LOGI(&session->log, "Senkusha completed successfully\n");
 	}
 
 quit_ctrl:

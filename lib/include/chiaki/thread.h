@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include <pthread.h>
 
 typedef struct chiaki_thread_t
@@ -57,6 +58,7 @@ typedef struct chiaki_cond_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_fini(ChiakiCond *cond);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mutex);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond);
 

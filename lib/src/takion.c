@@ -87,6 +87,8 @@ typedef struct takion_message_payload_init_ack_t
 static void *takion_thread_func(void *user);
 static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
+static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, TakionMessage *msg);
 static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t type_a, uint8_t type_b, size_t payload_data_size);
 static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload);
@@ -247,9 +249,9 @@ error_pipe:
 
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 {
-	write(takion->stop_pipe[0], "\x00", 1);
+	write(takion->stop_pipe[1], "\x00", 1);
 	chiaki_thread_join(&takion->thread, NULL);
-	close(takion->stop_pipe[0]);
+	close(takion->stop_pipe[1]);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
@@ -319,7 +321,7 @@ static void *takion_thread_func(void *user)
 	}
 
 	close(takion->sock);
-	close(takion->stop_pipe[1]);
+	close(takion->stop_pipe[0]);
 	return NULL;
 }
 
@@ -329,20 +331,20 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(takion->sock, &fds);
-	FD_SET(takion->stop_pipe[1], &fds);
+	FD_SET(takion->stop_pipe[0], &fds);
 
 	int nfds = takion->sock;
-	if(takion->stop_pipe[1] > nfds)
-		nfds = takion->stop_pipe[1];
+	if(takion->stop_pipe[0] > nfds)
+		nfds = takion->stop_pipe[0];
 	nfds++;
-	int r = select(nfds, &fds, NULL, NULL, NULL);
+	int r = select(nfds, &fds, NULL, NULL, timeout);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion select failed: %s\n", strerror(errno));
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(FD_ISSET(takion->stop_pipe[1], &fds))
+	if(FD_ISSET(takion->stop_pipe[0], &fds))
 		return CHIAKI_ERR_CANCELED;
 
 	if(FD_ISSET(takion->sock, &fds))
@@ -384,8 +386,6 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 	}
 }
 
-static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
-static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
 
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
 {
