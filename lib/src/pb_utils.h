@@ -20,7 +20,7 @@
 
 #include <pb_encode.h>
 
-bool chiaki_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+static bool chiaki_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
 {
 	char *str = *arg;
 

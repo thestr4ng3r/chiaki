@@ -18,6 +18,7 @@
 #ifndef CHIAKI_NAGARE_H
 #define CHIAKI_NAGARE_H
 
+#include "mirai.h"
 #include "takion.h"
 #include "log.h"
 
@@ -32,7 +33,10 @@ typedef struct chiaki_nagare_t
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
 	ChiakiTakion takion;
+	ChiakiMirai bang_mirai;
 } ChiakiNagare;
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(struct chiaki_session_t *session);
 
 #ifdef __cplusplus
 }

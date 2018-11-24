@@ -22,9 +22,6 @@
 #include <string.h>
 #include <assert.h>
 
-// TODO: remove
-#include <zconf.h>
-
 #include "utils.h"
 #include "pb_utils.h"
 
@@ -34,7 +31,7 @@
 #include <pb.h>
 
 
-#define SENKUSHA_SOCKET 9297
+#define SENKUSHA_PORT 9297
 
 #define BIG_TIMEOUT_MS 5000
 
@@ -65,9 +62,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
 	takion_info.sa = malloc(takion_info.sa_len);
 	if(!takion_info.sa)
-		return CHIAKI_ERR_MEMORY;
+	{
+		err = CHIAKI_ERR_MEMORY;
+		goto error_bang_mirai;
+	}
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
-	err = set_port(takion_info.sa, htons(SENKUSHA_SOCKET));
+	err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	takion_info.data_cb = senkusha_takion_data;

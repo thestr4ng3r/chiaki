@@ -19,12 +19,188 @@
 #include <chiaki/nagare.h>
 #include <chiaki/session.h>
 
+#include <string.h>
+#include <assert.h>
+
+#include <takion.pb.h>
+#include <pb_encode.h>
+#include <pb_decode.h>
+#include <pb.h>
+
+#include "utils.h"
+#include "pb_utils.h"
+
+
+#define NAGARE_PORT 9296
+
+#define BIG_TIMEOUT_MS 5000
+
+
+static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user);
+static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
+static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 {
 	ChiakiNagare *nagare = &session->nagare;
 	nagare->log = &session->log;
-	nagare->log = &session->log;
+
+	ChiakiErrorCode err = chiaki_mirai_init(&nagare->bang_mirai);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_bang_mirai;
+
+	ChiakiTakionConnectInfo takion_info;
+	takion_info.log = nagare->log;
+	takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
+	takion_info.sa = malloc(takion_info.sa_len);
+	if(!takion_info.sa)
+	{
+		err = CHIAKI_ERR_MEMORY;
+		goto error_bang_mirai;
+	}
+	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
+	err = set_port(takion_info.sa, htons(NAGARE_PORT));
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	takion_info.data_cb = nagare_takion_data;
+	takion_info.data_cb_user = nagare;
+
+	err = chiaki_takion_connect(&nagare->takion, &takion_info);
+	free(takion_info.sa);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Nagare connect failed\n");
+		goto error_bang_mirai;
+	}
+
+	CHIAKI_LOGI(&session->log, "Nagare sending big\n");
+
+	err = chiaki_mirai_expect_begin(&nagare->bang_mirai);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	err = nagare_send_big(nagare);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Nagare failed to send big\n");
+		goto error_takion;
+	}
+
+	err = chiaki_mirai_expect_wait(&nagare->bang_mirai, BIG_TIMEOUT_MS);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+	if(!nagare->bang_mirai.success)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+			CHIAKI_LOGE(&session->log, "Nagare bang receive timeout\n");
+
+		CHIAKI_LOGE(&session->log, "Nagare didn't receive bang\n");
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_takion;
+	}
+
+	CHIAKI_LOGI(&session->log, "Nagare successfully received bang\n");
+
+	CHIAKI_LOGI(&session->log, "Nagare is disconnecting\n");
+
+	nagare_send_disconnect(nagare);
+
+	err = CHIAKI_ERR_SUCCESS;
+error_takion:
+	chiaki_takion_close(&nagare->takion);
+	CHIAKI_LOGI(&session->log, "Nagare closed takion\n");
+error_bang_mirai:
+	chiaki_mirai_fini(&nagare->bang_mirai);
+	return err;
 
 
 }
+
+
+
+
+static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
+{
+	ChiakiNagare *nagare = user;
+
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
+	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!r)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		return;
+	}
+
+	if(nagare->bang_mirai.expected)
+	{
+		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
+		{
+			CHIAKI_LOGE(nagare->log, "Nagare expected bang payload but received something else\n");
+			return;
+		}
+		chiaki_mirai_signal(&nagare->bang_mirai, true);
+	}
+}
+
+static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	msg.type = tkproto_TakionMessage_PayloadType_BIG;
+	msg.has_big_payload = true;
+	msg.big_payload.client_version = 9;
+	msg.big_payload.session_key.arg = "";
+	msg.big_payload.session_key.funcs.encode = chiaki_pb_encode_string;
+	msg.big_payload.launch_spec.arg = "";
+	msg.big_payload.launch_spec.funcs.encode = chiaki_pb_encode_string;
+	msg.big_payload.encrypted_key.arg = "";
+	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_string;
+
+	uint8_t buf[12];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare big protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
+
+	return err;
+}
+
+static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	msg.type = tkproto_TakionMessage_PayloadType_DISCONNECT;
+	msg.has_disconnect_payload = true;
+	msg.disconnect_payload.reason.arg = "Client Disconnecting";
+	msg.disconnect_payload.reason.funcs.encode = chiaki_pb_encode_string;
+
+	uint8_t buf[26];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare disconnect protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
+
+	return err;
+}
+
+

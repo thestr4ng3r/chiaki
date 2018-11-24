@@ -162,10 +162,17 @@ static void *session_thread_func(void *arg)
 		CHIAKI_LOGE(&session->log, "Senkusha failed\n");
 		goto quit_ctrl;
 	}
-	else
+
+	CHIAKI_LOGI(&session->log, "Senkusha completed successfully\n");
+
+	err = chiaki_nagare_run(session);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGI(&session->log, "Senkusha completed successfully\n");
+		CHIAKI_LOGE(&session->log, "Nagare failed\n");
+		goto quit_ctrl;
 	}
+
+	CHIAKI_LOGI(&session->log, "Nagare completed successfully\n");
 
 quit_ctrl:
 	chiaki_ctrl_join(&session->ctrl);
