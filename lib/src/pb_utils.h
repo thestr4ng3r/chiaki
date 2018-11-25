@@ -30,4 +30,21 @@ static bool chiaki_pb_encode_string(pb_ostream_t *stream, const pb_field_t *fiel
 	return pb_encode_string(stream, (uint8_t*)str, strlen(str));
 }
 
+typedef struct chiaki_pb_buf_t
+{
+	size_t size;
+	uint8_t *buf;
+} ChiakiPBBuf;
+
+static bool chiaki_pb_encode_buf(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+	ChiakiPBBuf *buf = *arg;
+
+	if (!pb_encode_tag_for_field(stream, field))
+		return false;
+
+	return pb_encode_string(stream, buf->buf, buf->size);
+}
+
+
 #endif // CHIAKI_PB_UTILS_H

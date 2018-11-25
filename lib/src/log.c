@@ -113,3 +113,19 @@ void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf
 			break;
 	}
 }
+
+void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
+{
+	char *str = malloc(buf_size * 2 + 1);
+	if(!str)
+		return;
+	for(size_t i=0; i<buf_size; i++)
+	{
+		uint8_t v = buf[i];
+		str[i*2+0] = hex_char[v >> 4];
+		str[i*2+1] = hex_char[v & 0xf];
+	}
+	str[buf_size*2] = 0;
+	chiaki_log(log, level, "%s\n", str);
+	free(str);
+}

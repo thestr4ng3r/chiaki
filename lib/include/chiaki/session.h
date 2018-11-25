@@ -25,6 +25,7 @@
 #include "ctrl.h"
 #include "rpcrypt.h"
 #include "takion.h"
+#include "ecdh.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -101,6 +102,7 @@ typedef struct chiaki_session_t
 	uint8_t handshake_key[CHIAKI_HANDSHAKE_KEY_SIZE];
 	unsigned int mtu;
 	unsigned int rtt;
+	ChiakiECDH ecdh;
 
 	ChiakiQuitReason quit_reason;
 

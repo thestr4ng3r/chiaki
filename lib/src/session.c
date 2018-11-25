@@ -177,6 +177,13 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
+	err = chiaki_ecdh_init(&session->ecdh);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "Session failed to initialize ECDH\n");
+		goto quit_ctrl;
+	}
+
 	err = chiaki_nagare_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

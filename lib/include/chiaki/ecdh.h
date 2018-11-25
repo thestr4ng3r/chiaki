@@ -20,17 +20,22 @@
 
 #include "common.h"
 
+#include <stdlib.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct chiaki_ecdh_t
 {
-
+	struct ec_group_st *group;
+	struct ec_key_st *key_local;
 } ChiakiECDH;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh);
 CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size);
 
 #ifdef __cplusplus
 }

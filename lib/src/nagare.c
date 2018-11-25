@@ -173,12 +173,14 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 		char b64[LAUNCH_SPEC_JSON_BUF_SIZE * 2];
 	} launch_spec_buf;
 	ssize_t launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
-	if(launch_spec_json_size != CHIAKI_ERR_SUCCESS)
+	if(launch_spec_json_size < 0)
 	{
 		CHIAKI_LOGE(nagare->log, "Nagare failed to format LaunchSpec json\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 	launch_spec_json_size += 1; // we also want the trailing 0
+
+	CHIAKI_LOGD(nagare->log, "LaunchSpec: %s\n", launch_spec_buf.json);
 
 	uint8_t launch_spec_json_enc[LAUNCH_SPEC_JSON_BUF_SIZE];
 	memset(launch_spec_json_enc, 0, (size_t)launch_spec_json_size);
@@ -198,6 +200,20 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 		return err;
 	}
 
+	char ecdh_pub_key[128];
+	ChiakiPBBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), ecdh_pub_key };
+	char ecdh_sig[32];
+	ChiakiPBBuf ecdh_sig_buf = { sizeof(ecdh_sig), ecdh_sig };
+	err = chiaki_ecdh_get_local_pub_key(&session->ecdh,
+			ecdh_pub_key, &ecdh_pub_key_buf.size,
+			session->handshake_key,
+			ecdh_sig, &ecdh_sig_buf.size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to get ECDH key and sig\n");
+		return err;
+	}
+
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
 
@@ -209,11 +225,12 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	msg.big_payload.launch_spec.arg = launch_spec_buf.b64;
 	msg.big_payload.launch_spec.funcs.encode = chiaki_pb_encode_string;
 	msg.big_payload.encrypted_key.funcs.encode = chiaki_pb_encode_zero_encrypted_key;
+	msg.big_payload.ecdh_pub_key.arg = &ecdh_pub_key_buf;
+	msg.big_payload.ecdh_pub_key.funcs.encode = chiaki_pb_encode_buf;
+	msg.big_payload.ecdh_sig.arg = &ecdh_sig_buf;
+	msg.big_payload.ecdh_sig.funcs.encode = chiaki_pb_encode_buf;
 
-	// TODO: msg.big_payload.ecdh_pub_key
-	// TODO: msg.big_payload.ecdh_sig
-
-	uint8_t buf[12];
+	uint8_t buf[2048];
 	size_t buf_size;
 
 	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
