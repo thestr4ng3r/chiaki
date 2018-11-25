@@ -41,6 +41,7 @@
 static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
 static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
+static void nagare_handle_bang(ChiakiNagare *nagare, tkproto_BangPayload *payload);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 {
@@ -120,10 +121,17 @@ error_bang_mirai:
 
 
 
+static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 
 static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 {
 	ChiakiNagare *nagare = user;
+
+	if(nagare->bang_mirai.expected)
+	{
+		nagare_takion_data_expect_bang(nagare, buf, buf_size);
+		return;
+	}
 
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -135,17 +143,67 @@ static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
 		return;
 	}
-
-	if(nagare->bang_mirai.expected)
-	{
-		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
-		{
-			CHIAKI_LOGE(nagare->log, "Nagare expected bang payload but received something else\n");
-			return;
-		}
-		chiaki_mirai_signal(&nagare->bang_mirai, true);
-	}
 }
+
+static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
+{
+	char ecdh_pub_key[128];
+	ChiakiPBDecodeBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), 0, ecdh_pub_key };
+	char ecdh_sig[32];
+	ChiakiPBDecodeBuf ecdh_sig_buf = { sizeof(ecdh_sig), 0, ecdh_sig };
+
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	msg.bang_payload.ecdh_pub_key.arg = &ecdh_pub_key_buf;
+	msg.bang_payload.ecdh_pub_key.funcs.decode = chiaki_pb_decode_buf;
+	msg.bang_payload.ecdh_sig.arg = &ecdh_sig_buf;
+	msg.bang_payload.ecdh_sig.funcs.decode = chiaki_pb_decode_buf;
+
+	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
+	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!r)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		return;
+	}
+
+	if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare expected bang payload but received something else\n");
+		return;
+	}
+
+	if(!msg.bang_payload.version_accepted)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare bang remote didn't accept version\n");
+		goto error;
+	}
+
+	if(!msg.bang_payload.encrypted_key_accepted)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare bang remote didn't accept encrypted key\n");
+		goto error;
+	}
+
+	if(!ecdh_pub_key_buf.size)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare didn't get remote ECDH pub key from bang\n");
+		goto error;
+	}
+
+	if(!ecdh_sig_buf.size)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare didn't get remote ECDH sig from bang\n");
+		goto error;
+	}
+
+	CHIAKI_LOGI(nagare->log, "Nagare bang looks good so far\n");
+
+error:
+	chiaki_mirai_signal(&nagare->bang_mirai, true);
+}
+
 
 
 static bool chiaki_pb_encode_zero_encrypted_key(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)

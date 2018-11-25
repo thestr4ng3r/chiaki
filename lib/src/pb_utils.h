@@ -19,6 +19,7 @@
 #define CHIAKI_PB_UTILS_H
 
 #include <pb_encode.h>
+#include <pb_decode.h>
 
 static bool chiaki_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
 {
@@ -44,6 +45,30 @@ static bool chiaki_pb_encode_buf(pb_ostream_t *stream, const pb_field_t *field, 
 		return false;
 
 	return pb_encode_string(stream, buf->buf, buf->size);
+}
+
+
+typedef struct chiaki_pb_decode_buf_t
+{
+	size_t max_size;
+	size_t size;
+	uint8_t *buf;
+} ChiakiPBDecodeBuf;
+
+static bool chiaki_pb_decode_buf(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+	ChiakiPBDecodeBuf *buf = *arg;
+	if(stream->bytes_left > buf->max_size)
+	{
+		buf->size = 0;
+		return false;
+	}
+
+	buf->size = stream->bytes_left;
+	bool r = pb_read(stream, buf->buf, buf->size);
+	if(!r)
+		buf->size = 0;
+	return r;
 }
 
 
