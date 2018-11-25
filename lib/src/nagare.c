@@ -200,6 +200,11 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 
 	CHIAKI_LOGI(nagare->log, "Nagare bang looks good so far\n");
 
+	chiaki_ecdh_derive_secret(&nagare->session->ecdh,
+			ecdh_pub_key_buf.buf, ecdh_pub_key_buf.size,
+			nagare->session->handshake_key,
+			ecdh_sig_buf.buf, ecdh_sig_buf.size);
+
 error:
 	chiaki_mirai_signal(&nagare->bang_mirai, true);
 }

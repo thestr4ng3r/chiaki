@@ -67,3 +67,44 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, ui
 
 	return CHIAKI_ERR_SUCCESS;
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_derive_secret(ChiakiECDH *ecdh, uint8_t *remote_key, size_t remote_key_size, uint8_t *handshake_key, uint8_t *remote_sig, size_t remote_sig_size)
+{
+	EC_POINT *point = EC_POINT_new(ecdh->group);
+	if(!point)
+		return CHIAKI_ERR_UNKNOWN;
+
+	if(!EC_POINT_oct2point(ecdh->group, point, remote_key, remote_key_size, NULL))
+	{
+		EC_POINT_free(point);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	EC_KEY *remote_ec_key = EC_KEY_new();
+	if(!remote_ec_key)
+	{
+		EC_POINT_free(point);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EC_KEY_set_group(remote_ec_key, ecdh->group))
+	{
+		EC_KEY_free(remote_ec_key);
+		EC_POINT_free(point);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EC_KEY_set_public_key(remote_ec_key, point))
+	{
+		EC_KEY_free(remote_ec_key);
+		EC_POINT_free(point);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	EC_POINT_free(point);
+
+	// TODO: do derivation
+
+	EC_KEY_free(remote_ec_key);
+
+	return CHIAKI_ERR_SUCCESS;
+}

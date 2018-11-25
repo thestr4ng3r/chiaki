@@ -36,6 +36,7 @@ typedef struct chiaki_ecdh_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh);
 CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_derive_secret(ChiakiECDH *ecdh, uint8_t *remote_key, size_t remote_key_size, uint8_t *handshake_key, uint8_t *remote_sig, size_t remote_sig_size);
 
 #ifdef __cplusplus
 }
