@@ -5,7 +5,8 @@ target_include_directories(munit PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/munit")
 add_executable(chiaki-unit
 		main.c
 		http.c
-		rpcrypt.c)
+		rpcrypt.c
+		gkcrypt.c)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

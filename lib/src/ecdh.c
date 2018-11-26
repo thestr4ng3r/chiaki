@@ -52,6 +52,46 @@ CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh)
 }
 
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_set_local_key(ChiakiECDH *ecdh, const uint8_t *private_key, size_t private_key_size, const uint8_t *public_key, size_t public_key_size)
+{
+	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+
+	BIGNUM *private_key_bn = BN_bin2bn(private_key, (int)private_key_size, NULL);
+	if(!private_key_bn)
+		return CHIAKI_ERR_UNKNOWN;
+
+	EC_POINT *public_key_point = EC_POINT_new(ecdh->group);
+	if(!public_key_point)
+	{
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_priv;
+	}
+
+	if(!EC_POINT_oct2point(ecdh->group, public_key_point, public_key, public_key_size, NULL))
+	{
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_pub;
+	}
+
+	if(!EC_KEY_set_private_key(ecdh->key_local, private_key_bn))
+	{
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_pub;
+	}
+
+	if(!EC_KEY_set_public_key(ecdh->key_local, public_key_point))
+	{
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_pub;
+	}
+
+error_pub:
+	EC_POINT_free(public_key_point);
+error_priv:
+	BN_free(private_key_bn);
+	return err;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size)
 {
 	const EC_POINT *point = EC_KEY_get0_public_key(ecdh->key_local);
@@ -64,6 +104,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, ui
 
 	if(!HMAC(EVP_sha256(), handshake_key, CHIAKI_HANDSHAKE_KEY_SIZE, key_out, *key_out_size, sig_out, (unsigned int *)sig_out_size))
 		return CHIAKI_ERR_UNKNOWN;
+
+	// TODO: set *sig_out_size?
 
 	return CHIAKI_ERR_SUCCESS;
 }

@@ -19,6 +19,7 @@
 
 extern MunitTest tests_http[];
 extern MunitTest tests_rpcrypt[];
+extern MunitTest tests_gkcrypt[];
 
 static MunitSuite suites[] = {
 	{
@@ -31,6 +32,13 @@ static MunitSuite suites[] = {
 	{
 		"/rpcrypt",
 		tests_rpcrypt,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		"/gkcrypt",
+		tests_gkcrypt,
 		NULL,
 		1,
 		MUNIT_SUITE_OPTION_NONE
