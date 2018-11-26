@@ -201,11 +201,17 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 	CHIAKI_LOGI(nagare->log, "Nagare bang looks good so far\n");
 
 	uint8_t secret[CHIAKI_ECDH_SECRET_SIZE];
-	chiaki_ecdh_derive_secret(&nagare->session->ecdh,
+	ChiakiErrorCode err = chiaki_ecdh_derive_secret(&nagare->session->ecdh,
 			secret,
 			ecdh_pub_key_buf.buf, ecdh_pub_key_buf.size,
 			nagare->session->handshake_key,
 			ecdh_sig_buf.buf, ecdh_sig_buf.size);
+
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to derive secret from bang\n");
+		goto error;
+	}
 
 error:
 	chiaki_mirai_signal(&nagare->bang_mirai, true);
