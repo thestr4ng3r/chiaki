@@ -53,13 +53,12 @@ static MunitResult test_ecdh(const MunitParameter params[], void *user)
 	munit_assert_memory_equal(sizeof(local_public_key_sig), local_public_key_sig_result, local_public_key_sig);
 
 	uint8_t secret_result[128];
-	size_t secret_result_size = sizeof(secret_result);
-	chiaki_ecdh_derive_secret(&ecdh, secret_result, &secret_result_size,
+	chiaki_ecdh_derive_secret(&ecdh, secret_result,
 			remote_public_key, sizeof(remote_public_key),
 			handshake_key,
 			remote_public_key_sig, sizeof(remote_public_key_sig));
 
-	munit_assert_size(secret_result_size, ==, sizeof(secret));
+	munit_assert_size(CHIAKI_ECDH_SECRET_SIZE, ==, sizeof(secret));
 	munit_assert_memory_equal(sizeof(secret), secret_result, secret);
 
 	chiaki_ecdh_fini(&ecdh);
