@@ -92,7 +92,7 @@ error_priv:
 	return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, const uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size)
 {
 	const EC_POINT *point = EC_KEY_get0_public_key(ecdh->key_local);
 	if(!point)
@@ -105,48 +105,29 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, ui
 	if(!HMAC(EVP_sha256(), handshake_key, CHIAKI_HANDSHAKE_KEY_SIZE, key_out, *key_out_size, sig_out, (unsigned int *)sig_out_size))
 		return CHIAKI_ERR_UNKNOWN;
 
-	// TODO: set *sig_out_size?
-
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_derive_secret(ChiakiECDH *ecdh, uint8_t *remote_key, size_t remote_key_size, uint8_t *handshake_key, uint8_t *remote_sig, size_t remote_sig_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_derive_secret(ChiakiECDH *ecdh, uint8_t *secret_out, size_t *secret_out_size, const uint8_t *remote_key, size_t remote_key_size, const uint8_t *handshake_key, const uint8_t *remote_sig, size_t remote_sig_size)
 {
-	EC_POINT *point = EC_POINT_new(ecdh->group);
-	if(!point)
+	EC_POINT *remote_public_key = EC_POINT_new(ecdh->group);
+	if(!remote_public_key)
 		return CHIAKI_ERR_UNKNOWN;
 
-	if(!EC_POINT_oct2point(ecdh->group, point, remote_key, remote_key_size, NULL))
+	if(!EC_POINT_oct2point(ecdh->group, remote_public_key, remote_key, remote_key_size, NULL))
 	{
-		EC_POINT_free(point);
+		EC_POINT_free(remote_public_key);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	EC_KEY *remote_ec_key = EC_KEY_new();
-	if(!remote_ec_key)
-	{
-		EC_POINT_free(point);
+	int r = ECDH_compute_key(secret_out, *secret_out_size, remote_public_key, ecdh->key_local, NULL);
+
+	EC_POINT_free(remote_public_key);
+
+	if(r <= 0)
 		return CHIAKI_ERR_UNKNOWN;
-	}
 
-	if(!EC_KEY_set_group(remote_ec_key, ecdh->group))
-	{
-		EC_KEY_free(remote_ec_key);
-		EC_POINT_free(point);
-		return CHIAKI_ERR_UNKNOWN;
-	}
-
-	if(!EC_KEY_set_public_key(remote_ec_key, point))
-	{
-		EC_KEY_free(remote_ec_key);
-		EC_POINT_free(point);
-		return CHIAKI_ERR_UNKNOWN;
-	}
-	EC_POINT_free(point);
-
-	// TODO: do derivation
-
-	EC_KEY_free(remote_ec_key);
+	*secret_out_size = (size_t)r;
 
 	return CHIAKI_ERR_SUCCESS;
 }
