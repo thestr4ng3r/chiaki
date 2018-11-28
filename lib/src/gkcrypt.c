@@ -24,6 +24,8 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
+#include "utils.h"
+
 
 static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index, uint8_t *handshake_key, uint8_t *ecdh_secret);
 
@@ -71,6 +73,76 @@ static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index,
 
 	memcpy(gkcrypt->key, hmac, CHIAKI_GKCRYPT_BLOCK_SIZE);
 	memcpy(gkcrypt->iv, hmac + CHIAKI_GKCRYPT_BLOCK_SIZE, CHIAKI_GKCRYPT_BLOCK_SIZE);
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+static inline void counter_add(uint8_t *out, const uint8_t *base, int v)
+{
+	size_t i=CHIAKI_GKCRYPT_BLOCK_SIZE;
+	do
+	{
+		i--;
+		int r = (int)base[i] + v;
+		out[i] = (uint8_t)(r & 0xff);
+		v = r >> 8;
+	} while(i>0 && v);
+}
+
+static ChiakiErrorCode gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+{
+	assert(key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
+	assert(buf_size % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
+
+	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+	if(!ctx)
+		return CHIAKI_ERR_UNKNOWN;
+
+	if(!EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, gkcrypt->key, NULL))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EVP_CIPHER_CTX_set_padding(ctx, 0))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	for(uint8_t *cur = buf, *end = buf + buf_size; cur < end; cur += CHIAKI_GKCRYPT_BLOCK_SIZE)
+		counter_add(cur, gkcrypt->iv, (int)key_pos++);
+
+	int outl;
+	EVP_EncryptUpdate(ctx, buf, &outl, buf, (int)buf_size);
+	if(outl != buf_size)
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	EVP_CIPHER_CTX_free(ctx);
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+{
+	size_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
+	size_t full_size = ((padding_pre + buf_size + CHIAKI_GKCRYPT_BLOCK_SIZE - 1) / CHIAKI_GKCRYPT_BLOCK_SIZE) * CHIAKI_GKCRYPT_BLOCK_SIZE;
+
+	uint8_t *key_stream = malloc(full_size);
+	if(!key_stream)
+		return CHIAKI_ERR_MEMORY;
+
+	ChiakiErrorCode err = gkcrypt_gen_key_stream(gkcrypt, key_pos - padding_pre, key_stream, full_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		free(key_stream);
+		return err;
+	}
+
+	xor_bytes(buf, key_stream + padding_pre, buf_size);
+	free(key_stream);
 
 	return CHIAKI_ERR_SUCCESS;
 }

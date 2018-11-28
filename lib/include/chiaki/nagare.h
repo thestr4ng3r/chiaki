@@ -21,6 +21,7 @@
 #include "mirai.h"
 #include "takion.h"
 #include "log.h"
+#include "ecdh.h"
 
 #include <stdbool.h>
 
@@ -34,6 +35,7 @@ typedef struct chiaki_nagare_t
 	ChiakiLog *log;
 	ChiakiTakion takion;
 	ChiakiMirai bang_mirai;
+	uint8_t ecdh_secret[CHIAKI_ECDH_SECRET_SIZE];
 } ChiakiNagare;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(struct chiaki_session_t *session);

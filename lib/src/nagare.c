@@ -41,7 +41,8 @@
 static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
 static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
-static void nagare_handle_bang(ChiakiNagare *nagare, tkproto_BangPayload *payload);
+static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
+
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 {
@@ -104,6 +105,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 
 	CHIAKI_LOGI(&session->log, "Nagare successfully received bang\n");
 
+
+
+
 	CHIAKI_LOGI(&session->log, "Nagare is disconnecting\n");
 
 	nagare_send_disconnect(nagare);
@@ -120,8 +124,6 @@ error_bang_mirai:
 }
 
 
-
-static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 
 static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 {
@@ -198,11 +200,8 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 		goto error;
 	}
 
-	CHIAKI_LOGI(nagare->log, "Nagare bang looks good so far\n");
-
-	uint8_t secret[CHIAKI_ECDH_SECRET_SIZE];
 	ChiakiErrorCode err = chiaki_ecdh_derive_secret(&nagare->session->ecdh,
-			secret,
+			nagare->ecdh_secret,
 			ecdh_pub_key_buf.buf, ecdh_pub_key_buf.size,
 			nagare->session->handshake_key,
 			ecdh_sig_buf.buf, ecdh_sig_buf.size);
@@ -213,8 +212,10 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 		goto error;
 	}
 
-error:
 	chiaki_mirai_signal(&nagare->bang_mirai, true);
+	return;
+error:
+	chiaki_mirai_signal(&nagare->bang_mirai, false);
 }
 
 
