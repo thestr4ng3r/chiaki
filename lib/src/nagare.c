@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <takion.pb.h>
 #include <pb_encode.h>
@@ -49,6 +50,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	ChiakiNagare *nagare = &session->nagare;
 	nagare->session = session;
 	nagare->log = &session->log;
+
+	nagare->ecdh_secret = NULL;
 
 	ChiakiErrorCode err = chiaki_mirai_init(&nagare->bang_mirai);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -106,6 +109,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	CHIAKI_LOGI(&session->log, "Nagare successfully received bang\n");
 
 
+	nagare->gkcrypt_a = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, nagare->ecdh_secret);
+	if(!nagare->gkcrypt_a)
+	{
+		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 2\n");
+		goto error_takion;
+	}
+	nagare->gkcrypt_b = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, nagare->ecdh_secret);
+	if(!nagare->gkcrypt_b)
+	{
+		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 3\n");
+		goto error_gkcrypt_a;
+	}
+
+
+	while(1)
+		sleep(1);
 
 
 	CHIAKI_LOGI(&session->log, "Nagare is disconnecting\n");
@@ -113,11 +132,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	nagare_send_disconnect(nagare);
 
 	err = CHIAKI_ERR_SUCCESS;
+	chiaki_gkcrypt_free(nagare->gkcrypt_b);
+error_gkcrypt_a:
+	chiaki_gkcrypt_free(nagare->gkcrypt_a);
 error_takion:
 	chiaki_takion_close(&nagare->takion);
 	CHIAKI_LOGI(&session->log, "Nagare closed takion\n");
 error_bang_mirai:
 	chiaki_mirai_fini(&nagare->bang_mirai);
+	free(nagare->ecdh_secret);
 	return err;
 
 
@@ -200,6 +223,14 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 		goto error;
 	}
 
+	assert(!nagare->ecdh_secret);
+	nagare->ecdh_secret = malloc(CHIAKI_ECDH_SECRET_SIZE);
+	if(!nagare->ecdh_secret)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to alloc ECDH secret memory\n");
+		goto error;
+	}
+
 	ChiakiErrorCode err = chiaki_ecdh_derive_secret(&nagare->session->ecdh,
 			nagare->ecdh_secret,
 			ecdh_pub_key_buf.buf, ecdh_pub_key_buf.size,
@@ -208,6 +239,8 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
+		free(nagare->ecdh_secret);
+		nagare->ecdh_secret = NULL;
 		CHIAKI_LOGE(nagare->log, "Nagare failed to derive secret from bang\n");
 		goto error;
 	}

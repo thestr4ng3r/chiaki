@@ -24,6 +24,7 @@ extern "C" {
 
 #define CHIAKI_EXPORT
 
+#define CHIAKI_NEW(t) (malloc(sizeof(t)))
 
 typedef enum
 {

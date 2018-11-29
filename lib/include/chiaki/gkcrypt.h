@@ -46,6 +46,28 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size);
 static inline ChiakiErrorCode chiaki_gkcrypt_encrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size) { return chiaki_gkcrypt_decrypt(gkcrypt, key_pos, buf, buf_size); }
 
+static inline ChiakiGKCrypt *chiaki_gkcrypt_new(ChiakiLog *log, size_t key_buf_blocks, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
+{
+	ChiakiGKCrypt *gkcrypt = CHIAKI_NEW(ChiakiGKCrypt);
+	if(!gkcrypt)
+		return NULL;
+	ChiakiErrorCode err = chiaki_gkcrypt_init(gkcrypt, log, key_buf_blocks, index, handshake_key, ecdh_secret);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		free(gkcrypt);
+		return NULL;
+	}
+	return gkcrypt;
+}
+
+static inline void chiaki_gkcrypt_free(ChiakiGKCrypt *gkcrypt)
+{
+	if(!gkcrypt)
+		return;
+	chiaki_gkcrypt_fini(gkcrypt);
+	free(gkcrypt);
+}
+
 #ifdef __cplusplus
 }
 #endif
