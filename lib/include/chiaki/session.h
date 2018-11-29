@@ -26,6 +26,7 @@
 #include "rpcrypt.h"
 #include "takion.h"
 #include "ecdh.h"
+#include "audio.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -65,8 +66,16 @@ typedef struct chiaki_quit_event_t
 	ChiakiQuitReason reason;
 } ChiakiQuitEvent;
 
+typedef struct chiaki_audio_stream_info_event_t
+{
+	ChiakiAudioHeader audio_header;
+} ChiakiAudioStreamInfoEvent;
 
-typedef enum { CHIAKI_EVENT_QUIT } ChiakiEventType;
+
+typedef enum {
+	CHIAKI_EVENT_QUIT,
+	CHIAKI_EVENT_AUDIO_STREAM_INFO
+} ChiakiEventType;
 
 typedef struct chiaki_event_t
 {
@@ -74,11 +83,12 @@ typedef struct chiaki_event_t
 	union
 	{
 		ChiakiQuitEvent quit;
+		ChiakiAudioStreamInfoEvent audio_stream_info;
 	};
 } ChiakiEvent;
 
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
-
+typedef void (*ChiakiAudioFrameCallback)(uint8_t *buf, size_t buf_size, void *user);
 
 
 
@@ -108,6 +118,8 @@ typedef struct chiaki_session_t
 
 	ChiakiEventCallback event_cb;
 	void *event_cb_user;
+	ChiakiAudioFrameCallback audio_frame_cb;
+	void *audio_frame_cb_user;
 
 	ChiakiThread session_thread;
 
@@ -130,6 +142,12 @@ static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEve
 {
 	session->event_cb = cb;
 	session->event_cb_user = user;
+}
+
+static inline void chiaki_session_set_audio_frame_cb(ChiakiSession *session, ChiakiAudioFrameCallback cb, void *user)
+{
+	session->audio_frame_cb = cb;
+	session->audio_frame_cb_user = user;
 }
 
 static inline void chiaki_session_set_quit_reason(ChiakiSession *session, ChiakiQuitReason reason)

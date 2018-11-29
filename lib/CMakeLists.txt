@@ -36,7 +36,7 @@ set(SOURCE_FILES
 		src/ecdh.c
 		src/launchspec.c
 		src/random.c
-		src/gkcrypt.c src/audio.c)
+		src/gkcrypt.c src/audio.c include/chiaki/audioreceiver.h src/audioreceiver.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")

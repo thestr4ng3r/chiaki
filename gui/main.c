@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 
+void audio_frame_cb(uint8_t *buf, size_t buf_size, void *user)
+{
+	printf("AUDIO FRAME CB %lu\n", buf_size);
+}
+
 int main(int argc, const char *argv[])
 {
 	if(argc != 7)
@@ -42,6 +47,7 @@ int main(int argc, const char *argv[])
 
 	ChiakiSession session;
 	chiaki_session_init(&session, &connect_info);
+	chiaki_session_set_audio_frame_cb(&session, audio_frame_cb, NULL);
 	chiaki_session_start(&session);
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
