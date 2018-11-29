@@ -83,7 +83,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 
 	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
 
-	err = chiaki_mirai_expect_begin(&senkusha.bang_mirai);
+	err = chiaki_mirai_request_begin(&senkusha.bang_mirai, 1, true);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	err = senkusha_send_big(&senkusha);
@@ -93,10 +93,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 		goto error_takion;
 	}
 
-	err = chiaki_mirai_expect_wait(&senkusha.bang_mirai, BIG_TIMEOUT_MS);
+	err = chiaki_mirai_request_wait(&senkusha.bang_mirai, BIG_TIMEOUT_MS, false);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
-	if(!senkusha.bang_mirai.success)
+	if(!senkusha.bang_mirai.response)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout\n");
@@ -136,14 +136,14 @@ static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
 		return;
 	}
 
-	if(senkusha->bang_mirai.expected)
+	if(senkusha->bang_mirai.request)
 	{
 		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 		{
 			CHIAKI_LOGE(senkusha->log, "Senkusha expected bang payload but received something else\n");
 			return;
 		}
-		chiaki_mirai_signal(&senkusha->bang_mirai, true);
+		chiaki_mirai_signal(&senkusha->bang_mirai, 1);
 	}
 }
 

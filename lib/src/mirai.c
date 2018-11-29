@@ -19,8 +19,8 @@
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_init(ChiakiMirai *mirai)
 {
-	mirai->expected = false;
-	mirai->success = false;
+	mirai->request = -1;
+	mirai->response = -1;
 	ChiakiErrorCode err = chiaki_mutex_init(&mirai->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
@@ -39,33 +39,39 @@ CHIAKI_EXPORT void chiaki_mirai_fini(ChiakiMirai *mirai)
 	chiaki_cond_fini(&mirai->cond);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_signal(ChiakiMirai *mirai, bool success)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_signal(ChiakiMirai *mirai, int response)
 {
 	ChiakiErrorCode err = chiaki_mutex_lock(&mirai->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	mirai->success = success;
+	mirai->response = response;
 	err = chiaki_cond_signal(&mirai->cond);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 	return chiaki_mutex_unlock(&mirai->mutex);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_expect_begin(ChiakiMirai *mirai)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_begin(ChiakiMirai *mirai, int request, bool first)
 {
-	ChiakiErrorCode err = chiaki_mutex_lock(&mirai->mutex);
-	mirai->expected = true;
+	ChiakiErrorCode err = first ? chiaki_mutex_lock(&mirai->mutex) : CHIAKI_ERR_SUCCESS;
+	mirai->request = request;
 	return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_expect_wait(ChiakiMirai *mirai, uint64_t timeout_ms)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_wait(ChiakiMirai *mirai, uint64_t timeout_ms, bool keep_locked)
 {
 	ChiakiErrorCode err = chiaki_cond_timedwait(&mirai->cond, &mirai->mutex, timeout_ms);
-	if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
-		return err;
-	mirai->expected = false;
-	ChiakiErrorCode err2 = chiaki_mutex_unlock(&mirai->mutex);
-	if(err2 != CHIAKI_ERR_SUCCESS)
-		return err2;
+	mirai->request = -1;
+	if(!keep_locked)
+	{
+		ChiakiErrorCode err2 = chiaki_mutex_unlock(&mirai->mutex);
+		if(err2 != CHIAKI_ERR_SUCCESS)
+			return err2;
+	}
 	return err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_unlock(ChiakiMirai *mirai)
+{
+	return chiaki_mutex_unlock(&mirai->mutex);
 }

@@ -15,34 +15,33 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_MIRAI_H
-#define CHIAKI_MIRAI_H
+#ifndef CHIAKI_AUDIO_H
+#define CHIAKI_AUDIO_H
 
-#include "thread.h"
+#include <stdint.h>
 
-#include <stdbool.h>
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct chiaki_mirai_t
-{
-	int request;
-	int response;
-	ChiakiMutex mutex;
-	ChiakiCond cond;
-} ChiakiMirai;
+#define CHIAKI_AUDIO_HEADER_SIZE 0xe
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_init(ChiakiMirai *mirai);
-CHIAKI_EXPORT void chiaki_mirai_fini(ChiakiMirai *mirai);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_signal(ChiakiMirai *mirai, int response);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_begin(ChiakiMirai *mirai, int request, bool first);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_wait(ChiakiMirai *mirai, uint64_t timeout_ms, bool keep_locked);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_request_unlock(ChiakiMirai *mirai);
+typedef struct chiaki_audio_header_t
+{
+	uint8_t channels;
+	uint8_t bits;
+	uint32_t rate;
+	uint32_t frame_size;
+	uint32_t unknown;
+} ChiakiAudioHeader;
+
+CHIAKI_EXPORT void chiaki_audio_header_load(ChiakiAudioHeader *audio_header, const uint8_t *buf);
+CHIAKI_EXPORT void chiaki_audio_header_save(ChiakiAudioHeader *audio_header, uint8_t *buf);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CHIAKI_MIRAI_H
+#endif // CHIAKI_AUDIO_H

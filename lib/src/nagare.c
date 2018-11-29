@@ -20,6 +20,7 @@
 #include <chiaki/session.h>
 #include <chiaki/launchspec.h>
 #include <chiaki/base64.h>
+#include <chiaki/audio.h>
 
 #include <string.h>
 #include <assert.h>
@@ -36,13 +37,27 @@
 
 #define NAGARE_PORT 9296
 
-#define BIG_TIMEOUT_MS 5000
+#define EXPECT_TIMEOUT_MS 5000
+
+
+typedef enum {
+	NAGARE_MIRAI_REQUEST_BANG = 0,
+	NAGARE_MIRAI_REQUEST_STREAMINFO,
+} NagareMiraiRequest;
+
+typedef enum {
+	NAGARE_MIRAI_RESPONSE_FAIL = 0,
+	NAGARE_MIRAI_RESPONSE_SUCCESS = 1
+} NagareMiraiResponse;
+
 
 
 static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
 static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
+static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
@@ -53,9 +68,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 
 	nagare->ecdh_secret = NULL;
 
-	ChiakiErrorCode err = chiaki_mirai_init(&nagare->bang_mirai);
+	ChiakiErrorCode err = chiaki_mirai_init(&nagare->mirai);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_bang_mirai;
+		goto error_mirai;
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = nagare->log;
@@ -64,7 +79,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	if(!takion_info.sa)
 	{
 		err = CHIAKI_ERR_MEMORY;
-		goto error_bang_mirai;
+		goto error_mirai;
 	}
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
 	err = set_port(takion_info.sa, htons(NAGARE_PORT));
@@ -78,12 +93,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare connect failed\n");
-		goto error_bang_mirai;
+		goto error_mirai;
 	}
 
 	CHIAKI_LOGI(&session->log, "Nagare sending big\n");
 
-	err = chiaki_mirai_expect_begin(&nagare->bang_mirai);
+	err = chiaki_mirai_request_begin(&nagare->mirai, NAGARE_MIRAI_REQUEST_BANG, true);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	err = nagare_send_big(nagare);
@@ -93,13 +108,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 		goto error_takion;
 	}
 
-	err = chiaki_mirai_expect_wait(&nagare->bang_mirai, BIG_TIMEOUT_MS);
+	err = chiaki_mirai_request_wait(&nagare->mirai, EXPECT_TIMEOUT_MS, true);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
-	if(!nagare->bang_mirai.success)
+	if(nagare->mirai.response != NAGARE_MIRAI_RESPONSE_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "Nagare bang receive timeout\n");
+
+		chiaki_mirai_request_unlock(&nagare->mirai);
 
 		CHIAKI_LOGE(&session->log, "Nagare didn't receive bang\n");
 		err = CHIAKI_ERR_UNKNOWN;
@@ -122,24 +139,43 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 		goto error_gkcrypt_a;
 	}
 
+	err = chiaki_mirai_request_begin(&nagare->mirai, NAGARE_MIRAI_REQUEST_STREAMINFO, false);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	err = chiaki_mirai_request_wait(&nagare->mirai, EXPECT_TIMEOUT_MS, false);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+	if(nagare->mirai.response != NAGARE_MIRAI_RESPONSE_SUCCESS)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+			CHIAKI_LOGE(&session->log, "Nagare streaminfo receive timeout\n");
+
+		chiaki_mirai_request_unlock(&nagare->mirai);
+
+		CHIAKI_LOGE(&session->log, "Nagare didn't receive streaminfo\n");
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_takion;
+	}
+
+	CHIAKI_LOGI(&session->log, "Nagare successfully received streaminfo\n");
 
 	while(1)
 		sleep(1);
-
 
 	CHIAKI_LOGI(&session->log, "Nagare is disconnecting\n");
 
 	nagare_send_disconnect(nagare);
 
 	err = CHIAKI_ERR_SUCCESS;
+
+	// TODO: can't roll everything back like this, takion has to be closed first always.
 	chiaki_gkcrypt_free(nagare->gkcrypt_b);
 error_gkcrypt_a:
 	chiaki_gkcrypt_free(nagare->gkcrypt_a);
 error_takion:
 	chiaki_takion_close(&nagare->takion);
 	CHIAKI_LOGI(&session->log, "Nagare closed takion\n");
-error_bang_mirai:
-	chiaki_mirai_fini(&nagare->bang_mirai);
+error_mirai:
+	chiaki_mirai_fini(&nagare->mirai);
 	free(nagare->ecdh_secret);
 	return err;
 
@@ -152,10 +188,16 @@ static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 {
 	ChiakiNagare *nagare = user;
 
-	if(nagare->bang_mirai.expected)
+	switch(nagare->mirai.request)
 	{
-		nagare_takion_data_expect_bang(nagare, buf, buf_size);
-		return;
+		case NAGARE_MIRAI_REQUEST_BANG:
+			nagare_takion_data_expect_bang(nagare, buf, buf_size);
+			return;
+		case NAGARE_MIRAI_REQUEST_STREAMINFO:
+			nagare_takion_data_expect_streaminfo(nagare, buf, buf_size);
+			return;
+		default:
+			break;
 	}
 
 	tkproto_TakionMessage msg;
@@ -173,9 +215,9 @@ static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
 {
 	char ecdh_pub_key[128];
-	ChiakiPBDecodeBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), 0, ecdh_pub_key };
+	ChiakiPBDecodeBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), 0, (uint8_t *)ecdh_pub_key };
 	char ecdh_sig[32];
-	ChiakiPBDecodeBuf ecdh_sig_buf = { sizeof(ecdh_sig), 0, ecdh_sig };
+	ChiakiPBDecodeBuf ecdh_sig_buf = { sizeof(ecdh_sig), 0, (uint8_t *)ecdh_sig };
 
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -245,10 +287,55 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 		goto error;
 	}
 
-	chiaki_mirai_signal(&nagare->bang_mirai, true);
+	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_SUCCESS);
 	return;
 error:
-	chiaki_mirai_signal(&nagare->bang_mirai, false);
+	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_FAIL);
+}
+
+
+static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	uint8_t audio_header[CHIAKI_AUDIO_HEADER_SIZE];
+	ChiakiPBDecodeBuf audio_header_buf = { sizeof(audio_header), 0, (uint8_t *)audio_header };
+	msg.stream_info_payload.audio_header.arg = &audio_header_buf;
+	msg.stream_info_payload.audio_header.funcs.decode = chiaki_pb_decode_buf;
+
+	// TODO: msg.stream_info_payload.resolution
+
+	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
+	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!r)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		return;
+	}
+
+	if(msg.type != tkproto_TakionMessage_PayloadType_STREAMINFO || !msg.has_stream_info_payload)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare expected streaminfo payload but received something else\n");
+		return;
+	}
+
+	if(audio_header_buf.size != CHIAKI_AUDIO_HEADER_SIZE)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare receoved invalid audio header in streaminfo\n");
+		goto error;
+	}
+
+	chiaki_audio_header_load(&nagare->audio_header, audio_header);
+
+	// TODO: do some checks?
+
+	nagare_send_streaminfo_ack(nagare);
+
+	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_SUCCESS);
+	return;
+error:
+	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_FAIL);
 }
 
 
@@ -350,6 +437,27 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
 
 	return err;
+}
+
+static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+	msg.type = tkproto_TakionMessage_PayloadType_STREAMINFOACK;
+
+	uint8_t buf[3];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(nagare->log, "Nagare streaminfo ack protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	return chiaki_takion_send_message_data(&nagare->takion, 0, 1, 9, buf, buf_size);
 }
 
 static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)

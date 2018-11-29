@@ -15,7 +15,8 @@ set(HEADER_FILES
 		include/chiaki/ecdh.h
 		include/chiaki/launchspec.h
 		include/chiaki/random.h
-		include/chiaki/gkcrypt.h)
+		include/chiaki/gkcrypt.h
+		include/chiaki/audio.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -35,7 +36,7 @@ set(SOURCE_FILES
 		src/ecdh.c
 		src/launchspec.c
 		src/random.c
-		src/gkcrypt.c)
+		src/gkcrypt.c src/audio.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
