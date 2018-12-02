@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-void audio_frame_cb(uint8_t *buf, size_t buf_size, void *user)
+void audio_frame_cb(int8_t *buf, size_t samples_count, void *user)
 {
-	printf("AUDIO FRAME CB %lu\n", buf_size);
+	printf("AUDIO FRAME CB %lu\n", samples_count);
 }
 
 int main(int argc, const char *argv[])

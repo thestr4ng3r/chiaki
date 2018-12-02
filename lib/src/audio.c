@@ -22,8 +22,8 @@
 
 void chiaki_audio_header_load(ChiakiAudioHeader *audio_header, const uint8_t *buf)
 {
-	audio_header->bits = buf[0];
-	audio_header->channels = buf[1];
+	audio_header->channels = buf[0];
+	audio_header->bits = buf[1];
 	audio_header->rate = ntohl(*((uint32_t *)(buf + 2)));
 	audio_header->frame_size = ntohl(*((uint32_t *)(buf + 6)));
 	audio_header->unknown = ntohl(*((uint32_t *)(buf + 0xa)));

@@ -43,6 +43,9 @@ include_directories("${NANOPB_SOURCE_DIR}")
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
 include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
 
+find_package(Opus REQUIRED)
+include_directories(${Opus_INCLUDE_DIRS})
+
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES})
 add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
@@ -56,3 +59,5 @@ find_package(OpenSSL REQUIRED)
 target_link_libraries(chiaki-lib OpenSSL::Crypto)
 
 target_link_libraries(chiaki-lib protobuf-nanopb-static)
+
+target_link_libraries(chiaki-lib ${Opus_LIBRARIES})

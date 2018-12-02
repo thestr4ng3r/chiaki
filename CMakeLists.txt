@@ -5,6 +5,8 @@ project(chiaki)
 
 option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 add_subdirectory(third-party)
 
 add_subdirectory(lib)

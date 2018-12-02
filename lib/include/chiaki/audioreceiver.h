@@ -20,20 +20,49 @@
 
 #include "common.h"
 #include "log.h"
+#include "audio.h"
+#include "thread.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
 typedef struct chiaki_audio_receiver_t
 {
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
+	ChiakiMutex mutex;
+	struct OpusDecoder *opus_decoder;
+	ChiakiAudioHeader audio_header;
 } ChiakiAudioReceiver;
 
-CHIAKI_EXPORT void chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver);
+CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_receiver, ChiakiAudioHeader *audio_header);
+CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio_receiver, uint8_t *buf, size_t buf_size);
 
+static inline ChiakiAudioReceiver *chiaki_audio_receiver_new(struct chiaki_session_t *session)
+{
+	ChiakiAudioReceiver *audio_receiver = CHIAKI_NEW(ChiakiAudioReceiver);
+	if(!audio_receiver)
+		return NULL;
+	ChiakiErrorCode err = chiaki_audio_receiver_init(audio_receiver, session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		free(audio_receiver);
+		return NULL;
+	}
+	return audio_receiver;
+}
+
+static inline void chiaki_audio_receiver_free(ChiakiAudioReceiver *audio_receiver)
+{
+	if(!audio_receiver)
+		return;
+	chiaki_audio_receiver_fini(audio_receiver);
+	free(audio_receiver);
+}
 
 #ifdef __cplusplus
 }

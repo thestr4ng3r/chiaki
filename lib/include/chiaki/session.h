@@ -27,6 +27,7 @@
 #include "takion.h"
 #include "ecdh.h"
 #include "audio.h"
+#include "audioreceiver.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -88,7 +89,7 @@ typedef struct chiaki_event_t
 } ChiakiEvent;
 
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
-typedef void (*ChiakiAudioFrameCallback)(uint8_t *buf, size_t buf_size, void *user);
+typedef void (*ChiakiAudioFrameCallback)(int16_t *buf, size_t samples_count, void *user);
 
 
 
@@ -131,6 +132,7 @@ typedef struct chiaki_session_t
 	ChiakiLog log;
 
 	ChiakiNagare nagare;
+	ChiakiAudioReceiver *audio_receiver;
 } ChiakiSession;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);

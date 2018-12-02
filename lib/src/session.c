@@ -15,6 +15,7 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chiaki/audioreceiver.h>
 #include <chiaki/senkusha.h>
 #include <chiaki/session.h>
 #include <chiaki/http.h>
@@ -184,14 +185,25 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
+	session->audio_receiver = chiaki_audio_receiver_new(session);
+	if(!session->audio_receiver)
+	{
+		CHIAKI_LOGE(&session->log, "Session failed to initialize Audio Receiver\n");
+		goto quit_ctrl;
+	}
+
 	err = chiaki_nagare_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare failed\n");
-		goto quit_ctrl;
+		goto quit_audio_receiver;
 	}
 
 	CHIAKI_LOGI(&session->log, "Nagare completed successfully\n");
+
+quit_audio_receiver:
+	chiaki_audio_receiver_free(session->audio_receiver);
+	session->audio_receiver = NULL;
 
 quit_ctrl:
 	chiaki_ctrl_join(&session->ctrl);

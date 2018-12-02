@@ -58,6 +58,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
+static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint32_t key_pos, void *user);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
@@ -87,6 +88,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 
 	takion_info.data_cb = nagare_takion_data;
 	takion_info.data_cb_user = nagare;
+	takion_info.av_cb = nagare_takion_av;
+	takion_info.av_cb_user = nagare;
 
 	err = chiaki_takion_connect(&nagare->takion, &takion_info);
 	free(takion_info.sa);
@@ -326,7 +329,9 @@ static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *
 		goto error;
 	}
 
-	chiaki_audio_header_load(&nagare->audio_header, audio_header);
+	ChiakiAudioHeader audio_header_s;
+	chiaki_audio_header_load(&audio_header_s, audio_header);
+	chiaki_audio_receiver_stream_info(nagare->session->audio_receiver, &audio_header_s);
 
 	// TODO: do some checks?
 
@@ -488,3 +493,17 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
 }
 
 
+static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint32_t key_pos, void *user)
+{
+	ChiakiNagare *nagare = user;
+
+	chiaki_gkcrypt_decrypt(nagare->gkcrypt_b, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
+
+	if(buf[0] == 0xf4 && buf_size >= 0x50)
+	{
+		chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50);
+	}
+
+	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);
+	//chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+}

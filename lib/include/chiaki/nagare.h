@@ -23,7 +23,6 @@
 #include "log.h"
 #include "ecdh.h"
 #include "gkcrypt.h"
-#include "audio.h"
 
 #include <stdbool.h>
 
@@ -40,7 +39,6 @@ typedef struct chiaki_nagare_t
 	uint8_t *ecdh_secret;
 	ChiakiGKCrypt *gkcrypt_a;
 	ChiakiGKCrypt *gkcrypt_b;
-	ChiakiAudioHeader audio_header;
 } ChiakiNagare;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(struct chiaki_session_t *session);
