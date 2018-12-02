@@ -1,15 +1,25 @@
+
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
 
 #include <stdio.h>
 #include <string.h>
 
-void audio_frame_cb(int8_t *buf, size_t samples_count, void *user)
+#include <QApplication>
+#include <QAudioOutput>
+#include <QAudioFormat>
+
+
+QAudioOutput *audio_out;
+QIODevice *audio_io;
+
+
+void audio_frame_cb(int16_t *buf, size_t samples_count, void *user)
 {
-	printf("AUDIO FRAME CB %lu\n", samples_count);
+	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
 	if(argc != 7)
 	{
@@ -45,11 +55,34 @@ int main(int argc, const char *argv[])
 		return 1;
 	}
 
+	argc = 1;
+	QApplication app(argc, argv);
+
+	QAudioFormat audio_format;
+	audio_format.setSampleRate(48000);
+	audio_format.setChannelCount(2);
+	audio_format.setSampleSize(16);
+	audio_format.setCodec("audio/pcm");
+	audio_format.setSampleType(QAudioFormat::SignedInt);
+
+	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
+	if(!audio_device_info.isFormatSupported(audio_format))
+	{
+		printf("audio output format not supported\n");
+	}
+
+	audio_out = new QAudioOutput(audio_format);
+	audio_io = audio_out->start();
+
+
 	ChiakiSession session;
 	chiaki_session_init(&session, &connect_info);
 	chiaki_session_set_audio_frame_cb(&session, audio_frame_cb, NULL);
 	chiaki_session_start(&session);
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
+
+	delete audio_out;
+
 	return 0;
 }
