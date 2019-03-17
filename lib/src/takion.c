@@ -646,7 +646,7 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
-	// HHIxxxxxIx
+	// HHIxIIx
 
 	if(buf_size < AV_HEADER_SIZE + 1)
 	{
@@ -654,15 +654,19 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		return;
 	}
 
-	uint16_t word_0 = ntohs(*((uint16_t *)(buf + 0)));
-	uint16_t word_1 = ntohs(*((uint16_t *)(buf + 2)));
+	uint16_t packet_index = ntohs(*((uint16_t *)(buf + 0)));
+	uint16_t frame_index = ntohs(*((uint16_t *)(buf + 2)));
 	uint32_t dword_2 = ntohl(*((uint32_t *)(buf + 4)));
+	uint8_t *gmac = buf + 9; // uint8_t[4]
 	uint32_t key_pos = ntohl(*((uint32_t *)(buf + 0xd)));
 	uint8_t unknown_1 = buf[0x11];
+
+	CHIAKI_LOGD(takion->log, "packet index %u, frame index %u\n", packet_index, frame_index);
+	chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 
 	uint8_t *data = buf + AV_HEADER_SIZE;
 	size_t data_size = buf_size - AV_HEADER_SIZE;
 
 	if(takion->av_cb)
-		takion->av_cb(data, data_size, key_pos, takion->av_cb_user);
+		takion->av_cb(data, data_size, base_type, key_pos, takion->av_cb_user);
 }

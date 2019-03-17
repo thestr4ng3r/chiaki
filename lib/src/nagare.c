@@ -58,7 +58,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
-static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint32_t key_pos, void *user);
+static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
@@ -493,7 +493,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
 }
 
 
-static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint32_t key_pos, void *user)
+static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user)
 {
 	ChiakiNagare *nagare = user;
 
@@ -502,6 +502,10 @@ static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint32_t key_pos, vo
 	if(buf[0] == 0xf4 && buf_size >= 0x50)
 	{
 		chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50);
+	}
+	else if(base_type == 2 && buf[0] != 0xf4)
+	{
+		CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
 	}
 
 	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);

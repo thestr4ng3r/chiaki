@@ -31,7 +31,7 @@ extern "C" {
 
 
 typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
-typedef void (*ChiakiTakionAVCallback)(uint8_t *buf, size_t buf_size, uint32_t key_pos, void *user);
+typedef void (*ChiakiTakionAVCallback)(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
