@@ -152,3 +152,42 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, siz
 
 	return CHIAKI_ERR_SUCCESS;
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size, uint8_t *gmac_out)
+{
+	uint8_t iv[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	counter_add(iv, gkcrypt->iv, (int)key_pos);
+
+	uint8_t *key = gkcrypt->key; // TODO: calculate new key? (conditions?)
+
+	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+	if(!ctx)
+		return CHIAKI_ERR_MEMORY;
+
+	if(!EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, key, iv))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EVP_EncryptUpdate(ctx, NULL, NULL, buf, (int)buf_size))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EVP_EncryptFinal_ex(ctx, NULL, NULL))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, CHIAKI_GKCRYPT_GMAC_SIZE, gmac_out))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	EVP_CIPHER_CTX_free(ctx);
+	return CHIAKI_ERR_SUCCESS;
+}

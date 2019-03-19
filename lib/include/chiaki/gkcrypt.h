@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 #define CHIAKI_GKCRYPT_BLOCK_SIZE 0x10
+#define CHIAKI_GKCRYPT_GMAC_SIZE 4
 
 typedef struct chiaki_gkcrypt_t {
 	uint8_t *key_buf;
@@ -45,6 +46,7 @@ CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size);
 static inline ChiakiErrorCode chiaki_gkcrypt_encrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size) { return chiaki_gkcrypt_decrypt(gkcrypt, key_pos, buf, buf_size); }
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size, uint8_t *gmac_out);
 
 static inline ChiakiGKCrypt *chiaki_gkcrypt_new(ChiakiLog *log, size_t key_buf_blocks, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
 {
