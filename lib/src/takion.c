@@ -661,8 +661,8 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	uint32_t key_pos = ntohl(*((uint32_t *)(buf + 0xd)));
 	uint8_t unknown_1 = buf[0x11];
 
-	CHIAKI_LOGD(takion->log, "packet index %u, frame index %u\n", packet_index, frame_index);
-	chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	//CHIAKI_LOGD(takion->log, "packet index %u, frame index %u\n", packet_index, frame_index);
+	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 
 	uint8_t *data = buf + AV_HEADER_SIZE;
 	size_t data_size = buf_size - AV_HEADER_SIZE;

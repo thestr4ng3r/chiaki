@@ -505,7 +505,7 @@ static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, u
 	}
 	else if(base_type == 2 && buf[0] != 0xf4)
 	{
-		CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
+		//CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
 	}
 
 	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);

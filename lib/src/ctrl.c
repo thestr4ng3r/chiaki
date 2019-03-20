@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 
 #define SESSION_CTRL_PORT 9295
@@ -116,6 +117,35 @@ static void *ctrl_thread_func(void *user)
 	return NULL;
 }
 
+static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type, const uint8_t *payload, size_t payload_size)
+{
+	assert(payload_size == 0 || payload);
+
+	uint8_t header[8];
+	*((uint32_t *)header) = htonl((uint32_t)payload_size);
+	*((uint16_t *)(header + 4)) = htons(type);
+	*((uint16_t *)(header + 6)) = 0;
+
+	ssize_t sent = send(ctrl->sock, header, sizeof(header), 0);
+	if(sent < 0)
+	{
+		CHIAKI_LOGE(&ctrl->session->log, "Failed to send Ctrl Message Header\n");
+		return CHIAKI_ERR_NETWORK;
+	}
+
+	if(payload)
+	{
+		sent = send(ctrl->sock, payload, payload_size, 0);
+		if(sent < 0)
+		{
+			CHIAKI_LOGE(&ctrl->session->log, "Failed to send Ctrl Message Payload\n");
+			return CHIAKI_ERR_NETWORK;
+		}
+	}
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
@@ -199,7 +229,9 @@ static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *paylo
 	if(payload_size != 0)
 		CHIAKI_LOGW(&ctrl->session->log, "Received Heartbeat request with non-empty payload\n");
 
-	// TODO: send CTRL_MESSAGE_TYPE_HEARTBEAT_REP
+	CHIAKI_LOGD(&ctrl->session->log, "Received Heartbeat\n");
+
+	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_HEARTBEAT_REP, NULL, 0);
 }
 
 
