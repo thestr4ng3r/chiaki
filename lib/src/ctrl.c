@@ -30,7 +30,9 @@
 #define SESSION_CTRL_PORT 9295
 
 typedef enum ctrl_message_type_t {
-	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33
+	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33,
+	CTRL_MESSAGE_TYPE_HEARTBEAT_REQ = 0xfe,
+	CTRL_MESSAGE_TYPE_HEARTBEAT_REP = 0x1fe
 } CtrlMessageType;
 
 
@@ -116,6 +118,7 @@ static void *ctrl_thread_func(void *user)
 
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size)
 {
@@ -133,6 +136,9 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 	{
 		case CTRL_MESSAGE_TYPE_SESSION_ID:
 			ctrl_message_received_session_id(ctrl, payload, payload_size);
+			break;
+		case CTRL_MESSAGE_TYPE_HEARTBEAT_REQ:
+			ctrl_message_received_heartbeat_req(ctrl, payload, payload_size);
 			break;
 		default:
 			CHIAKI_LOGW(&ctrl->session->log, "Received Ctrl Message with unknown type %#x\n", msg_type);
@@ -186,6 +192,14 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 	chiaki_mutex_unlock(&ctrl->session->ctrl_cond_mutex);
 
 	CHIAKI_LOGI(&ctrl->session->log, "Received valid Session Id: %s\n", ctrl->session->session_id);
+}
+
+static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(payload_size != 0)
+		CHIAKI_LOGW(&ctrl->session->log, "Received Heartbeat request with non-empty payload\n");
+
+	// TODO: send CTRL_MESSAGE_TYPE_HEARTBEAT_REP
 }
 
 
