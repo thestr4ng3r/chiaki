@@ -59,6 +59,7 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
 static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
@@ -90,6 +91,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	takion_info.data_cb_user = nagare;
 	takion_info.av_cb = nagare_takion_av;
 	takion_info.av_cb_user = nagare;
+	takion_info.mac_cb = nagare_takion_mac;
+	takion_info.mac_cb_user = nagare;
 
 	err = chiaki_takion_connect(&nagare->takion, &takion_info);
 	free(takion_info.sa);
@@ -510,4 +513,13 @@ static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, u
 
 	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);
 	//chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+}
+
+
+static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user)
+{
+	ChiakiNagare *nagare = user;
+	if(!nagare->gkcrypt_b)
+		return CHIAKI_ERR_UNINITIALIZED;
+	return chiaki_gkcrypt_gmac(nagare->gkcrypt_b, key_pos, buf, buf_size, mac_out);
 }

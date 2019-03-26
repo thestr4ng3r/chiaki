@@ -73,6 +73,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	takion_info.data_cb = senkusha_takion_data;
 	takion_info.data_cb_user = &senkusha;
 
+	takion_info.mac_cb = NULL; // TODO: Do we need the MAC here?
+	takion_info.mac_cb_user = NULL;
+
 	err = chiaki_takion_connect(&senkusha.takion, &takion_info);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)

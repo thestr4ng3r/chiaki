@@ -30,12 +30,17 @@ extern "C" {
 
 #define CHIAKI_GKCRYPT_BLOCK_SIZE 0x10
 #define CHIAKI_GKCRYPT_GMAC_SIZE 4
+#define CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS 45000
+#define CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_IV_OFFSET 44910
 
 typedef struct chiaki_gkcrypt_t {
 	uint8_t *key_buf;
 	size_t key_buf_size;
-	uint8_t key[CHIAKI_GKCRYPT_BLOCK_SIZE];
 	uint8_t iv[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	uint8_t key_base[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	uint8_t key_gmac_base[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	uint8_t key_gmac_current[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	uint64_t key_gmac_index_next;
 	ChiakiLog *log;
 } ChiakiGKCrypt;
 
@@ -46,7 +51,9 @@ CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size);
 static inline ChiakiErrorCode chiaki_gkcrypt_encrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size) { return chiaki_gkcrypt_decrypt(gkcrypt, key_pos, buf, buf_size); }
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size, uint8_t *gmac_out);
+CHIAKI_EXPORT void chiaki_gkcrypt_gen_gmac_key(uint64_t index, const uint8_t *key_base, const uint8_t *iv, uint8_t *key_out);
+CHIAKI_EXPORT void chiaki_gkcrypt_gen_new_gmac_key(ChiakiGKCrypt *gkcrypt, uint64_t index);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, const uint8_t *buf, size_t buf_size, uint8_t *gmac_out);
 
 static inline ChiakiGKCrypt *chiaki_gkcrypt_new(ChiakiLog *log, size_t key_buf_blocks, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
 {

@@ -32,6 +32,7 @@ extern "C" {
 
 typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
 typedef void (*ChiakiTakionAVCallback)(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+typedef ChiakiErrorCode (*ChiakiTakionMACCallback)(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
@@ -43,6 +44,8 @@ typedef struct chiaki_takion_connect_info_t
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
 	void *av_cb_user;
+	ChiakiTakionMACCallback mac_cb;
+	void *mac_cb_user;
 } ChiakiTakionConnectInfo;
 
 
@@ -53,6 +56,8 @@ typedef struct chiaki_takion_t
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
 	void *av_cb_user;
+	ChiakiTakionMACCallback mac_cb;
+	void *mac_cb_user;
 	int sock;
 	ChiakiThread thread;
 	int stop_pipe[2];

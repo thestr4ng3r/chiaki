@@ -107,6 +107,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->data_cb_user = info->data_cb_user;
 	takion->av_cb = info->av_cb;
 	takion->av_cb_user = info->av_cb_user;
+	takion->mac_cb = info->mac_cb;
+	takion->mac_cb_user = info->mac_cb_user;
 	takion->something = TAKION_LOCAL_SOMETHING;
 
 	takion->tag_local = 0x4823; // "random" tag
@@ -376,11 +378,11 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 	switch(base_type)
 	{
 		case TAKION_PACKET_TYPE_MESSAGE:
-			takion_handle_packet_message(takion, buf+1, buf_size-1);
+			takion_handle_packet_message(takion, buf, buf_size);
 			break;
 		case TAKION_PACKET_TYPE_2:
 		case TAKION_PACKET_TYPE_3:
-			takion_handle_packet_av(takion, base_type, buf+1, buf_size-1);
+			takion_handle_packet_av(takion, base_type, buf, buf_size);
 			break;
 		default:
 			CHIAKI_LOGW(takion->log, "Takion packet with unknown type %#x received\n", buf[0]);
@@ -392,7 +394,7 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
 {
 	TakionMessage msg;
-	ChiakiErrorCode err = takion_parse_message(takion, buf, buf_size, &msg);
+	ChiakiErrorCode err = takion_parse_message(takion, buf+1, buf_size-1, &msg);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return;
 
@@ -648,24 +650,61 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 {
 	// HHIxIIx
 
-	if(buf_size < AV_HEADER_SIZE + 1)
+	//CHIAKI_LOGD(takion->log, "calculating GMAC for buf:\n");
+	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+
+	size_t av_size = buf_size-1;
+
+	if(av_size < AV_HEADER_SIZE + 1)
 	{
 		CHIAKI_LOGE(takion->log, "Takion received AV packet smaller than av header size + 1\n");
 		return;
 	}
 
-	uint16_t packet_index = ntohs(*((uint16_t *)(buf + 0)));
-	uint16_t frame_index = ntohs(*((uint16_t *)(buf + 2)));
-	uint32_t dword_2 = ntohl(*((uint32_t *)(buf + 4)));
-	uint8_t *gmac = buf + 9; // uint8_t[4]
-	uint32_t key_pos = ntohl(*((uint32_t *)(buf + 0xd)));
-	uint8_t unknown_1 = buf[0x11];
+	uint8_t *av = buf+1;
+
+	uint16_t packet_index = ntohs(*((uint16_t *)(av + 0)));
+	uint16_t frame_index = ntohs(*((uint16_t *)(av + 2)));
+	uint32_t dword_2 = ntohl(*((uint32_t *)(av + 4)));
+
+	uint8_t gmac[4];
+	memcpy(gmac, av + 9, sizeof(gmac));
+	memset(av + 9, 0, sizeof(gmac));
+
+	uint32_t key_pos = ntohl(*((uint32_t *)(av + 0xd)));
+
+	uint8_t unknown_1 = av[0x11];
+
+	if(takion->mac_cb)
+	{
+		uint8_t gmac_expected[4];
+		memset(gmac_expected, 0, sizeof(gmac_expected));
+
+		//CHIAKI_LOGD(takion->log, "calculating GMAC for:\n");
+		//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+
+		if(takion->mac_cb(buf, buf_size, key_pos, gmac_expected, takion->mac_cb_user) != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to calculate MAC\n");
+			return;
+		}
+		//CHIAKI_LOGD(takion->log, "GMAC:\n");
+		//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, gmac, sizeof(gmac));
+		//CHIAKI_LOGD(takion->log, "GMAC expected:\n");
+		//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, gmac_expected, sizeof(gmac_expected));
+		if(memcmp(gmac_expected, gmac, sizeof(gmac)) != 0)
+		{
+			CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for key_pos %#lx\n", key_pos);
+			return;
+		}
+		CHIAKI_LOGD(takion->log, "Takion packet MAC correct for key pos %#lx\n", key_pos);
+	}
 
 	//CHIAKI_LOGD(takion->log, "packet index %u, frame index %u\n", packet_index, frame_index);
 	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 
-	uint8_t *data = buf + AV_HEADER_SIZE;
-	size_t data_size = buf_size - AV_HEADER_SIZE;
+	uint8_t *data = av + AV_HEADER_SIZE;
+	size_t data_size = av_size - AV_HEADER_SIZE;
 
 	if(takion->av_cb)
 		takion->av_cb(data, data_size, base_type, key_pos, takion->av_cb_user);

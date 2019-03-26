@@ -23,6 +23,7 @@
 
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/sha.h>
 
 #include "utils.h"
 
@@ -45,6 +46,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, Chiaki
 		free(gkcrypt->key_buf);
 		return CHIAKI_ERR_UNKNOWN;
 	}
+
+	chiaki_gkcrypt_gen_gmac_key(0, gkcrypt->key_base, gkcrypt->iv, gkcrypt->key_gmac_base);
+	gkcrypt->key_gmac_index_next = 1;
+	memcpy(gkcrypt->key_gmac_current, gkcrypt->key_gmac_base, sizeof(gkcrypt->key_gmac_current));
 
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -72,18 +77,18 @@ static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index,
 
 	assert(hmac_size == sizeof(hmac));
 
-	memcpy(gkcrypt->key, hmac, CHIAKI_GKCRYPT_BLOCK_SIZE);
+	memcpy(gkcrypt->key_base, hmac, CHIAKI_GKCRYPT_BLOCK_SIZE);
 	memcpy(gkcrypt->iv, hmac + CHIAKI_GKCRYPT_BLOCK_SIZE, CHIAKI_GKCRYPT_BLOCK_SIZE);
 
 	return CHIAKI_ERR_SUCCESS;
 }
 
-static inline void counter_add(uint8_t *out, const uint8_t *base, int v)
+static inline void counter_add(uint8_t *out, const uint8_t *base, uint64_t v)
 {
 	size_t i=0;
 	do
 	{
-		int r = (int)base[i] + v;
+		uint64_t r = base[i] + v;
 		out[i] = (uint8_t)(r & 0xff);
 		v = r >> 8;
 		i++;
@@ -91,6 +96,22 @@ static inline void counter_add(uint8_t *out, const uint8_t *base, int v)
 
 	if(i < CHIAKI_GKCRYPT_BLOCK_SIZE)
 		memcpy(out + i, base + i, CHIAKI_GKCRYPT_BLOCK_SIZE - i);
+}
+
+CHIAKI_EXPORT void chiaki_gkcrypt_gen_gmac_key(uint64_t index, const uint8_t *key_base, const uint8_t *iv, uint8_t *key_out)
+{
+	uint8_t data[0x20];
+	memcpy(data, key_base, 0x10);
+	counter_add(data + 0x10, iv, index * CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_IV_OFFSET);
+	uint8_t md[0x20];
+	SHA256(data, 0x20, md);
+	xor_bytes(md, md + 0x10, 0x10);
+	memcpy(key_out, md, CHIAKI_GKCRYPT_BLOCK_SIZE);
+}
+
+CHIAKI_EXPORT void chiaki_gkcrypt_gen_new_gmac_key(ChiakiGKCrypt *gkcrypt, uint64_t index)
+{
+	chiaki_gkcrypt_gen_gmac_key(index, gkcrypt->key_gmac_base, gkcrypt->iv, gkcrypt->key_gmac_current);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
@@ -102,7 +123,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 	if(!ctx)
 		return CHIAKI_ERR_UNKNOWN;
 
-	if(!EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, gkcrypt->key, NULL))
+	if(!EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, gkcrypt->key_base, NULL))
 	{
 		EVP_CIPHER_CTX_free(ctx);
 		return CHIAKI_ERR_UNKNOWN;
@@ -153,30 +174,50 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, siz
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size, uint8_t *gmac_out)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, const uint8_t *buf, size_t buf_size, uint8_t *gmac_out)
 {
 	uint8_t iv[CHIAKI_GKCRYPT_BLOCK_SIZE];
-	counter_add(iv, gkcrypt->iv, (int)key_pos);
+	counter_add(iv, gkcrypt->iv, key_pos / 0x10);
 
-	uint8_t *key = gkcrypt->key; // TODO: calculate new key? (conditions?)
+	if(key_pos > gkcrypt->key_gmac_index_next * CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS)
+	{
+		uint64_t key_index_new = key_pos / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS;
+		chiaki_gkcrypt_gen_new_gmac_key(gkcrypt, key_index_new);
+		gkcrypt->key_gmac_index_next = key_index_new+1;
+	}
+
+	// TODO: key_pos smaller than current index
 
 	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 	if(!ctx)
 		return CHIAKI_ERR_MEMORY;
 
-	if(!EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, key, iv))
+	if(!EVP_CipherInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL, 1))
 	{
 		EVP_CIPHER_CTX_free(ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(!EVP_EncryptUpdate(ctx, NULL, NULL, buf, (int)buf_size))
+	if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, CHIAKI_GKCRYPT_BLOCK_SIZE, NULL))
 	{
 		EVP_CIPHER_CTX_free(ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(!EVP_EncryptFinal_ex(ctx, NULL, NULL))
+	if(!EVP_CipherInit_ex(ctx, NULL, NULL, gkcrypt->key_gmac_current, iv, 1))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	int len;
+	if(!EVP_EncryptUpdate(ctx, NULL, &len, buf, (int)buf_size))
+	{
+		EVP_CIPHER_CTX_free(ctx);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	if(!EVP_EncryptFinal_ex(ctx, NULL, &len))
 	{
 		EVP_CIPHER_CTX_free(ctx);
 		return CHIAKI_ERR_UNKNOWN;
