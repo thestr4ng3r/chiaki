@@ -644,18 +644,33 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 }
 
 
-#define AV_HEADER_SIZE 0x12
+#define AV_HEADER_SIZE_2 0x17
+#define AV_HEADER_SIZE_3 0x12
+
+typedef struct takion_av_packet_t
+{
+	uint16_t packet_index;
+	uint16_t frame_index;
+	bool is_2;
+	uint16_t word_at_0xa;
+	uint16_t word_at_0xc;
+	uint16_t word_at_0xe;
+	uint32_t dword_at_0x10;
+} TakionAVPacket;
 
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	// HHIxIIx
 
-	//CHIAKI_LOGD(takion->log, "calculating GMAC for buf:\n");
-	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	assert(base_type == 2 || base_type == 3);
 
 	size_t av_size = buf_size-1;
 
-	if(av_size < AV_HEADER_SIZE + 1)
+	TakionAVPacket packet;
+	packet.is_2 = base_type == 2;
+
+	size_t av_header_size = packet.is_2 ? AV_HEADER_SIZE_2 : AV_HEADER_SIZE_3;
+	if(av_size < av_header_size + 1) // TODO: compare av_size or buf_size?
 	{
 		CHIAKI_LOGE(takion->log, "Takion received AV packet smaller than av header size + 1\n");
 		return;
@@ -663,9 +678,24 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 
 	uint8_t *av = buf+1;
 
-	uint16_t packet_index = ntohs(*((uint16_t *)(av + 0)));
-	uint16_t frame_index = ntohs(*((uint16_t *)(av + 2)));
+	packet.packet_index = ntohs(*((uint16_t *)(av + 0)));
+	packet.frame_index = ntohs(*((uint16_t *)(av + 2)));
+
 	uint32_t dword_2 = ntohl(*((uint32_t *)(av + 4)));
+	if(packet.is_2)
+	{
+		packet.word_at_0xa = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
+		packet.word_at_0xc = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
+		packet.word_at_0xe = (uint16_t)(dword_2 & 0x3ff);
+	}
+	else
+	{
+		packet.word_at_0xa = (uint16_t)((dword_2 >> 0x18) & 0xff);
+		packet.word_at_0xc = (uint16_t)(((dword_2 >> 0x10) & 0xff) + 1);
+		packet.word_at_0xe = (uint16_t)(dword_2 & 0xffff);
+	}
+
+	packet.dword_at_0x10 = av[8];
 
 	uint8_t gmac[4];
 	memcpy(gmac, av + 9, sizeof(gmac));
@@ -674,6 +704,8 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	uint32_t key_pos = ntohl(*((uint32_t *)(av + 0xd)));
 
 	uint8_t unknown_1 = av[0x11];
+
+	CHIAKI_LOGD(takion->log, "av packet %d %d %d %x %d %d\n", base_type, packet.word_at_0xa, packet.word_at_0xc, packet.word_at_0xe, packet.dword_at_0x10, unknown_1);
 
 	if(takion->mac_cb)
 	{
@@ -703,8 +735,8 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	//CHIAKI_LOGD(takion->log, "packet index %u, frame index %u\n", packet_index, frame_index);
 	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 
-	uint8_t *data = av + AV_HEADER_SIZE;
-	size_t data_size = av_size - AV_HEADER_SIZE;
+	uint8_t *data = av + av_header_size;
+	size_t data_size = av_size - av_header_size;
 
 	if(takion->av_cb)
 		takion->av_cb(data, data_size, base_type, key_pos, takion->av_cb_user);
