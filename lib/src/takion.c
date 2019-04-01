@@ -656,9 +656,9 @@ typedef struct takion_av_packet_t
 	uint16_t word_at_0xa;
 	uint16_t word_at_0xc;
 	uint16_t word_at_0xe;
-	uint32_t dword_at_0x10;
+	uint32_t codec;
 	uint16_t word_at_0x18;
-	uint8_t byte_at_0x22;
+	uint8_t adaptive_stream_index;
 	uint8_t byte_at_0x2c;
 } TakionAVPacket;
 
@@ -701,7 +701,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		packet.word_at_0xe = (uint16_t)(dword_2 & 0xffff);
 	}
 
-	packet.dword_at_0x10 = av[8];
+	packet.codec = av[8];
 
 	uint8_t gmac[4];
 	memcpy(gmac, av + 9, sizeof(gmac));
@@ -711,7 +711,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 
 	uint8_t unknown_1 = av[0x11];
 
-	CHIAKI_LOGD(takion->log, "av packet %d %d %d %x %d %d\n", base_type, packet.word_at_0xa, packet.word_at_0xc, packet.word_at_0xe, packet.dword_at_0x10, unknown_1);
+	CHIAKI_LOGD(takion->log, "av packet %d %d %d %x %d %d\n", base_type, packet.word_at_0xa, packet.word_at_0xc, packet.word_at_0xe, packet.codec, unknown_1);
 
 	if(takion->mac_cb)
 	{
@@ -744,7 +744,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	if(packet.is_2)
 	{
 		packet.word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
-		packet.byte_at_0x22 = av[2] >> 5;
+		packet.adaptive_stream_index = av[2] >> 5;
 		av += 3;
 		av_size -= 3;
 	}
