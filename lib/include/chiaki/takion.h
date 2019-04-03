@@ -21,6 +21,7 @@
 #include "common.h"
 #include "thread.h"
 #include "log.h"
+#include "gkcrypt.h"
 
 #include <netinet/in.h>
 
@@ -32,7 +33,6 @@ extern "C" {
 
 typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
 typedef void (*ChiakiTakionAVCallback)(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
-typedef ChiakiErrorCode (*ChiakiTakionMACCallback)(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
@@ -44,20 +44,18 @@ typedef struct chiaki_takion_connect_info_t
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
 	void *av_cb_user;
-	ChiakiTakionMACCallback mac_cb;
-	void *mac_cb_user;
 } ChiakiTakionConnectInfo;
 
 
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
+	ChiakiGKCrypt *gkcrypt_local; // if NULL (default), no gmac is calculated and nothing is encrypted
+	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
 	ChiakiTakionDataCallback data_cb;
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
 	void *av_cb_user;
-	ChiakiTakionMACCallback mac_cb;
-	void *mac_cb_user;
 	int sock;
 	ChiakiThread thread;
 	int stop_pipe[2];
@@ -74,6 +72,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint32_t key_pos, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
+
+static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote) {
+	takion->gkcrypt_local = gkcrypt_local;
+	takion->gkcrypt_remote = gkcrypt_remote;
+}
 
 #ifdef __cplusplus
 }

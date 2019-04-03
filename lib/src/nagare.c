@@ -91,8 +91,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	takion_info.data_cb_user = nagare;
 	takion_info.av_cb = nagare_takion_av;
 	takion_info.av_cb_user = nagare;
-	takion_info.mac_cb = nagare_takion_mac;
-	takion_info.mac_cb_user = nagare;
 
 	err = chiaki_takion_connect(&nagare->takion, &takion_info);
 	free(takion_info.sa);
@@ -132,18 +130,25 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	CHIAKI_LOGI(&session->log, "Nagare successfully received bang\n");
 
 
-	nagare->gkcrypt_a = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, nagare->ecdh_secret);
-	if(!nagare->gkcrypt_a)
+	nagare->gkcrypt_local = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, nagare->ecdh_secret);
+	if(!nagare->gkcrypt_local)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 2\n");
 		goto error_takion;
 	}
-	nagare->gkcrypt_b = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, nagare->ecdh_secret);
-	if(!nagare->gkcrypt_b)
+	nagare->gkcrypt_remote = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, nagare->ecdh_secret);
+	if(!nagare->gkcrypt_remote)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 3\n");
 		goto error_gkcrypt_a;
 	}
+
+	// TODO: IMPORTANT!!!
+	// This all needs to be synchronized correctly!!!
+	// After receiving the bang, we MUST wait for the gkcrypts to be set before handling any new takion packets!
+	// Otherwise we might ignore some macs.
+	// Also, access to the gkcrypts must be synchronized for key_pos and everything.
+	chiaki_takion_set_crypt(&nagare->takion, nagare->gkcrypt_local, nagare->gkcrypt_remote);
 
 	err = chiaki_mirai_request_begin(&nagare->mirai, NAGARE_MIRAI_REQUEST_STREAMINFO, false);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -174,9 +179,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	err = CHIAKI_ERR_SUCCESS;
 
 	// TODO: can't roll everything back like this, takion has to be closed first always.
-	chiaki_gkcrypt_free(nagare->gkcrypt_b);
+	chiaki_gkcrypt_free(nagare->gkcrypt_remote);
 error_gkcrypt_a:
-	chiaki_gkcrypt_free(nagare->gkcrypt_a);
+	chiaki_gkcrypt_free(nagare->gkcrypt_local);
 error_takion:
 	chiaki_takion_close(&nagare->takion);
 	CHIAKI_LOGI(&session->log, "Nagare closed takion\n");
@@ -214,6 +219,7 @@ static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
 	if(!r)
 	{
 		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		chiaki_log_hexdump(nagare->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		return;
 	}
 }
@@ -500,7 +506,7 @@ static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, u
 {
 	ChiakiNagare *nagare = user;
 
-	chiaki_gkcrypt_decrypt(nagare->gkcrypt_b, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
+	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
 
 	if(buf[0] == 0xf4 && buf_size >= 0x50)
 	{
@@ -513,13 +519,4 @@ static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, u
 
 	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);
 	//chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);
-}
-
-
-static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user)
-{
-	ChiakiNagare *nagare = user;
-	if(!nagare->gkcrypt_b)
-		return CHIAKI_ERR_UNINITIALIZED;
-	return chiaki_gkcrypt_gmac(nagare->gkcrypt_b, key_pos, buf, buf_size, mac_out);
 }

@@ -37,8 +37,8 @@ typedef struct chiaki_nagare_t
 	ChiakiTakion takion;
 	ChiakiMirai mirai;
 	uint8_t *ecdh_secret;
-	ChiakiGKCrypt *gkcrypt_a;
-	ChiakiGKCrypt *gkcrypt_b;
+	ChiakiGKCrypt *gkcrypt_local;
+	ChiakiGKCrypt *gkcrypt_remote;
 } ChiakiNagare;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(struct chiaki_session_t *session);
