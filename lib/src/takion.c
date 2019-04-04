@@ -401,6 +401,9 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 	}
 
 	uint32_t key_pos = ntohl(*((uint32_t *)(buf + key_pos_offset)));
+	if(base_type == TAKION_PACKET_TYPE_MESSAGE)
+		memset(buf + key_pos_offset, 0, sizeof(uint32_t));
+
 	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
 	memcpy(mac, buf + mac_offset, sizeof(mac));
 	memset(buf + mac_offset, 0, sizeof(mac));

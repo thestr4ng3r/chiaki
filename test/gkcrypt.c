@@ -184,7 +184,7 @@ static MunitResult test_gmac(const MunitParameter params[], void *user)
 	memcpy(gkcrypt.iv, gkcrypt_iv, sizeof(gkcrypt.iv));
 	gkcrypt.key_buf = NULL;
 	gkcrypt.key_buf_size = 0;
-	gkcrypt.key_gmac_index_next = 1;
+	gkcrypt.key_gmac_index_current = 0;
 
 	uint8_t gmac[CHIAKI_GKCRYPT_GMAC_SIZE];
 	ChiakiErrorCode err = chiaki_gkcrypt_gmac(&gkcrypt, key_pos, buf, sizeof(buf), gmac);
