@@ -48,7 +48,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, Chiaki
 	}
 
 	chiaki_gkcrypt_gen_gmac_key(0, gkcrypt->key_base, gkcrypt->iv, gkcrypt->key_gmac_base);
-	gkcrypt->key_gmac_index_next = 1;
+	gkcrypt->key_gmac_index_current = 0;
 	memcpy(gkcrypt->key_gmac_current, gkcrypt->key_gmac_base, sizeof(gkcrypt->key_gmac_current));
 
 	return CHIAKI_ERR_SUCCESS;
@@ -111,7 +111,14 @@ CHIAKI_EXPORT void chiaki_gkcrypt_gen_gmac_key(uint64_t index, const uint8_t *ke
 
 CHIAKI_EXPORT void chiaki_gkcrypt_gen_new_gmac_key(ChiakiGKCrypt *gkcrypt, uint64_t index)
 {
+	assert(index > 0);
 	chiaki_gkcrypt_gen_gmac_key(index, gkcrypt->key_gmac_base, gkcrypt->iv, gkcrypt->key_gmac_current);
+	gkcrypt->key_gmac_index_current = index;
+}
+
+CHIAKI_EXPORT void chiaki_gkcrypt_gen_tmp_gmac_key(ChiakiGKCrypt *gkcrypt, uint64_t index, uint8_t *key_out)
+{
+	chiaki_gkcrypt_gen_gmac_key(index, index ? gkcrypt->key_gmac_base : gkcrypt->key_base, gkcrypt->iv, key_out);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
@@ -179,56 +186,67 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t
 	uint8_t iv[CHIAKI_GKCRYPT_BLOCK_SIZE];
 	counter_add(iv, gkcrypt->iv, key_pos / 0x10);
 
-	if(key_pos > gkcrypt->key_gmac_index_next * CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS)
+	uint8_t *gmac_key = gkcrypt->key_gmac_current;
+	uint8_t gmac_key_tmp[CHIAKI_GKCRYPT_BLOCK_SIZE];
+	uint64_t key_index = key_pos / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS;
+	if(key_index > gkcrypt->key_gmac_index_current)
 	{
-		uint64_t key_index_new = key_pos / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS;
-		chiaki_gkcrypt_gen_new_gmac_key(gkcrypt, key_index_new);
-		gkcrypt->key_gmac_index_next = key_index_new+1;
+		chiaki_gkcrypt_gen_new_gmac_key(gkcrypt, key_index);
+	}
+	else if(key_pos < gkcrypt->key_gmac_index_current)
+	{
+		chiaki_gkcrypt_gen_tmp_gmac_key(gkcrypt, key_index, gmac_key_tmp);
+		gmac_key = gmac_key_tmp;
 	}
 
-	// TODO: key_pos smaller than current index
+	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 	if(!ctx)
-		return CHIAKI_ERR_MEMORY;
+	{
+		ret = CHIAKI_ERR_MEMORY;
+		goto fail;
+	}
 
 	if(!EVP_CipherInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL, 1))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
 	if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, CHIAKI_GKCRYPT_BLOCK_SIZE, NULL))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
-	if(!EVP_CipherInit_ex(ctx, NULL, NULL, gkcrypt->key_gmac_current, iv, 1))
+	if(!EVP_CipherInit_ex(ctx, NULL, NULL, gmac_key, iv, 1))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
 	int len;
 	if(!EVP_EncryptUpdate(ctx, NULL, &len, buf, (int)buf_size))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
 	if(!EVP_EncryptFinal_ex(ctx, NULL, &len))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
 	if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, CHIAKI_GKCRYPT_GMAC_SIZE, gmac_out))
 	{
-		EVP_CIPHER_CTX_free(ctx);
-		return CHIAKI_ERR_UNKNOWN;
+		ret = CHIAKI_ERR_UNKNOWN;
+		goto fail_cipher;
 	}
 
+fail_cipher:
 	EVP_CIPHER_CTX_free(ctx);
-	return CHIAKI_ERR_SUCCESS;
+fail:
+	return ret;
 }
