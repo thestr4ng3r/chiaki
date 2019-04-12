@@ -191,12 +191,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t
 
 	uint8_t *gmac_key = gkcrypt->key_gmac_current;
 	uint8_t gmac_key_tmp[CHIAKI_GKCRYPT_BLOCK_SIZE];
-	uint64_t key_index = key_pos / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS;
-	if(key_index != (key_pos + buf_size - 1) / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS)
-	{
-		CHIAKI_LOGD(gkcrypt->log, "SPLIT! %u != %u\n", key_index, (key_pos + buf_size - 1) / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS);
-	}
-	// TODO: what to do if (key_pos / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS) != ((key_pos + buf_size) / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS)?
+	uint64_t key_index = (key_pos > 0 ? key_pos - 1 : 0) / CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS;
+
 	if(key_index > gkcrypt->key_gmac_index_current)
 	{
 		chiaki_gkcrypt_gen_new_gmac_key(gkcrypt, key_index);
