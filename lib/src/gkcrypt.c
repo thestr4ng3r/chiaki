@@ -118,7 +118,10 @@ CHIAKI_EXPORT void chiaki_gkcrypt_gen_new_gmac_key(ChiakiGKCrypt *gkcrypt, uint6
 
 CHIAKI_EXPORT void chiaki_gkcrypt_gen_tmp_gmac_key(ChiakiGKCrypt *gkcrypt, uint64_t index, uint8_t *key_out)
 {
-	chiaki_gkcrypt_gen_gmac_key(index, index ? gkcrypt->key_gmac_base : gkcrypt->key_base, gkcrypt->iv, key_out);
+	if(index)
+		chiaki_gkcrypt_gen_gmac_key(index, gkcrypt->key_gmac_base, gkcrypt->iv, key_out);
+	else
+		memcpy(key_out, gkcrypt->key_gmac_base, sizeof(gkcrypt->key_gmac_base));
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
@@ -198,7 +201,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t
 	{
 		chiaki_gkcrypt_gen_new_gmac_key(gkcrypt, key_index);
 	}
-	else if(key_pos < gkcrypt->key_gmac_index_current)
+	else if(key_index < gkcrypt->key_gmac_index_current)
 	{
 		chiaki_gkcrypt_gen_tmp_gmac_key(gkcrypt, key_index, gmac_key_tmp);
 		gmac_key = gmac_key_tmp;
