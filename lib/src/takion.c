@@ -716,21 +716,6 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 #define AV_HEADER_SIZE_2 0x17
 #define AV_HEADER_SIZE_3 0x12
 
-typedef struct takion_av_packet_t
-{
-	uint16_t packet_index;
-	uint16_t frame_index;
-	bool byte_at_0x1a;
-	bool is_2;
-	uint16_t word_at_0xa;
-	uint16_t word_at_0xc;
-	uint16_t word_at_0xe;
-	uint32_t codec;
-	uint16_t word_at_0x18;
-	uint8_t adaptive_stream_index;
-	uint8_t byte_at_0x2c;
-} TakionAVPacket;
-
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	// HHIxIIx
@@ -739,7 +724,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 
 	size_t av_size = buf_size-1;
 
-	TakionAVPacket packet = {0};
+	ChiakiTakionAVPacket packet = {0};
 	packet.is_2 = base_type == 2;
 
 	packet.byte_at_0x1a = ((buf[0] >> 4) & 1) != 0;
@@ -802,5 +787,5 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	size_t data_size = av_size;
 
 	if(takion->av_cb)
-		takion->av_cb(data, data_size, base_type, key_pos, takion->av_cb_user);
+		takion->av_cb(&packet, data, data_size, base_type, key_pos, takion->av_cb_user);
 }

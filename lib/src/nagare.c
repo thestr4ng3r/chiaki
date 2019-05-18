@@ -58,7 +58,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
-static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
 static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
@@ -502,20 +502,30 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
 }
 
 
-static void nagare_takion_av(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user)
+static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user)
 {
 	ChiakiNagare *nagare = user;
 
 	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
 
-	if(buf[0] == 0xf4 && buf_size >= 0x50)
+	//CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_2: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
+	//			header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_2 ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
+	//			header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
+
+	if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
 	{
+		//CHIAKI_LOGD(nagare->log, "audio!\n");
 		chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50);
 	}
-	else if(base_type == 2 && buf[0] != 0xf4)
+	else
 	{
-		//CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
+		//CHIAKI_LOGD(nagare->log, "NON-audio\n");
 	}
+
+	/*else if(base_type == 2 && buf[0] != 0xf4)
+	{
+		CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
+	}*/
 
 	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);
 	//chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);

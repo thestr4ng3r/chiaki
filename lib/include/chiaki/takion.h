@@ -24,15 +24,17 @@
 #include "gkcrypt.h"
 
 #include <netinet/in.h>
+#include <stdbool.h>
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct chiaki_takion_av_packet_t;
 
 typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
-typedef void (*ChiakiTakionAVCallback)(uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+typedef void (*ChiakiTakionAVCallback)(struct chiaki_takion_av_packet_t *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
@@ -67,6 +69,20 @@ typedef struct chiaki_takion_t
 	uint32_t something; // 0x19000, TODO: is this some kind of remaining buffer size?
 } ChiakiTakion;
 
+typedef struct chiaki_takion_av_packet_t
+{
+	uint16_t packet_index;
+	uint16_t frame_index;
+	bool byte_at_0x1a;
+	bool is_2;
+	uint16_t word_at_0xa;
+	uint16_t word_at_0xc;
+	uint16_t word_at_0xe;
+	uint32_t codec;
+	uint16_t word_at_0x18;
+	uint8_t adaptive_stream_index;
+	uint8_t byte_at_0x2c;
+} ChiakiTakionAVPacket;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
