@@ -192,14 +192,25 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
+	session->video_receiver = chiaki_video_receiver_new(session);
+	if(!session->video_receiver)
+	{
+		CHIAKI_LOGE(&session->log, "Session failed to initialize Video Receiver\n");
+		goto quit_audio_receiver;
+	}
+
 	err = chiaki_nagare_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare failed\n");
-		goto quit_audio_receiver;
+		goto quit_video_receiver;
 	}
 
 	CHIAKI_LOGI(&session->log, "Nagare completed successfully\n");
+
+quit_video_receiver:
+	chiaki_video_receiver_free(session->video_receiver);
+	session->video_receiver = NULL;
 
 quit_audio_receiver:
 	chiaki_audio_receiver_free(session->audio_receiver);

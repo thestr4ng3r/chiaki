@@ -28,6 +28,7 @@
 #include "ecdh.h"
 #include "audio.h"
 #include "audioreceiver.h"
+#include "videoreceiver.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -133,6 +134,7 @@ typedef struct chiaki_session_t
 
 	ChiakiNagare nagare;
 	ChiakiAudioReceiver *audio_receiver;
+	ChiakiVideoReceiver *video_receiver;
 } ChiakiSession;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
