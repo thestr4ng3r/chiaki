@@ -28,8 +28,8 @@
 
 typedef enum takion_packet_type_t {
 	TAKION_PACKET_TYPE_MESSAGE = 0,
-	TAKION_PACKET_TYPE_2 = 2,
-	TAKION_PACKET_TYPE_3 = 3,
+	TAKION_PACKET_TYPE_VIDEO = 2,
+	TAKION_PACKET_TYPE_AUDIO = 3,
 } TakionPacketType;
 
 
@@ -384,8 +384,8 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 			mac_offset = 5;
 			key_pos_offset = 0x9;
 			break;
-		case TAKION_PACKET_TYPE_2:
-		case TAKION_PACKET_TYPE_3:
+		case TAKION_PACKET_TYPE_VIDEO:
+		case TAKION_PACKET_TYPE_AUDIO:
 			mac_offset = 0xa;
 			key_pos_offset = 0xe;
 			break;
@@ -448,8 +448,8 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 		case TAKION_PACKET_TYPE_MESSAGE:
 			takion_handle_packet_message(takion, buf, buf_size);
 			break;
-		case TAKION_PACKET_TYPE_2:
-		case TAKION_PACKET_TYPE_3:
+		case TAKION_PACKET_TYPE_VIDEO:
+		case TAKION_PACKET_TYPE_AUDIO:
 			takion_handle_packet_av(takion, base_type, buf, buf_size);
 			break;
 		default:
@@ -713,23 +713,23 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 }
 
 
-#define AV_HEADER_SIZE_2 0x17
-#define AV_HEADER_SIZE_3 0x12
+#define AV_HEADER_SIZE_VIDEO 0x17
+#define AV_HEADER_SIZE_AUDIO 0x12
 
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	// HHIxIIx
 
-	assert(base_type == 2 || base_type == 3);
+	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 
 	size_t av_size = buf_size-1;
 
 	ChiakiTakionAVPacket packet = {0};
-	packet.is_2 = base_type == 2;
+	packet.is_video = base_type == TAKION_PACKET_TYPE_VIDEO;
 
 	packet.byte_at_0x1a = ((buf[0] >> 4) & 1) != 0;
 
-	size_t av_header_size = packet.is_2 ? AV_HEADER_SIZE_2 : AV_HEADER_SIZE_3;
+	size_t av_header_size = packet.is_video ? AV_HEADER_SIZE_VIDEO : AV_HEADER_SIZE_AUDIO;
 	if(av_size < av_header_size + 1) // TODO: compare av_size or buf_size?
 	{
 		CHIAKI_LOGE(takion->log, "Takion received AV packet smaller than av header size + 1\n");
@@ -742,7 +742,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	packet.frame_index = ntohs(*((uint16_t *)(av + 2)));
 
 	uint32_t dword_2 = ntohl(*((uint32_t *)(av + 4)));
-	if(packet.is_2)
+	if(packet.is_video)
 	{
 		packet.word_at_0xa = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
 		packet.word_at_0xc = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
@@ -766,7 +766,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	av += 0x12;
 	av_size -= 12;
 
-	if(packet.is_2)
+	if(packet.is_video)
 	{
 		packet.word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
 		packet.adaptive_stream_index = av[2] >> 5;
@@ -776,7 +776,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 
 	// TODO: parsing for packet.byte_at_0x1a
 
-	if(packet.is_2)
+	if(packet.is_video)
 	{
 		packet.byte_at_0x2c = av[0];
 		av += 2;

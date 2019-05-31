@@ -508,8 +508,8 @@ static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t 
 
 	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
 
-	//CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_2: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
-	//			header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_2 ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
+	//CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
+	//			header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
 	//			header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
 
 	if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
