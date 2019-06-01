@@ -52,4 +52,21 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 		CHIAKI_LOGI(video_receiver->log, "  %zu: %ux%u\n", i, profile->width, profile->height);
 		chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, profile->header, profile->header_sz);
 	}
+
+	// TODO: should happen deferred, depending on content of av packets
+	if(video_receiver->session->video_sample_cb && video_receiver->profiles_count > 0)
+	{
+		video_receiver->session->video_sample_cb(video_receiver->profiles[0].header, video_receiver->profiles[0].header_sz, video_receiver->session->video_sample_cb_user);
+	}
+}
+
+CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size)
+{
+	if(video_receiver->session->video_sample_cb)
+	{
+		if(header->adaptive_stream_index == 0)
+		{
+			video_receiver->session->video_sample_cb(buf, buf_size, video_receiver->session->video_sample_cb_user);
+		}
+	}
 }

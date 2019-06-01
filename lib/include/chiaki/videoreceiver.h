@@ -21,6 +21,7 @@
 #include "common.h"
 #include "log.h"
 #include "video.h"
+#include "takion.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,8 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
  * @param profiles_count must be <= CHIAKI_VIDEO_PROFILES_MAX
  */
 CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count);
+
+CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size);
 
 static inline ChiakiVideoReceiver *chiaki_video_receiver_new(struct chiaki_session_t *session)
 {

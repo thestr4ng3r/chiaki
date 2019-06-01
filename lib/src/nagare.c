@@ -556,18 +556,26 @@ static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t 
 
 	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
 
-	//CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
-	//			header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
-	//			header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
+	/*CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
+				header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
+				header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
+	chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);*/
 
-	if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
+	if(header->is_video)
 	{
-		//CHIAKI_LOGD(nagare->log, "audio!\n");
-		chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50);
+		chiaki_video_receiver_av_packet(nagare->session->video_receiver, header, buf, buf_size);
 	}
 	else
 	{
-		//CHIAKI_LOGD(nagare->log, "NON-audio\n");
+		if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
+		{
+			//CHIAKI_LOGD(nagare->log, "audio!\n");
+			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50); // TODO: why 0x50?
+		}
+		else
+		{
+			//CHIAKI_LOGD(nagare->log, "NON-audio\n");
+		}
 	}
 
 	/*else if(base_type == 2 && buf[0] != 0xf4)

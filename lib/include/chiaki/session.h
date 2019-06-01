@@ -91,6 +91,7 @@ typedef struct chiaki_event_t
 
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
 typedef void (*ChiakiAudioFrameCallback)(int16_t *buf, size_t samples_count, void *user);
+typedef void (*ChiakiVideoSampleCallback)(uint8_t *buf, size_t buf_size, void *user);
 
 
 
@@ -122,6 +123,8 @@ typedef struct chiaki_session_t
 	void *event_cb_user;
 	ChiakiAudioFrameCallback audio_frame_cb;
 	void *audio_frame_cb_user;
+	ChiakiVideoSampleCallback  video_sample_cb;
+	void *video_sample_cb_user;
 
 	ChiakiThread session_thread;
 
@@ -152,6 +155,12 @@ static inline void chiaki_session_set_audio_frame_cb(ChiakiSession *session, Chi
 {
 	session->audio_frame_cb = cb;
 	session->audio_frame_cb_user = user;
+}
+
+static inline void chiaki_session_set_video_sample_cb(ChiakiSession *session, ChiakiVideoSampleCallback cb, void *user)
+{
+	session->video_sample_cb = cb;
+	session->video_sample_cb_user = user;
 }
 
 static inline void chiaki_session_set_quit_reason(ChiakiSession *session, ChiakiQuitReason reason)
