@@ -18,6 +18,7 @@ set(HEADER_FILES
 		include/chiaki/gkcrypt.h
 		include/chiaki/audio.h
 		include/chiaki/audioreceiver.h
+		include/chiaki/video.h
 		include/chiaki/videoreceiver.h)
 
 set(SOURCE_FILES

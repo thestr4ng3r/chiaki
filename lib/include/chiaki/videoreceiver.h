@@ -20,20 +20,33 @@
 
 #include "common.h"
 #include "log.h"
+#include "video.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define CHIAKI_VIDEO_PROFILES_MAX 8
+
 typedef struct chiaki_video_receiver_t
 {
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
-
+	ChiakiVideoProfile profiles[CHIAKI_VIDEO_PROFILES_MAX];
+	size_t profiles_count;
 } ChiakiVideoReceiver;
 
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session);
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver);
+
+/**
+ * Called after receiving the Stream Info Packet.
+ *
+ * @param video_receiver
+ * @param profiles Array of profiles. Ownership of the contained header buffers will be transferred to the ChiakiVideoReceiver!
+ * @param profiles_count must be <= CHIAKI_VIDEO_PROFILES_MAX
+ */
+CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count);
 
 static inline ChiakiVideoReceiver *chiaki_video_receiver_new(struct chiaki_session_t *session)
 {

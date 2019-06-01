@@ -72,4 +72,23 @@ static bool chiaki_pb_decode_buf(pb_istream_t *stream, const pb_field_t *field, 
 }
 
 
+typedef struct chiaki_pb_decode_buf_alloc_t
+{
+	size_t size;
+	uint8_t *buf;
+} ChiakiPBDecodeBufAlloc;
+
+static bool chiaki_pb_decode_buf_alloc(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+	ChiakiPBDecodeBufAlloc *buf = *arg;
+	buf->size = stream->bytes_left;
+	buf->buf = malloc(buf->size);
+	if(!buf->buf)
+		return false;
+	bool r = pb_read(stream, buf->buf, buf->size);
+	if(!r)
+		buf->size = 0;
+	return r;
+}
+
 #endif // CHIAKI_PB_UTILS_H

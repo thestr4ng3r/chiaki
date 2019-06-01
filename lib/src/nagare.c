@@ -21,6 +21,7 @@
 #include <chiaki/launchspec.h>
 #include <chiaki/base64.h>
 #include <chiaki/audio.h>
+#include <chiaki/video.h>
 
 #include <string.h>
 #include <assert.h>
@@ -305,6 +306,44 @@ error:
 	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_FAIL);
 }
 
+typedef struct decode_resolutions_context_t
+{
+	ChiakiNagare *nagare;
+	ChiakiVideoProfile video_profiles[CHIAKI_VIDEO_PROFILES_MAX];
+	size_t video_profiles_count;
+} DecodeResolutionsContext;
+
+static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+	DecodeResolutionsContext *ctx = *arg;
+
+	tkproto_ResolutionPayload resolution = { 0 };
+	ChiakiPBDecodeBufAlloc header_buf = { 0 };
+	resolution.video_header.arg = &header_buf;
+	resolution.video_header.funcs.decode = chiaki_pb_decode_buf_alloc;
+	if(!pb_decode(stream, tkproto_ResolutionPayload_fields, &resolution))
+		return false;
+
+	if(!header_buf.buf)
+	{
+		CHIAKI_LOGE(&ctx->nagare->session->log, "Failed to decode video header\n");
+		return true;
+	}
+
+	if(ctx->video_profiles_count >= CHIAKI_VIDEO_PROFILES_MAX)
+	{
+		CHIAKI_LOGE(&ctx->nagare->session->log, "Received more resolutions than the maximum\n");
+		return true;
+	}
+
+	ChiakiVideoProfile *profile = &ctx->video_profiles[ctx->video_profiles_count++];
+	profile->width = resolution.width;
+	profile->height = resolution.height;
+	profile->header_sz = header_buf.size;
+	profile->header = header_buf.buf;
+	return true;
+}
+
 
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
 {
@@ -316,7 +355,12 @@ static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *
 	msg.stream_info_payload.audio_header.arg = &audio_header_buf;
 	msg.stream_info_payload.audio_header.funcs.decode = chiaki_pb_decode_buf;
 
-	// TODO: msg.stream_info_payload.resolution
+	DecodeResolutionsContext decode_resolutions_context;
+	decode_resolutions_context.nagare = nagare;
+	memset(decode_resolutions_context.video_profiles, 0, sizeof(decode_resolutions_context.video_profiles));
+	decode_resolutions_context.video_profiles_count = 0;
+	msg.stream_info_payload.resolution.arg = &decode_resolutions_context;
+	msg.stream_info_payload.resolution.funcs.decode = pb_decode_resolution;
 
 	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
@@ -341,6 +385,10 @@ static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *
 	ChiakiAudioHeader audio_header_s;
 	chiaki_audio_header_load(&audio_header_s, audio_header);
 	chiaki_audio_receiver_stream_info(nagare->session->audio_receiver, &audio_header_s);
+
+	chiaki_video_receiver_stream_info(nagare->session->video_receiver,
+			decode_resolutions_context.video_profiles,
+			decode_resolutions_context.video_profiles_count);
 
 	// TODO: do some checks?
 
