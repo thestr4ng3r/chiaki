@@ -1,4 +1,6 @@
 
+#include <streamwindow.h>
+
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
 
@@ -57,6 +59,13 @@ int main(int argc, char *argv[])
 
 	argc = 1;
 	QApplication app(argc, argv);
+
+	StreamWindow window;
+	window.resize(640, 360);
+	window.show();
+
+	return app.exec();
+
 
 	QAudioFormat audio_format;
 	audio_format.setSampleRate(48000);
