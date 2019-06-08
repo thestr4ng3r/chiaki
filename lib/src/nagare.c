@@ -570,7 +570,7 @@ static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t 
 		if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
 		{
 			//CHIAKI_LOGD(nagare->log, "audio!\n");
-			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50); // TODO: why 0x50?
+			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50); // TODO: why 0x50? this is dangerous!!!
 		}
 		else
 		{

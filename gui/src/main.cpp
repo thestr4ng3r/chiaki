@@ -21,6 +21,13 @@ void audio_frame_cb(int16_t *buf, size_t samples_count, void *user)
 	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
 }
 
+void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
+{
+	//StreamRelayIODevice *io_device = reinterpret_cast<StreamRelayIODevice *>(user);
+	//io_device->PushSample(buf, buf_size);
+}
+
+
 int main(int argc, char *argv[])
 {
 	if(argc != 7)
@@ -64,8 +71,6 @@ int main(int argc, char *argv[])
 	window.resize(640, 360);
 	window.show();
 
-	return app.exec();
-
 
 	QAudioFormat audio_format;
 	audio_format.setSampleRate(48000);
@@ -87,11 +92,15 @@ int main(int argc, char *argv[])
 	ChiakiSession session;
 	chiaki_session_init(&session, &connect_info);
 	chiaki_session_set_audio_frame_cb(&session, audio_frame_cb, NULL);
+	chiaki_session_set_video_sample_cb(&session, video_sample_cb, window.GetIODevice());
 	chiaki_session_start(&session);
+
+	int ret = app.exec();
+
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 
 	delete audio_out;
 
-	return 0;
+	return ret;
 }
