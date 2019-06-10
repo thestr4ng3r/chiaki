@@ -15,6 +15,9 @@
 QAudioOutput *audio_out;
 QIODevice *audio_io;
 
+QFile *video_out_file;
+size_t file_size = 0;
+
 
 void audio_frame_cb(int16_t *buf, size_t samples_count, void *user)
 {
@@ -23,6 +26,11 @@ void audio_frame_cb(int16_t *buf, size_t samples_count, void *user)
 
 void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
 {
+	if(!video_out_file)
+		return;
+	printf("writing %#zx to file, start: %#zx\n", buf_size, file_size);
+	file_size += buf_size;
+	video_out_file->write((const char *)buf, buf_size);
 	//StreamRelayIODevice *io_device = reinterpret_cast<StreamRelayIODevice *>(user);
 	//io_device->PushSample(buf, buf_size);
 }
@@ -89,18 +97,28 @@ int main(int argc, char *argv[])
 	audio_io = audio_out->start();
 
 
+	video_out_file = nullptr;
+	//video_out_file->open(QFile::ReadWrite);
+
 	ChiakiSession session;
 	chiaki_session_init(&session, &connect_info);
 	chiaki_session_set_audio_frame_cb(&session, audio_frame_cb, NULL);
 	chiaki_session_set_video_sample_cb(&session, video_sample_cb, window.GetIODevice());
 	chiaki_session_start(&session);
 
+	app.setQuitOnLastWindowClosed(true);
+
 	int ret = app.exec();
+
+	//video_out_file->close();
+
+	printf("CLOSED!!! filesize: %zu\n", file_size);
 
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 
 	delete audio_out;
+
 
 	return ret;
 }

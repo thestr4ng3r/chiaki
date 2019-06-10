@@ -19,7 +19,8 @@ set(HEADER_FILES
 		include/chiaki/audio.h
 		include/chiaki/audioreceiver.h
 		include/chiaki/video.h
-		include/chiaki/videoreceiver.h)
+		include/chiaki/videoreceiver.h
+		include/chiaki/frameprocessor.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -42,7 +43,8 @@ set(SOURCE_FILES
 		src/gkcrypt.c
 		src/audio.c
 		src/audioreceiver.c
-		src/videoreceiver.c)
+		src/videoreceiver.c
+		src/frameprocessor.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")

@@ -59,7 +59,7 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
-static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+static void nagare_takion_av(ChiakiTakionAVPacket *packet, void *user);
 static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
@@ -550,27 +550,27 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
 }
 
 
-static void nagare_takion_av(ChiakiTakionAVPacket *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user)
+static void nagare_takion_av(ChiakiTakionAVPacket *packet, void *user)
 {
 	ChiakiNagare *nagare = user;
 
-	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf, buf_size);
+	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
 
 	/*CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
-				header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->word_at_0xc, header->word_at_0xe, header->codec,
+				header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->units_in_frame_total, header->units_in_frame_additional, header->codec,
 				header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
 	chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);*/
 
-	if(header->is_video)
+	if(packet->is_video)
 	{
-		chiaki_video_receiver_av_packet(nagare->session->video_receiver, header, buf, buf_size);
+		chiaki_video_receiver_av_packet(nagare->session->video_receiver, packet);
 	}
 	else
 	{
-		if(header->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
+		if(packet->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
 		{
 			//CHIAKI_LOGD(nagare->log, "audio!\n");
-			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, buf, 0x50); // TODO: why 0x50? this is dangerous!!!
+			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, packet->data, 0x50); // TODO: why 0x50? this is dangerous!!!
 		}
 		else
 		{

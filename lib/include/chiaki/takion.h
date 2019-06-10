@@ -34,7 +34,7 @@ extern "C" {
 struct chiaki_takion_av_packet_t;
 
 typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
-typedef void (*ChiakiTakionAVCallback)(struct chiaki_takion_av_packet_t *header, uint8_t *buf, size_t buf_size, uint8_t base_type, uint32_t key_pos, void *user);
+typedef void (*ChiakiTakionAVCallback)(struct chiaki_takion_av_packet_t *packet, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
@@ -75,13 +75,18 @@ typedef struct chiaki_takion_av_packet_t
 	uint16_t frame_index;
 	bool uses_nalu_info_structs;
 	bool is_video;
-	uint16_t nalu_index;
-	uint16_t word_at_0xc;
-	uint16_t word_at_0xe;
+	uint16_t unit_index;
+	uint16_t units_in_frame_total; // regular + units_in_frame_additional
+	uint16_t units_in_frame_additional;
 	uint32_t codec;
 	uint16_t word_at_0x18;
 	uint8_t adaptive_stream_index;
 	uint8_t byte_at_0x2c;
+
+	uint32_t key_pos;
+
+	uint8_t *data; // not owned
+	size_t data_size;
 } ChiakiTakionAVPacket;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
@@ -93,6 +98,8 @@ static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *
 	takion->gkcrypt_local = gkcrypt_local;
 	takion->gkcrypt_remote = gkcrypt_remote;
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

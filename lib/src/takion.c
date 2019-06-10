@@ -713,80 +713,92 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 }
 
 
-#define AV_HEADER_SIZE_VIDEO 0x17
-#define AV_HEADER_SIZE_AUDIO 0x12
-
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	// HHIxIIx
 
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 
-	size_t av_size = buf_size-1;
-
-	ChiakiTakionAVPacket packet = {0};
-	packet.is_video = base_type == TAKION_PACKET_TYPE_VIDEO;
-
-	packet.uses_nalu_info_structs = ((buf[0] >> 4) & 1) != 0;
-
-	size_t av_header_size = packet.is_video ? AV_HEADER_SIZE_VIDEO : AV_HEADER_SIZE_AUDIO;
-	if(av_size < av_header_size + 1) // TODO: compare av_size or buf_size?
+	ChiakiTakionAVPacket packet;
+	ChiakiErrorCode err = chiaki_takion_av_packet_parse(&packet, base_type, buf, buf_size);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(takion->log, "Takion received AV packet smaller than av header size + 1\n");
+		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
+			CHIAKI_LOGE(takion->log, "Takion received AV packet that was too small\n");
 		return;
 	}
 
-	uint8_t *av = buf+1;
+	if(takion->av_cb)
+		takion->av_cb(&packet, takion->av_cb_user);
+}
 
-	packet.packet_index = ntohs(*((uint16_t *)(av + 0)));
-	packet.frame_index = ntohs(*((uint16_t *)(av + 2)));
+#define AV_HEADER_SIZE_VIDEO 0x17
+#define AV_HEADER_SIZE_AUDIO 0x12
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size)
+{
+	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
+	if(base_type != TAKION_PACKET_TYPE_VIDEO && base_type != TAKION_PACKET_TYPE_AUDIO)
+		return CHIAKI_ERR_INVALID_DATA;
+
+	if(buf_size < 1)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	packet->is_video = base_type == TAKION_PACKET_TYPE_VIDEO;
+
+	packet->uses_nalu_info_structs = ((buf[0] >> 4) & 1) != 0; // TODO: is this really correct?
+
+	uint8_t *av = buf+1;
+	size_t av_size = buf_size-1;
+	size_t av_header_size = packet->is_video ? AV_HEADER_SIZE_VIDEO : AV_HEADER_SIZE_AUDIO;
+	if(av_size < av_header_size + 1)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	packet->packet_index = ntohs(*((uint16_t *)(av + 0)));
+	packet->frame_index = ntohs(*((uint16_t *)(av + 2)));
 
 	uint32_t dword_2 = ntohl(*((uint32_t *)(av + 4)));
-	if(packet.is_video)
+	if(packet->is_video)
 	{
-		packet.nalu_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
-		packet.word_at_0xc = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
-		packet.word_at_0xe = (uint16_t)(dword_2 & 0x3ff);
+		packet->unit_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
+		packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
+		packet->units_in_frame_additional = (uint16_t)(dword_2 & 0x3ff);
 	}
 	else
 	{
-		packet.nalu_index = (uint16_t)((dword_2 >> 0x18) & 0xff);
-		packet.word_at_0xc = (uint16_t)(((dword_2 >> 0x10) & 0xff) + 1);
-		packet.word_at_0xe = (uint16_t)(dword_2 & 0xffff);
+		packet->unit_index = (uint16_t)((dword_2 >> 0x18) & 0xff);
+		packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0x10) & 0xff) + 1);
+		packet->units_in_frame_additional = (uint16_t)(dword_2 & 0xffff);
 	}
 
-	packet.codec = av[8];
+	packet->codec = av[8];
 
-
-	uint32_t key_pos = ntohl(*((uint32_t *)(av + 0xd)));
+	packet->key_pos = ntohl(*((uint32_t *)(av + 0xd)));
 
 	uint8_t unknown_1 = av[0x11];
 
-
 	av += 0x12;
-	av_size -= 12;
+	av_size -= 0x12;
 
-	if(packet.is_video)
+	if(packet->is_video)
 	{
-		packet.word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
-		packet.adaptive_stream_index = av[2] >> 5;
+		packet->word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
+		packet->adaptive_stream_index = av[2] >> 5;
 		av += 3;
 		av_size -= 3;
 	}
 
 	// TODO: parsing for uses_nalu_info_structs (before: packet.byte_at_0x1a)
-	packet.uses_nalu_info_structs = true;
 
-	if(packet.is_video)
+	if(packet->is_video)
 	{
-		packet.byte_at_0x2c = av[0];
+		packet->byte_at_0x2c = av[0];
 		av += 2;
 		av_size -= 2;
 	}
 
-	uint8_t *data = av;
-	size_t data_size = av_size;
+	packet->data = av;
+	packet->data_size = av_size;
 
-	if(takion->av_cb)
-		takion->av_cb(&packet, data, data_size, base_type, key_pos, takion->av_cb_user);
+	return CHIAKI_ERR_SUCCESS;
 }
