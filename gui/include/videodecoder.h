@@ -15,27 +15,38 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <streamwindow.h>
+#ifndef CHIAKI_VIDEODECODER_H
+#define CHIAKI_VIDEODECODER_H
 
-#include <QLabel>
+#include <QMutex>
+#include <QObject>
 
-StreamWindow::StreamWindow(QWidget *parent)
-	: QMainWindow(parent)
+extern "C"
 {
-	imageLabel = new QLabel(this);
-	setCentralWidget(imageLabel);
+#include <libavcodec/avcodec.h>
+};
 
-	imageLabel->setBackgroundRole(QPalette::Base);
-	imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-	imageLabel->setScaledContents(true);
+#include <cstdint>
 
-}
-
-StreamWindow::~StreamWindow()
+class VideoDecoder: public QObject
 {
-}
+	Q_OBJECT
 
-void StreamWindow::SetImage(const QImage &image)
-{
-	imageLabel->setPixmap(QPixmap::fromImage(image));
-}
+	public:
+		VideoDecoder();
+		~VideoDecoder();
+
+		void PutFrame(uint8_t *buf, size_t buf_size);
+		QImage PullFrame();
+
+	signals:
+		void FramesAvailable();
+
+	private:
+		QMutex mutex;
+
+		AVCodec *codec;
+		AVCodecContext *codec_context;
+};
+
+#endif // CHIAKI_VIDEODECODER_H

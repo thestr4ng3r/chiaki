@@ -20,79 +20,7 @@
 
 #include <QMainWindow>
 
-namespace QtAV
-{
-	class VideoOutput;
-	class AVPlayer;
-}
-
-#include <QBuffer>
-#include <QMutex>
-#include <QThread>
-#include <QFile>
-
-class StreamRelayIODevice : public QIODevice
-{
-	private:
-		QMutex *mutex;
-		QByteArray buffer;
-
-	public:
-		explicit StreamRelayIODevice(QObject *parent = nullptr)
-			: QIODevice(parent),
-			mutex(new QMutex(QMutex::Recursive))
-		{
-			setOpenMode(OpenModeFlag::ReadOnly);
-		}
-
-		~StreamRelayIODevice() override = default;
-
-		void PushSample(uint8_t *buf, size_t size)
-		{
-			{
-				QMutexLocker locker(mutex);
-				printf("push sample %zu\n", size);
-				buffer.append(reinterpret_cast<const char *>(buf), static_cast<int>(size));
-			}
-			emit readyRead();
-		}
-
-
-		qint64 pos() const override { return 0; }
-		bool open(QIODevice::OpenMode mode) override { return true; }
-		bool isSequential() const override { return true; }
-
-		qint64 bytesAvailable() const override
-		{
-			QMutexLocker locker(mutex);
-			return buffer.size() + QIODevice::bytesAvailable();
-		}
-
-	protected:
-		qint64 readData(char *data, qint64 maxSize)
-		{
-			while(true)
-			{
-				{
-					QMutexLocker locker(mutex);
-					if(buffer.size() >= maxSize)
-					{
-						printf("read %lld\n", maxSize);
-						memcpy(data, buffer.constData(), maxSize);
-						buffer.remove(0, maxSize);
-						return maxSize;
-					}
-				}
-				QThread::msleep(100);
-			}
-		}
-
-		qint64 writeData(const char *data, qint64 maxSize)
-		{
-			return -1;
-		}
-};
-
+class QLabel;
 
 class StreamWindow: public QMainWindow
 {
@@ -102,14 +30,10 @@ class StreamWindow: public QMainWindow
 		explicit StreamWindow(QWidget *parent = nullptr);
 		~StreamWindow();
 
-		StreamRelayIODevice *GetIODevice()	{ return io_device; }
+		void SetImage(const QImage &image);
 
 	private:
-		QtAV::VideoOutput *video_output;
-		QtAV::AVPlayer *av_player;
-
-		StreamRelayIODevice *io_device;
-
+		QLabel *imageLabel;
 };
 
 #endif // CHIAKI_GUI_STREAMWINDOW_H
