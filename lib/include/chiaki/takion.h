@@ -73,9 +73,9 @@ typedef struct chiaki_takion_av_packet_t
 {
 	uint16_t packet_index;
 	uint16_t frame_index;
-	bool byte_at_0x1a;
+	bool uses_nalu_info_structs;
 	bool is_video;
-	uint16_t word_at_0xa;
+	uint16_t nalu_index;
 	uint16_t word_at_0xc;
 	uint16_t word_at_0xe;
 	uint32_t codec;
