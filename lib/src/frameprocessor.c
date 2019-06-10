@@ -155,7 +155,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 	}
 
 	unit->data_size = packet->data_size;
-	memcpy(frame_processor->frame_buf + packet->unit_index, packet->data, packet->data_size);
+	memcpy(frame_processor->frame_buf + packet->unit_index * frame_processor->buf_size_per_unit,
+			packet->data,
+			packet->data_size);
 
 	if(packet->unit_index < frame_processor->units_regular_expected)
 		frame_processor->units_regular_received++;

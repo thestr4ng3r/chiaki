@@ -783,9 +783,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 	if(packet->is_video)
 	{
 		packet->word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
-		packet->adaptive_stream_index = av[2] >> 5;
-		av += 3;
-		av_size -= 3;
+		packet->adaptive_stream_index = av[1] >> 5;
+		av += 2;
+		av_size -= 2;
 	}
 
 	// TODO: parsing for uses_nalu_info_structs (before: packet.byte_at_0x1a)
@@ -793,8 +793,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 	if(packet->is_video)
 	{
 		packet->byte_at_0x2c = av[0];
-		av += 2;
-		av_size -= 2;
+		//av += 2;
+		//av_size -= 2;
 	}
 
 	packet->data = av;

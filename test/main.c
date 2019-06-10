@@ -20,6 +20,7 @@
 extern MunitTest tests_http[];
 extern MunitTest tests_rpcrypt[];
 extern MunitTest tests_gkcrypt[];
+extern MunitTest tests_takion[];
 
 static MunitSuite suites[] = {
 	{
@@ -39,6 +40,13 @@ static MunitSuite suites[] = {
 	{
 		"/gkcrypt",
 		tests_gkcrypt,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		"/takion",
+		tests_takion,
 		NULL,
 		1,
 		MUNIT_SUITE_OPTION_NONE

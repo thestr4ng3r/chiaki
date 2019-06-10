@@ -29,6 +29,7 @@ void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
 	if(!video_out_file)
 		return;
 	printf("writing %#zx to file, start: %#zx\n", buf_size, file_size);
+	chiaki_log_hexdump(nullptr, CHIAKI_LOG_DEBUG, buf, buf_size);
 	file_size += buf_size;
 	video_out_file->write((const char *)buf, buf_size);
 	//StreamRelayIODevice *io_device = reinterpret_cast<StreamRelayIODevice *>(user);
