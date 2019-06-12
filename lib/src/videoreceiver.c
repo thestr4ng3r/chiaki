@@ -65,7 +65,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 {
 	ChiakiSeqNum16 frame_index = packet->frame_index;
 	if(video_receiver->frame_index_cur >= 0
-		&& chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
+		&& chiaki_seq_num_16_lt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
 		CHIAKI_LOGW(video_receiver->log, "Video Receiver received old frame packet\n");
 		return;
@@ -123,7 +123,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 	}
 
-	CHIAKI_LOGD(video_receiver->log, "Putting unit %lu of frame %d in processor\n",
-			(unsigned int)packet->unit_index, (int)video_receiver->frame_index_cur);
+	//CHIAKI_LOGD(video_receiver->log, "Putting unit %lu of frame %d in processor\n",
+	//		(unsigned int)packet->unit_index, (int)video_receiver->frame_index_cur);
 	chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
 }
