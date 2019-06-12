@@ -17,12 +17,20 @@
 
 #include <munit.h>
 
+extern MunitTest tests_seq_num[];
 extern MunitTest tests_http[];
 extern MunitTest tests_rpcrypt[];
 extern MunitTest tests_gkcrypt[];
 extern MunitTest tests_takion[];
 
 static MunitSuite suites[] = {
+	{
+		"/seq_num",
+		tests_seq_num,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
 	{
 		"/http",
 		tests_http,

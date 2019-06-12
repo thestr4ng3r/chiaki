@@ -7,7 +7,8 @@ add_executable(chiaki-unit
 		http.c
 		rpcrypt.c
 		gkcrypt.c
-		takion.c)
+		takion.c
+		seqnum.c)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

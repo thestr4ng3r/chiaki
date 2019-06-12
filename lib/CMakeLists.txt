@@ -20,7 +20,8 @@ set(HEADER_FILES
 		include/chiaki/audioreceiver.h
 		include/chiaki/video.h
 		include/chiaki/videoreceiver.h
-		include/chiaki/frameprocessor.h)
+		include/chiaki/frameprocessor.h
+		include/chiaki/seqnum.h)
 
 set(SOURCE_FILES
 		src/common.c
