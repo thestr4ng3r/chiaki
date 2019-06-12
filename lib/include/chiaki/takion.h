@@ -22,6 +22,7 @@
 #include "thread.h"
 #include "log.h"
 #include "gkcrypt.h"
+#include "seqnum.h"
 
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -71,11 +72,11 @@ typedef struct chiaki_takion_t
 
 typedef struct chiaki_takion_av_packet_t
 {
-	uint16_t packet_index;
-	uint16_t frame_index;
+	ChiakiSeqNum16 packet_index;
+	ChiakiSeqNum16 frame_index;
 	bool uses_nalu_info_structs;
 	bool is_video;
-	uint16_t unit_index;
+	ChiakiSeqNum16 unit_index;
 	uint16_t units_in_frame_total; // regular + units_in_frame_additional
 	uint16_t units_in_frame_additional;
 	uint32_t codec;

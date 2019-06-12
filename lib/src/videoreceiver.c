@@ -63,9 +63,9 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 
 CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *packet)
 {
-	// TODO: roll over
-	int32_t frame_index = (int32_t)packet->frame_index;
-	if(frame_index < video_receiver->frame_index_cur)
+	ChiakiSeqNum16 frame_index = packet->frame_index;
+	if(video_receiver->frame_index_cur >= 0
+		&& chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
 		CHIAKI_LOGW(video_receiver->log, "Video Receiver received old frame packet\n");
 		return;
@@ -88,9 +88,10 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, video_receiver->session->video_sample_cb_user);
 	}
 
-	if(frame_index > video_receiver->frame_index_cur)
+	if(video_receiver->frame_index_cur < 0 ||
+		chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
-		if(video_receiver->frame_index_prev != video_receiver->frame_index_cur)
+		if(video_receiver->frame_index_cur >= 0 && video_receiver->frame_index_prev != video_receiver->frame_index_cur)
 		{
 			uint8_t *frame;
 			size_t frame_size;
@@ -110,8 +111,8 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
 		}
 
-		if(frame_index > video_receiver->frame_index_cur + 1
-			&& !(frame_index == 1 && video_receiver->frame_index_cur == -1)) // ok for frame 1
+		if(chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur + 1)
+			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
 			CHIAKI_LOGW(video_receiver->log, "Skipped from frame %d to %d\n", (int)video_receiver->frame_index_cur, (int)frame_index);
 			// TODO: fake frame?
