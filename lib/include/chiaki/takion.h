@@ -58,6 +58,14 @@ typedef struct chiaki_takion_av_packet_t
 } ChiakiTakionAVPacket;
 
 
+typedef struct chiaki_takion_congestion_packet_t
+{
+	uint16_t word_0;
+	uint16_t word_1;
+	uint16_t word_2;
+} ChiakiTakionCongestionPacket;
+
+
 typedef void (*ChiakiTakionDataCallback)(ChiakiTakionMessageDataType, uint8_t *buf, size_t buf_size, void *user);
 typedef void (*ChiakiTakionAVCallback)(ChiakiTakionAVPacket *packet, void *user);
 
@@ -77,8 +85,13 @@ typedef struct chiaki_takion_connect_info_t
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
+
 	ChiakiGKCrypt *gkcrypt_local; // if NULL (default), no gmac is calculated and nothing is encrypted
+	size_t key_pos_local;
+	ChiakiMutex gkcrypt_local_mutex;
+
 	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
+
 	ChiakiTakionDataCallback data_cb;
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
@@ -99,6 +112,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint32_t key_pos, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet);
 
 static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote) {
 	takion->gkcrypt_local = gkcrypt_local;

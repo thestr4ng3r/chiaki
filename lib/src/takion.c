@@ -16,6 +16,7 @@
  */
 
 #include <chiaki/takion.h>
+#include <chiaki/congestioncontrol.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -24,6 +25,8 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+
+
 
 
 typedef enum takion_packet_type_t {
@@ -101,10 +104,14 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info)
 {
-	ChiakiErrorCode ret;
+	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	takion->log = info->log;
 	takion->gkcrypt_local = NULL;
+	ret = chiaki_mutex_init(&takion->gkcrypt_local_mutex);
+	if(ret != CHIAKI_ERR_SUCCESS)
+		return ret;
+	takion->key_pos_local = 0;
 	takion->gkcrypt_remote = NULL;
 	takion->data_cb = info->data_cb;
 	takion->data_cb_user = info->data_cb_user;
@@ -311,10 +318,37 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *
 	return chiaki_takion_send_raw(takion, buf, sizeof(buf));
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet)
+{
+	uint8_t buf[0xf];
+	memset(buf, 0, sizeof(buf));
+	buf[0] = 5;
+	*((uint16_t *)(buf + 1)) = htons(packet->word_0);
+	*((uint16_t *)(buf + 3)) = htons(packet->word_1);
+	*((uint16_t *)(buf + 5)) = htons(packet->word_2);
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	*((uint32_t *)(buf + 0xb)) = htonl((uint32_t)takion->key_pos_local);
+	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, takion->key_pos_local, buf, sizeof(buf), buf + 7);
+	takion->key_pos_local += sizeof(buf);
+	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, sizeof(buf));
+
+	return chiaki_takion_send_raw(takion, buf, sizeof(buf));
+}
 
 static void *takion_thread_func(void *user)
 {
 	ChiakiTakion *takion = user;
+
+	ChiakiCongestionControl congestion_control;
+	if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
+		goto beach;
 
 	while(true)
 	{
@@ -326,6 +360,9 @@ static void *takion_thread_func(void *user)
 		takion_handle_packet(takion, buf, received_size);
 	}
 
+	chiaki_congestion_control_stop(&congestion_control);
+
+beach:
 	close(takion->sock);
 	close(takion->stop_pipe[0]);
 	return NULL;
