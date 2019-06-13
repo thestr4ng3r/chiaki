@@ -97,7 +97,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			size_t frame_size;
 			if(chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size) == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS)
 			{
-				CHIAKI_LOGD(video_receiver->log, "Decoded frame %d\n", (int)video_receiver->frame_index_cur);
+				//CHIAKI_LOGD(video_receiver->log, "Decoded frame %d\n", (int)video_receiver->frame_index_cur);
 				if(video_receiver->session->video_sample_cb)
 					video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
 				free(frame);
@@ -119,7 +119,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		}
 
 		video_receiver->frame_index_cur = frame_index;
-		CHIAKI_LOGD(video_receiver->log, "Preparing slots for frame %d\n", (int)video_receiver->frame_index_cur);
+		//CHIAKI_LOGD(video_receiver->log, "Preparing slots for frame %d\n", (int)video_receiver->frame_index_cur);
 		chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 	}
 

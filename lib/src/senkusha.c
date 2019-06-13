@@ -45,7 +45,7 @@ typedef struct senkusha_t
 } Senkusha;
 
 
-static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user);
+static void senkusha_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha);
 static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha);
 
@@ -121,8 +121,11 @@ error_bang_mirai:
 	return err;
 }
 
-static void senkusha_takion_data(uint8_t *buf, size_t buf_size, void *user)
+static void senkusha_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
 {
+	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
+		return;
+
 	Senkusha *senkusha = user;
 
 	tkproto_TakionMessage msg;

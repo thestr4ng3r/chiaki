@@ -53,7 +53,7 @@ typedef enum {
 
 
 
-static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user);
+static void nagare_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
 static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
 static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
 static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
@@ -196,8 +196,11 @@ error_mirai:
 
 
 
-static void nagare_takion_data(uint8_t *buf, size_t buf_size, void *user)
+static void nagare_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
 {
+	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
+		return;
+
 	ChiakiNagare *nagare = user;
 
 	switch(nagare->mirai.request)

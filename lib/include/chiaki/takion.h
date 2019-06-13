@@ -32,10 +32,34 @@
 extern "C" {
 #endif
 
-struct chiaki_takion_av_packet_t;
+typedef enum chiaki_takion_message_data_type_t {
+	CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF = 0,
+	CHIAKI_TAKION_MESSAGE_DATA_TYPE_9 = 9
+} ChiakiTakionMessageDataType;
 
-typedef void (*ChiakiTakionDataCallback)(uint8_t *buf, size_t buf_size, void *user);
-typedef void (*ChiakiTakionAVCallback)(struct chiaki_takion_av_packet_t *packet, void *user);
+typedef struct chiaki_takion_av_packet_t
+{
+	ChiakiSeqNum16 packet_index;
+	ChiakiSeqNum16 frame_index;
+	bool uses_nalu_info_structs;
+	bool is_video;
+	ChiakiSeqNum16 unit_index;
+	uint16_t units_in_frame_total; // regular + units_in_frame_additional
+	uint16_t units_in_frame_additional;
+	uint32_t codec;
+	uint16_t word_at_0x18;
+	uint8_t adaptive_stream_index;
+	uint8_t byte_at_0x2c;
+
+	uint32_t key_pos;
+
+	uint8_t *data; // not owned
+	size_t data_size;
+} ChiakiTakionAVPacket;
+
+
+typedef void (*ChiakiTakionDataCallback)(ChiakiTakionMessageDataType, uint8_t *buf, size_t buf_size, void *user);
+typedef void (*ChiakiTakionAVCallback)(ChiakiTakionAVPacket *packet, void *user);
 
 
 typedef struct chiaki_takion_connect_info_t
@@ -70,25 +94,6 @@ typedef struct chiaki_takion_t
 	uint32_t something; // 0x19000, TODO: is this some kind of remaining buffer size?
 } ChiakiTakion;
 
-typedef struct chiaki_takion_av_packet_t
-{
-	ChiakiSeqNum16 packet_index;
-	ChiakiSeqNum16 frame_index;
-	bool uses_nalu_info_structs;
-	bool is_video;
-	ChiakiSeqNum16 unit_index;
-	uint16_t units_in_frame_total; // regular + units_in_frame_additional
-	uint16_t units_in_frame_additional;
-	uint32_t codec;
-	uint16_t word_at_0x18;
-	uint8_t adaptive_stream_index;
-	uint8_t byte_at_0x2c;
-
-	uint32_t key_pos;
-
-	uint8_t *data; // not owned
-	size_t data_size;
-} ChiakiTakionAVPacket;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
