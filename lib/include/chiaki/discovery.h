@@ -19,6 +19,10 @@
 #define CHIAKI_DISCOVERY_H
 
 #include "common.h"
+#include "thread.h"
+
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,13 +42,26 @@ typedef struct chiaki_discovery_packet_t
 	char *protocol_version;
 } ChiakiDiscoveryPacket;
 
+CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
+
 typedef struct chiaki_discovery_t
 {
 	int socket;
+	struct sockaddr local_addr;
 } ChiakiDiscovery;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, sa_family_t family);
 CHIAKI_EXPORT void chiaki_discovery_fini(ChiakiDiscovery *discovery);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, ChiakiDiscoveryPacket *packet, struct sockaddr *addr, size_t addr_size);
+
+typedef struct chiaki_discovery_thread_t
+{
+	ChiakiDiscovery *discovery;
+	ChiakiThread thread;
+} ChiakiDiscoveryThread;
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread);
 
 #ifdef __cplusplus
 }
