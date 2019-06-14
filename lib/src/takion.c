@@ -128,19 +128,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 
 	CHIAKI_LOGI(takion->log, "Takion connecting\n");
 
-	int r = pipe(takion->stop_pipe);
-	if(r < 0)
+	ChiakiErrorCode err = chiaki_stop_pipe_init(&takion->stop_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to create pipe\n");
+		CHIAKI_LOGE(takion->log, "Takion failed to create stop pipe\n");
 		return CHIAKI_ERR_UNKNOWN;
-	}
-
-	r = fcntl(takion->stop_pipe[0], F_SETFL, O_NONBLOCK);
-	if(r == -1)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to fcntl pipe\n");
-		ret = CHIAKI_ERR_UNKNOWN;
-		goto error_pipe;
 	}
 
 	takion->sock = socket(info->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
@@ -151,7 +143,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_pipe;
 	}
 
-	r = connect(takion->sock, info->sa, info->sa_len);
+	int r = connect(takion->sock, info->sa, info->sa_len);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to connect: %s\n", strerror(errno));
@@ -168,7 +160,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	init_payload.min = TAKION_LOCAL_MIN;
 	init_payload.max = TAKION_LOCAL_MIN;
 	init_payload.tag1 = takion->tag_local;
-	ChiakiErrorCode err = takion_send_message_init(takion, &init_payload);
+	err = takion_send_message_init(takion, &init_payload);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to send init\n");
@@ -255,16 +247,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 error_sock:
 	close(takion->sock);
 error_pipe:
-	close(takion->stop_pipe[0]);
-	close(takion->stop_pipe[1]);
+	chiaki_stop_pipe_fini(&takion->stop_pipe);
 	return ret;
 }
 
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 {
-	write(takion->stop_pipe[1], "\x00", 1);
+	chiaki_stop_pipe_stop(&takion->stop_pipe);
 	chiaki_thread_join(&takion->thread, NULL);
-	close(takion->stop_pipe[1]);
+	chiaki_stop_pipe_fini(&takion->stop_pipe);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
@@ -364,48 +355,32 @@ static void *takion_thread_func(void *user)
 
 beach:
 	close(takion->sock);
-	close(takion->stop_pipe[0]);
 	return NULL;
 }
 
 
 static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, struct timeval *timeout)
 {
-	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(takion->sock, &fds);
-	FD_SET(takion->stop_pipe[0], &fds);
-
-	int nfds = takion->sock;
-	if(takion->stop_pipe[0] > nfds)
-		nfds = takion->stop_pipe[0];
-	nfds++;
-	int r = select(nfds, &fds, NULL, NULL, timeout);
-	if(r < 0)
+	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, timeout);
+	if(err == CHIAKI_ERR_TIMEOUT)
+		return err;
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion select failed: %s\n", strerror(errno));
-		return CHIAKI_ERR_UNKNOWN;
+		return err;
 	}
 
-	if(FD_ISSET(takion->stop_pipe[0], &fds))
-		return CHIAKI_ERR_CANCELED;
-
-	if(FD_ISSET(takion->sock, &fds))
+	ssize_t received_sz = recv(takion->sock, buf, *buf_size, 0);
+	if(received_sz <= 0)
 	{
-		ssize_t received_sz = recv(takion->sock, buf, *buf_size, 0);
-		if(received_sz <= 0)
-		{
-			if(received_sz < 0)
-				CHIAKI_LOGE(takion->log, "Takion recv failed: %s\n", strerror(errno));
-			else
-				CHIAKI_LOGE(takion->log, "Takion recv returned 0\n");
-			return CHIAKI_ERR_NETWORK;
-		}
-		*buf_size = (size_t)received_sz;
-		return CHIAKI_ERR_SUCCESS;
+		if(received_sz < 0)
+			CHIAKI_LOGE(takion->log, "Takion recv failed: %s\n", strerror(errno));
+		else
+			CHIAKI_LOGE(takion->log, "Takion recv returned 0\n");
+		return CHIAKI_ERR_NETWORK;
 	}
-
-	return CHIAKI_ERR_TIMEOUT;
+	*buf_size = (size_t)received_sz;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 

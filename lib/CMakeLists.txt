@@ -23,7 +23,8 @@ set(HEADER_FILES
 		include/chiaki/frameprocessor.h
 		include/chiaki/seqnum.h
 		include/chiaki/discovery.h
-		include/chiaki/congestioncontrol.h)
+		include/chiaki/congestioncontrol.h
+		include/chiaki/stoppipe.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -49,7 +50,8 @@ set(SOURCE_FILES
 		src/videoreceiver.c
 		src/frameprocessor.c
 		src/discovery.c
-		src/congestioncontrol.c)
+		src/congestioncontrol.c
+		src/stoppipe.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")

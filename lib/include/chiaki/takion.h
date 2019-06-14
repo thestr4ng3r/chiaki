@@ -23,6 +23,7 @@
 #include "log.h"
 #include "gkcrypt.h"
 #include "seqnum.h"
+#include "stoppipe.h"
 
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -98,7 +99,7 @@ typedef struct chiaki_takion_t
 	void *av_cb_user;
 	int sock;
 	ChiakiThread thread;
-	int stop_pipe[2];
+	ChiakiStopPipe stop_pipe;
 	struct timeval recv_timeout;
 	int send_retries;
 	uint32_t tag_local;
