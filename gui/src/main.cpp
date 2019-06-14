@@ -1,6 +1,7 @@
 
 #include <streamwindow.h>
 #include <videodecoder.h>
+#include <discoverycmd.h>
 
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
@@ -11,6 +12,66 @@
 #include <QApplication>
 #include <QAudioOutput>
 #include <QAudioFormat>
+#include <QCommandLineParser>
+
+
+int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did);
+
+int main(int argc, char *argv[])
+{
+	QApplication app(argc, argv);
+	QApplication::setApplicationName("Chiaki");
+
+	QCommandLineParser parser;
+	parser.addHelpOption();
+
+	parser.addPositionalArgument("command", "Command");
+	parser.addPositionalArgument("host", "Host");
+
+	QCommandLineOption regist_key_option("registkey");
+	parser.addOption(regist_key_option);
+
+	QCommandLineOption ostype_option("ostype", "Win10.0.0");
+	parser.addOption(ostype_option);
+
+	QCommandLineOption auth_option("auth");
+	parser.addOption(auth_option);
+
+	QCommandLineOption morning_option("morning");
+	parser.addOption(morning_option);
+
+	QCommandLineOption did_option("did");
+	parser.addOption(did_option);
+
+
+	parser.process(app);
+	QStringList args = parser.positionalArguments();
+
+	if(args.length() < 2)
+		parser.showHelp(1);
+
+	QString host = args[1];
+
+	if(args[0] == "stream")
+	{
+		QString registkey = parser.value(regist_key_option);
+		QString ostype = parser.value(ostype_option);
+		QString auth = parser.value(auth_option);
+		QString morning = parser.value(morning_option);
+		QString did = parser.value(did_option);
+		if(registkey.isEmpty() || ostype.isEmpty() || auth.isEmpty() || morning.isEmpty() || did.isEmpty())
+			parser.showHelp(1);
+		return RunStream(app, host, registkey, ostype, auth, morning, did);
+	}
+	else if(args[0] == "discover")
+	{
+		return RunDiscoveryCmd(args[1]);
+	}
+	else
+	{
+		parser.showHelp(1);
+	}
+}
 
 
 QAudioOutput *audio_out;
@@ -38,28 +99,28 @@ void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
 }
 
 
-int main(int argc, char *argv[])
+int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did)
 {
-	if(argc != 7)
-	{
-		printf("Usage: %s <host> <registkey> <ostype> <auth> <morning (base64)> <did>\n", argv[0]);
-		return 1;
-	}
+	QByteArray host_str = host.toUtf8();
+	QByteArray registkey_str = registkey.toUtf8();
+	QByteArray ostype_str = ostype.toUtf8();
 
 	ChiakiConnectInfo connect_info;
-	connect_info.host = argv[1];
-	connect_info.regist_key = argv[2];
-	connect_info.ostype = argv[3];
+	connect_info.host = host_str.constData();
+	connect_info.regist_key = registkey_str.constData();
+	connect_info.ostype = ostype_str.constData();
 
-	size_t auth_len = strlen(argv[4]);
+	QByteArray auth_str = auth.toUtf8();
+	size_t auth_len = auth_str.length();
 	if(auth_len > sizeof(connect_info.auth))
 		auth_len = sizeof(connect_info.auth);
-	memcpy(connect_info.auth, argv[4], auth_len);
+	memcpy(connect_info.auth, auth_str.constData(), auth_len);
 	if(auth_len < sizeof(connect_info.auth))
 		memset(connect_info.auth + auth_len, 0, sizeof(connect_info.auth) - auth_len);
 
 	size_t morning_size = sizeof(connect_info.morning);
-	ChiakiErrorCode err = chiaki_base64_decode(argv[5], strlen(argv[5]), connect_info.morning, &morning_size);
+	QByteArray morning_str = morning.toUtf8();
+	ChiakiErrorCode err = chiaki_base64_decode(morning_str.constData(), morning_str.length(), connect_info.morning, &morning_size);
 	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(connect_info.morning))
 	{
 		printf("morning invalid.\n");
@@ -67,15 +128,13 @@ int main(int argc, char *argv[])
 	}
 
 	size_t did_size = sizeof(connect_info.did);
-	err = chiaki_base64_decode(argv[6], strlen(argv[6]), connect_info.did, &did_size);
+	QByteArray did_str = did.toUtf8();
+	err = chiaki_base64_decode(did_str.constData(), did_str.length(), connect_info.did, &did_size);
 	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(connect_info.did))
 	{
 		printf("did invalid.\n");
 		return 1;
 	}
-
-	argc = 1;
-	QApplication app(argc, argv);
 
 	StreamWindow window;
 	window.resize(640, 360);
@@ -136,6 +195,5 @@ int main(int argc, char *argv[])
 
 	delete audio_out;
 
-
-	return ret;
+	return 0;
 }

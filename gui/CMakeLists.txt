@@ -12,7 +12,9 @@ add_executable(chiaki
 		include/streamwindow.h
 		src/streamwindow.cpp
 		include/videodecoder.h
-		src/videodecoder.cpp)
+		src/videodecoder.cpp
+		include/discoverycmd.h
+		src/discoverycmd.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
