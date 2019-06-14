@@ -144,8 +144,39 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread
 static void *discovery_thread_func(void *user)
 {
 	ChiakiDiscoveryThread *thread = user;
+	ChiakiDiscovery *discovery = thread->discovery;
 
-	// TODO
+	while(1)
+	{
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&thread->stop_pipe, discovery->socket, NULL);
+		if(err == CHIAKI_ERR_CANCELED)
+			break;
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to select\n");
+			break;
+		}
+
+		char buf[512];
+		struct sockaddr client_addr;
+		socklen_t client_addr_size = sizeof(client_addr);
+		ssize_t n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
+		if(n < 0)
+		{
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket\n");
+			break;
+		}
+
+		if(n == 0)
+			continue;
+
+		if(n > sizeof(buf) - 1)
+			n = sizeof(buf) - 1;
+
+		buf[n] = '\00';
+
+		CHIAKI_LOGD(discovery->log, "Discovery received:\n%s\n", buf);
+	}
 
 	return NULL;
 }
