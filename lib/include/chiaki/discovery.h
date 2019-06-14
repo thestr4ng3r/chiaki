@@ -60,7 +60,7 @@ typedef struct chiaki_discovery_thread_t
 	ChiakiThread thread;
 } ChiakiDiscoveryThread;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread);
 
 #ifdef __cplusplus

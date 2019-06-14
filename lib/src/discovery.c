@@ -98,15 +98,29 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 	return CHIAKI_ERR_SUCCESS;
 }
 
+static void *discovery_thread_func(void *user);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery)
 {
-	// TODO
-	return CHIAKI_ERR_SUCCESS;
+	thread->discovery = discovery;
+
+	// TODO: stop pipe
+
+	return chiaki_thread_create(&thread->thread, discovery_thread_func, thread);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread)
 {
 	// TODO
-	return CHIAKI_ERR_SUCCESS;
+
+	return chiaki_thread_join(&thread->thread, NULL);
+}
+
+static void *discovery_thread_func(void *user)
+{
+	ChiakiDiscoveryThread *thread = user;
+
+	// TODO
+
+	return NULL;
 }
