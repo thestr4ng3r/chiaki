@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <pthread.h>
 
 typedef struct chiaki_thread_t
@@ -62,6 +63,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMute
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond);
 
+
+typedef struct chiaki_pred_cond_t
+{
+	ChiakiCond cond;
+	ChiakiMutex mutex;
+	bool pred;
+} ChiakiPredCond;
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_init(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_fini(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_lock(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_unlock(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_wait(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_timedwait(ChiakiPredCond *cond, uint64_t timeout_ms);
+CHIAKI_EXPORT void chiaki_pred_cond_reset(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_signal(ChiakiPredCond *cond);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_broadcast(ChiakiPredCond *cond);
 
 #ifdef __cplusplus
 }

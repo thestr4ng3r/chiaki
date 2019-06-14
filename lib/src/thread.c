@@ -124,18 +124,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mu
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
+static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *mutex, struct timespec *timeout)
 {
-	struct timespec timeout;
-	clock_gettime(CLOCK_MONOTONIC, &timeout);
-	timeout.tv_sec += timeout_ms / 1000;
-	timeout.tv_nsec += (timeout_ms % 1000) * 1000000;
-	if(timeout.tv_nsec > 1000000000)
-	{
-		timeout.tv_sec += timeout.tv_nsec / 1000000000;
-		timeout.tv_nsec %= 1000000000;
-	}
-	int r = pthread_cond_timedwait(&cond->cond, &mutex->mutex, &timeout);
+	int r = pthread_cond_timedwait(&cond->cond, &mutex->mutex, timeout);
 	if(r != 0)
 	{
 		if(r == ETIMEDOUT)
@@ -143,6 +134,25 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMute
 		return CHIAKI_ERR_UNKNOWN;
 	}
 	return CHIAKI_ERR_SUCCESS;
+}
+
+static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
+{
+	clock_gettime(CLOCK_MONOTONIC, timeout);
+	timeout->tv_sec += ms_from_now / 1000;
+	timeout->tv_nsec += (ms_from_now % 1000) * 1000000;
+	if(timeout->tv_nsec > 1000000000)
+	{
+		timeout->tv_sec += timeout->tv_nsec / 1000000000;
+		timeout->tv_nsec %= 1000000000;
+	}
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
+{
+	struct timespec timeout;
+	set_timeout(&timeout, timeout_ms);
+	return chiaki_cond_timedwait_abs(cond, mutex, &timeout);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond)
@@ -159,4 +169,103 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond)
 	if(r != 0)
 		return CHIAKI_ERR_UNKNOWN;
 	return CHIAKI_ERR_SUCCESS;
+}
+
+
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_init(ChiakiPredCond *cond)
+{
+	cond->pred = false;
+
+	ChiakiErrorCode err = chiaki_mutex_init(&cond->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	err = chiaki_cond_init(&cond->cond);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_mutex_fini(&cond->mutex);
+		return err;
+	}
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_fini(ChiakiPredCond *cond)
+{
+	ChiakiErrorCode err = chiaki_cond_fini(&cond->cond);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	err = chiaki_mutex_fini(&cond->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_lock(ChiakiPredCond *cond)
+{
+	return chiaki_mutex_lock(&cond->mutex);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_unlock(ChiakiPredCond *cond)
+{
+	return chiaki_mutex_unlock(&cond->mutex);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_wait(ChiakiPredCond *cond)
+{
+	while(!cond->pred)
+	{
+		ChiakiErrorCode err = chiaki_cond_wait(&cond->cond, &cond->mutex);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_timedwait(ChiakiPredCond *cond, uint64_t timeout_ms)
+{
+	struct timespec timeout;
+	set_timeout(&timeout, timeout_ms);
+	while(!cond->pred)
+	{
+		ChiakiErrorCode err = chiaki_cond_timedwait_abs(&cond->cond, &cond->mutex, &timeout);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT void chiaki_pred_cond_reset(ChiakiPredCond *cond)
+{
+	cond->pred = false;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_signal(ChiakiPredCond *cond)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&cond->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	cond->pred = true;
+	err = chiaki_cond_signal(&cond->cond);
+
+	ChiakiErrorCode unlock_err = chiaki_mutex_unlock(&cond->mutex);
+	return err == CHIAKI_ERR_SUCCESS ? unlock_err : err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pred_cond_broadcast(ChiakiPredCond *cond)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&cond->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	cond->pred = true;
+	err = chiaki_cond_broadcast(&cond->cond);
+
+	ChiakiErrorCode unlock_err = chiaki_mutex_unlock(&cond->mutex);
+	return err == CHIAKI_ERR_SUCCESS ? unlock_err : err;
 }
