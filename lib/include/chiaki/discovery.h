@@ -20,6 +20,8 @@
 
 #include "common.h"
 #include "thread.h"
+#include "stoppipe.h"
+#include "log.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -46,11 +48,12 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 
 typedef struct chiaki_discovery_t
 {
+	ChiakiLog *log;
 	int socket;
 	struct sockaddr local_addr;
 } ChiakiDiscovery;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, sa_family_t family);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, ChiakiLog *log, sa_family_t family);
 CHIAKI_EXPORT void chiaki_discovery_fini(ChiakiDiscovery *discovery);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, ChiakiDiscoveryPacket *packet, struct sockaddr *addr, size_t addr_size);
 
@@ -58,6 +61,7 @@ typedef struct chiaki_discovery_thread_t
 {
 	ChiakiDiscovery *discovery;
 	ChiakiThread thread;
+	ChiakiStopPipe stop_pipe;
 } ChiakiDiscoveryThread;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery);

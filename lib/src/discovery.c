@@ -16,11 +16,13 @@
  */
 
 #include <chiaki/discovery.h>
+#include <chiaki/log.h>
 
 #include <string.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet)
@@ -36,14 +38,19 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, sa_family_t family)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, ChiakiLog *log, sa_family_t family)
 {
 	if(family != AF_INET && family != AF_INET6)
 		return CHIAKI_ERR_INVALID_DATA;
 
+	discovery->log = log;
+
 	discovery->socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if(discovery->socket < 0)
+	{
+		CHIAKI_LOGE(discovery->log, "Discovery failed to create socket\n");
 		return CHIAKI_ERR_NETWORK;
+	}
 
 	memset(&discovery->local_addr, 0, sizeof(discovery->local_addr));
 	discovery->local_addr.sa_family = family;
@@ -64,12 +71,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	int r = bind(discovery->socket, &discovery->local_addr, sizeof(discovery->local_addr));
 	if(r < 0)
 	{
+		CHIAKI_LOGE(discovery->log, "Discovery failed to bind\n");
 		close(discovery->socket);
 		return CHIAKI_ERR_NETWORK;
 	}
 
 	const int broadcast = 1;
-	setsockopt(discovery->socket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+	r = setsockopt(discovery->socket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+	if(r < 0)
+		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt SO_BROADCAST\n");
 
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -104,16 +114,31 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThrea
 {
 	thread->discovery = discovery;
 
-	// TODO: stop pipe
+	ChiakiErrorCode err = chiaki_stop_pipe_init(&thread->stop_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(discovery->log, "Discovery (thread) failed to create pipe\n");
+		return err;
+	}
 
-	return chiaki_thread_create(&thread->thread, discovery_thread_func, thread);
+	err = chiaki_thread_create(&thread->thread, discovery_thread_func, thread);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_stop_pipe_fini(&thread->stop_pipe);
+		return err;
+	}
+
+	return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread)
 {
-	// TODO
+	ChiakiErrorCode err = chiaki_thread_join(&thread->thread, NULL);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 
-	return chiaki_thread_join(&thread->thread, NULL);
+	chiaki_stop_pipe_fini(&thread->stop_pipe);
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static void *discovery_thread_func(void *user)
