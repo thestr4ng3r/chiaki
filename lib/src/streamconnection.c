@@ -252,6 +252,9 @@ static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type,
 		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		return;
 	}
+
+	CHIAKI_LOGD(stream_connection->log, "StreamConnection received data\n");
+	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
 
 static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
@@ -525,7 +528,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	}
 
 	buf_size = stream.bytes_written;
-	err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 0, 1, 1, buf, buf_size);
+	err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size);
 
 	return err;
 }
@@ -548,7 +551,7 @@ static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnect
 	}
 
 	buf_size = stream.bytes_written;
-	return chiaki_takion_send_message_data(&stream_connection->takion, 0, NULL, 1, 9, buf, buf_size);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 9, buf, buf_size);
 }
 
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection)
@@ -573,7 +576,7 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 0 /* TODO: gmac? */,1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size);
 
 	return err;
 }
@@ -632,19 +635,5 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	size_t buf_size = stream.bytes_written;
-	uint8_t gmac[CHIAKI_GKCRYPT_GMAC_SIZE];
-	uint32_t key_pos;
-
-	ChiakiErrorCode err = chiaki_mutex_lock(&stream_connection->takion.gkcrypt_local_mutex);
-	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
-	key_pos = stream_connection->takion.key_pos_local;
-	err = chiaki_gkcrypt_gmac(stream_connection->takion.gkcrypt_local, key_pos, buf, buf_size, gmac);
-	stream_connection->takion.key_pos_local += buf_size;
-	chiaki_mutex_unlock(&stream_connection->takion.gkcrypt_local_mutex);
-	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
-
-	return chiaki_takion_send_message_data(&stream_connection->takion, key_pos, gmac, 1, 1, buf, buf_size);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, stream.bytes_written);
 }

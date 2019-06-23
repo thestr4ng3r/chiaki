@@ -80,12 +80,22 @@ typedef struct chiaki_takion_connect_info_t
 	void *data_cb_user;
 	ChiakiTakionAVCallback av_cb;
 	void *av_cb_user;
+	bool enable_crypt;
 } ChiakiTakionConnectInfo;
+
+
+typedef enum chiaki_takion_crypt_mode_t {
+	CHIAKI_TAKION_CRYPT_MODE_NO_CRYPT, // encryption disabled completely, for Senkusha
+	CHIAKI_TAKION_CRYPT_MODE_PRE_CRYPT, // encryption required, but not yet initialized (during handshake)
+	CHIAKI_TAKION_CRYPT_MODE_CRYPT // encryption required
+} ChiakiTakionCryptMode;
 
 
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
+
+	ChiakiTakionCryptMode crypt_mode;
 
 	ChiakiGKCrypt *gkcrypt_local; // if NULL (default), no gmac is calculated and nothing is encrypted
 	size_t key_pos_local;
@@ -111,14 +121,44 @@ typedef struct chiaki_takion_t
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint32_t key_pos, uint8_t *gmac, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet);
 
 static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote) {
 	takion->gkcrypt_local = gkcrypt_local;
 	takion->gkcrypt_remote = gkcrypt_remote;
 }
+
+/**
+ * Get a new key pos and advance by data_size.
+ *
+ * Thread-safe while Takion is running.
+ * @param key_pos pointer to write the new key pos to. will be 0 if encryption is disabled. Contents undefined on failure.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *takion, size_t data_size, size_t *key_pos);
+
+/**
+ * Send a datagram directly on the socket.
+ *
+ * Thread-safe while Takion is running.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const uint8_t *buf, size_t buf_size);
+
+/**
+ * Calculate the MAC for the packet depending on the type derived from the first byte in buf,
+ * assign MAC inside buf at the respective position and send the packet.
+ *
+ * If encryption is disabled, the MAC will be set to 0.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+
+/**
+ * Thread-safe while Takion is running.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
+
+/**
+ * Thread-safe while Takion is running.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size);
 

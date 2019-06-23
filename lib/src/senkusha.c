@@ -177,7 +177,7 @@ static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 0, NULL, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size);
 
 	return err;
 }
@@ -204,7 +204,7 @@ static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha)
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 0, NULL, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size);
 
 	return err;
 }
