@@ -40,6 +40,8 @@
 
 #define EXPECT_TIMEOUT_MS 5000
 
+#define HEARTBEAT_INTERVAL_MS 1000
+
 
 typedef enum {
 	STREAM_CONNECTION_MIRAI_REQUEST_BANG = 0,
@@ -61,6 +63,7 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection);
 static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user);
 static ChiakiErrorCode stream_connection_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
+static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *stream_connection);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *session)
@@ -71,9 +74,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *sessio
 
 	stream_connection->ecdh_secret = NULL;
 
-	ChiakiErrorCode err = chiaki_mirai_init(&stream_connection->mirai);
+	ChiakiErrorCode err = chiaki_pred_cond_init(&stream_connection->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_mirai;
+		goto error;
+
+	err = chiaki_mirai_init(&stream_connection->mirai);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_stop_cond;
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = stream_connection->log;
@@ -170,8 +177,24 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *sessio
 
 	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo\n");
 
-	while(1)
-		sleep(1);
+	err = chiaki_pred_cond_lock(&stream_connection->stop_cond);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	while(true)
+	{
+		err = chiaki_pred_cond_timedwait(&stream_connection->stop_cond, HEARTBEAT_INTERVAL_MS);
+		if(err != CHIAKI_ERR_TIMEOUT)
+			break;
+
+		err = stream_connection_send_heartbeat(stream_connection);
+		if(err != CHIAKI_ERR_SUCCESS)
+			CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send heartbeat\n");
+		else
+			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat\n");
+	}
+
+	err = chiaki_pred_cond_unlock(&stream_connection->stop_cond);
+	assert(err == CHIAKI_ERR_SUCCESS);
 
 	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting\n");
 
@@ -188,6 +211,9 @@ error_takion:
 	CHIAKI_LOGI(&session->log, "StreamConnection closed takion\n");
 error_mirai:
 	chiaki_mirai_fini(&stream_connection->mirai);
+error_stop_cond:
+	chiaki_pred_cond_fini(&stream_connection->stop_cond);
+error:
 	free(stream_connection->ecdh_secret);
 	return err;
 
@@ -499,7 +525,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	}
 
 	buf_size = stream.bytes_written;
-	err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 1, buf, buf_size);
+	err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 0, 1, 1, buf, buf_size);
 
 	return err;
 }
@@ -522,7 +548,7 @@ static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnect
 	}
 
 	buf_size = stream.bytes_written;
-	return chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 9, buf, buf_size);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 0, NULL, 1, 9, buf, buf_size);
 }
 
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection)
@@ -547,7 +573,7 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 0 /* TODO: gmac? */,1, 1, buf, buf_size);
 
 	return err;
 }
@@ -588,4 +614,37 @@ static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user
 
 	//CHIAKI_LOGD(stream_connection->log, "StreamConnection AV %lu\n", buf_size);
 	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+}
+
+
+static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *stream_connection)
+{
+	tkproto_TakionMessage msg = { 0 };
+	msg.type = tkproto_TakionMessage_PayloadType_HEARTBEAT;
+
+	uint8_t buf[8];
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection heartbeat protobuf encoding failed\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	size_t buf_size = stream.bytes_written;
+	uint8_t gmac[CHIAKI_GKCRYPT_GMAC_SIZE];
+	uint32_t key_pos;
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&stream_connection->takion.gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	key_pos = stream_connection->takion.key_pos_local;
+	err = chiaki_gkcrypt_gmac(stream_connection->takion.gkcrypt_local, key_pos, buf, buf_size, gmac);
+	stream_connection->takion.key_pos_local += buf_size;
+	chiaki_mutex_unlock(&stream_connection->takion.gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	return chiaki_takion_send_message_data(&stream_connection->takion, key_pos, gmac, 1, 1, buf, buf_size);
 }

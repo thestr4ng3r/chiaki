@@ -25,22 +25,22 @@ int main(int argc, char *argv[])
 	QCommandLineParser parser;
 	parser.addHelpOption();
 
-	parser.addPositionalArgument("command", "Command");
-	parser.addPositionalArgument("host", "Host");
+	parser.addPositionalArgument("command", "stream or discover");
+	parser.addPositionalArgument("host", "Address to connect to");
 
-	QCommandLineOption regist_key_option("registkey");
+	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
 
-	QCommandLineOption ostype_option("ostype", "Win10.0.0");
+	QCommandLineOption ostype_option("ostype", "", "ostype", "Win10.0.0");
 	parser.addOption(ostype_option);
 
-	QCommandLineOption auth_option("auth");
+	QCommandLineOption auth_option("auth", "", "auth");
 	parser.addOption(auth_option);
 
-	QCommandLineOption morning_option("morning");
+	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
-	QCommandLineOption did_option("did");
+	QCommandLineOption did_option("did", "", "did");
 	parser.addOption(did_option);
 
 

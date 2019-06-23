@@ -39,6 +39,7 @@ typedef struct chiaki_stream_connection_t
 	uint8_t *ecdh_secret;
 	ChiakiGKCrypt *gkcrypt_local;
 	ChiakiGKCrypt *gkcrypt_remote;
+	ChiakiPredCond stop_cond;
 } ChiakiStreamConnection;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(struct chiaki_session_t *session);

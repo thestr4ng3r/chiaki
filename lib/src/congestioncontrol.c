@@ -18,7 +18,7 @@
 #include <chiaki/congestioncontrol.h>
 
 
-#define CONGESTION_CONTROL_INTERVAL 200 // ms
+#define CONGESTION_CONTROL_INTERVAL_MS 200
 
 
 static void *congestion_control_thread_func(void *user)
@@ -31,13 +31,11 @@ static void *congestion_control_thread_func(void *user)
 
 	while(true)
 	{
-		err = chiaki_pred_cond_timedwait(&control->stop_cond, CONGESTION_CONTROL_INTERVAL);
-		if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
-			break;
+		err = chiaki_pred_cond_timedwait(&control->stop_cond, CONGESTION_CONTROL_INTERVAL_MS);
 		if(err != CHIAKI_ERR_TIMEOUT)
 			break;
 
-		CHIAKI_LOGD(control->takion->log, "Sending Congestion Control Packet\n");
+		//CHIAKI_LOGD(control->takion->log, "Sending Congestion Control Packet\n");
 		ChiakiTakionCongestionPacket packet = { 0 }; // TODO: fill with real values
 		chiaki_takion_send_congestion(control->takion, &packet);
 	}

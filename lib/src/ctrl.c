@@ -229,7 +229,7 @@ static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *paylo
 	if(payload_size != 0)
 		CHIAKI_LOGW(&ctrl->session->log, "Received Heartbeat request with non-empty payload\n");
 
-	CHIAKI_LOGD(&ctrl->session->log, "Received Heartbeat\n");
+	CHIAKI_LOGD(&ctrl->session->log, "Received Ctrl Heartbeat\n");
 
 	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_HEARTBEAT_REP, NULL, 0);
 }
