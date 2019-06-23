@@ -18,7 +18,7 @@
 #ifndef CHIAKI_SESSION_H
 #define CHIAKI_SESSION_H
 
-#include "nagare.h"
+#include "streamconnection.h"
 #include "common.h"
 #include "thread.h"
 #include "log.h"
@@ -135,7 +135,7 @@ typedef struct chiaki_session_t
 
 	ChiakiLog log;
 
-	ChiakiNagare nagare;
+	ChiakiStreamConnection stream_connection;
 	ChiakiAudioReceiver *audio_receiver;
 	ChiakiVideoReceiver *video_receiver;
 } ChiakiSession;

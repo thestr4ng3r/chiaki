@@ -15,8 +15,8 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_NAGARE_H
-#define CHIAKI_NAGARE_H
+#ifndef CHIAKI_STREAMCONNECTION_H
+#define CHIAKI_STREAMCONNECTION_H
 
 #include "mirai.h"
 #include "takion.h"
@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-typedef struct chiaki_nagare_t
+typedef struct chiaki_stream_connection_t
 {
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
@@ -39,12 +39,12 @@ typedef struct chiaki_nagare_t
 	uint8_t *ecdh_secret;
 	ChiakiGKCrypt *gkcrypt_local;
 	ChiakiGKCrypt *gkcrypt_remote;
-} ChiakiNagare;
+} ChiakiStreamConnection;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(struct chiaki_session_t *session);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CHIAKI_NAGARE_H
+#endif //CHIAKI_STREAMCONNECTION_H

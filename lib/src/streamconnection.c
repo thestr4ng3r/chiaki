@@ -16,7 +16,7 @@
  */
 
 
-#include <chiaki/nagare.h>
+#include <chiaki/streamconnection.h>
 #include <chiaki/session.h>
 #include <chiaki/launchspec.h>
 #include <chiaki/base64.h>
@@ -36,47 +36,47 @@
 #include "pb_utils.h"
 
 
-#define NAGARE_PORT 9296
+#define STREAM_CONNECTION_PORT 9296
 
 #define EXPECT_TIMEOUT_MS 5000
 
 
 typedef enum {
-	NAGARE_MIRAI_REQUEST_BANG = 0,
-	NAGARE_MIRAI_REQUEST_STREAMINFO,
-} NagareMiraiRequest;
+	STREAM_CONNECTION_MIRAI_REQUEST_BANG = 0,
+	STREAM_CONNECTION_MIRAI_REQUEST_STREAMINFO,
+} StreamConnectionMiraiRequest;
 
 typedef enum {
-	NAGARE_MIRAI_RESPONSE_FAIL = 0,
-	NAGARE_MIRAI_RESPONSE_SUCCESS = 1
-} NagareMiraiResponse;
+	STREAM_CONNECTION_MIRAI_RESPONSE_FAIL = 0,
+	STREAM_CONNECTION_MIRAI_RESPONSE_SUCCESS = 1
+} StreamConnectionMiraiResponse;
 
 
 
-static void nagare_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
-static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare);
-static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare);
-static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
-static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size);
-static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare);
-static void nagare_takion_av(ChiakiTakionAVPacket *packet, void *user);
-static ChiakiErrorCode nagare_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
+static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
+static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
+static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection);
+static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
+static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection);
+static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user);
+static ChiakiErrorCode stream_connection_takion_mac(uint8_t *buf, size_t buf_size, size_t key_pos, uint8_t *mac_out, void *user);
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *session)
 {
-	ChiakiNagare *nagare = &session->nagare;
-	nagare->session = session;
-	nagare->log = &session->log;
+	ChiakiStreamConnection *stream_connection = &session->stream_connection;
+	stream_connection->session = session;
+	stream_connection->log = &session->log;
 
-	nagare->ecdh_secret = NULL;
+	stream_connection->ecdh_secret = NULL;
 
-	ChiakiErrorCode err = chiaki_mirai_init(&nagare->mirai);
+	ChiakiErrorCode err = chiaki_mirai_init(&stream_connection->mirai);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_mirai;
 
 	ChiakiTakionConnectInfo takion_info;
-	takion_info.log = nagare->log;
+	takion_info.log = stream_connection->log;
 	takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
 	takion_info.sa = malloc(takion_info.sa_len);
 	if(!takion_info.sa)
@@ -85,62 +85,62 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 		goto error_mirai;
 	}
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
-	err = set_port(takion_info.sa, htons(NAGARE_PORT));
+	err = set_port(takion_info.sa, htons(STREAM_CONNECTION_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
-	takion_info.data_cb = nagare_takion_data;
-	takion_info.data_cb_user = nagare;
-	takion_info.av_cb = nagare_takion_av;
-	takion_info.av_cb_user = nagare;
+	takion_info.data_cb = stream_connection_takion_data;
+	takion_info.data_cb_user = stream_connection;
+	takion_info.av_cb = stream_connection_takion_av;
+	takion_info.av_cb_user = stream_connection;
 
-	err = chiaki_takion_connect(&nagare->takion, &takion_info);
+	err = chiaki_takion_connect(&stream_connection->takion, &takion_info);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Nagare connect failed\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection connect failed\n");
 		goto error_mirai;
 	}
 
-	CHIAKI_LOGI(&session->log, "Nagare sending big\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection sending big\n");
 
-	err = chiaki_mirai_request_begin(&nagare->mirai, NAGARE_MIRAI_REQUEST_BANG, true);
+	err = chiaki_mirai_request_begin(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_REQUEST_BANG, true);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
-	err = nagare_send_big(nagare);
+	err = stream_connection_send_big(stream_connection);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Nagare failed to send big\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection failed to send big\n");
 		goto error_takion;
 	}
 
-	err = chiaki_mirai_request_wait(&nagare->mirai, EXPECT_TIMEOUT_MS, true);
+	err = chiaki_mirai_request_wait(&stream_connection->mirai, EXPECT_TIMEOUT_MS, true);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
-	if(nagare->mirai.response != NAGARE_MIRAI_RESPONSE_SUCCESS)
+	if(stream_connection->mirai.response != STREAM_CONNECTION_MIRAI_RESPONSE_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Nagare bang receive timeout\n");
+			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout\n");
 
-		chiaki_mirai_request_unlock(&nagare->mirai);
+		chiaki_mirai_request_unlock(&stream_connection->mirai);
 
-		CHIAKI_LOGE(&session->log, "Nagare didn't receive bang\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang\n");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto error_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "Nagare successfully received bang\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection successfully received bang\n");
 
 
-	nagare->gkcrypt_local = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, nagare->ecdh_secret);
-	if(!nagare->gkcrypt_local)
+	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, stream_connection->ecdh_secret);
+	if(!stream_connection->gkcrypt_local)
 	{
-		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 2\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection failed to initialize GKCrypt with index 2\n");
 		goto error_takion;
 	}
-	nagare->gkcrypt_remote = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, nagare->ecdh_secret);
-	if(!nagare->gkcrypt_remote)
+	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, stream_connection->ecdh_secret);
+	if(!stream_connection->gkcrypt_remote)
 	{
-		CHIAKI_LOGE(&session->log, "Nagare failed to initialize GKCrypt with index 3\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection failed to initialize GKCrypt with index 3\n");
 		goto error_gkcrypt_a;
 	}
 
@@ -149,46 +149,46 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_nagare_run(ChiakiSession *session)
 	// After receiving the bang, we MUST wait for the gkcrypts to be set before handling any new takion packets!
 	// Otherwise we might ignore some macs.
 	// Also, access to the gkcrypts must be synchronized for key_pos and everything.
-	chiaki_takion_set_crypt(&nagare->takion, nagare->gkcrypt_local, nagare->gkcrypt_remote);
+	chiaki_takion_set_crypt(&stream_connection->takion, stream_connection->gkcrypt_local, stream_connection->gkcrypt_remote);
 
-	err = chiaki_mirai_request_begin(&nagare->mirai, NAGARE_MIRAI_REQUEST_STREAMINFO, false);
+	err = chiaki_mirai_request_begin(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_REQUEST_STREAMINFO, false);
 	assert(err == CHIAKI_ERR_SUCCESS);
-	err = chiaki_mirai_request_wait(&nagare->mirai, EXPECT_TIMEOUT_MS, false);
+	err = chiaki_mirai_request_wait(&stream_connection->mirai, EXPECT_TIMEOUT_MS, false);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
-	if(nagare->mirai.response != NAGARE_MIRAI_RESPONSE_SUCCESS)
+	if(stream_connection->mirai.response != STREAM_CONNECTION_MIRAI_RESPONSE_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Nagare streaminfo receive timeout\n");
+			CHIAKI_LOGE(&session->log, "StreamConnection streaminfo receive timeout\n");
 
-		chiaki_mirai_request_unlock(&nagare->mirai);
+		chiaki_mirai_request_unlock(&stream_connection->mirai);
 
-		CHIAKI_LOGE(&session->log, "Nagare didn't receive streaminfo\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive streaminfo\n");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto error_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "Nagare successfully received streaminfo\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo\n");
 
 	while(1)
 		sleep(1);
 
-	CHIAKI_LOGI(&session->log, "Nagare is disconnecting\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting\n");
 
-	nagare_send_disconnect(nagare);
+	stream_connection_send_disconnect(stream_connection);
 
 	err = CHIAKI_ERR_SUCCESS;
 
 	// TODO: can't roll everything back like this, takion has to be closed first always.
-	chiaki_gkcrypt_free(nagare->gkcrypt_remote);
+	chiaki_gkcrypt_free(stream_connection->gkcrypt_remote);
 error_gkcrypt_a:
-	chiaki_gkcrypt_free(nagare->gkcrypt_local);
+	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 error_takion:
-	chiaki_takion_close(&nagare->takion);
-	CHIAKI_LOGI(&session->log, "Nagare closed takion\n");
+	chiaki_takion_close(&stream_connection->takion);
+	CHIAKI_LOGI(&session->log, "StreamConnection closed takion\n");
 error_mirai:
-	chiaki_mirai_fini(&nagare->mirai);
-	free(nagare->ecdh_secret);
+	chiaki_mirai_fini(&stream_connection->mirai);
+	free(stream_connection->ecdh_secret);
 	return err;
 
 
@@ -196,20 +196,20 @@ error_mirai:
 
 
 
-static void nagare_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
+static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
 {
 	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
 		return;
 
-	ChiakiNagare *nagare = user;
+	ChiakiStreamConnection *stream_connection = user;
 
-	switch(nagare->mirai.request)
+	switch(stream_connection->mirai.request)
 	{
-		case NAGARE_MIRAI_REQUEST_BANG:
-			nagare_takion_data_expect_bang(nagare, buf, buf_size);
+		case STREAM_CONNECTION_MIRAI_REQUEST_BANG:
+			stream_connection_takion_data_expect_bang(stream_connection, buf, buf_size);
 			return;
-		case NAGARE_MIRAI_REQUEST_STREAMINFO:
-			nagare_takion_data_expect_streaminfo(nagare, buf, buf_size);
+		case STREAM_CONNECTION_MIRAI_REQUEST_STREAMINFO:
+			stream_connection_takion_data_expect_streaminfo(stream_connection, buf, buf_size);
 			return;
 		default:
 			break;
@@ -222,13 +222,13 @@ static void nagare_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *b
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
-		chiaki_log_hexdump(nagare->log, CHIAKI_LOG_ERROR, buf, buf_size);
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
+		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		return;
 	}
 }
 
-static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
+static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	char ecdh_pub_key[128];
 	ChiakiPBDecodeBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), 0, (uint8_t *)ecdh_pub_key };
@@ -247,71 +247,71 @@ static void nagare_takion_data_expect_bang(ChiakiNagare *nagare, uint8_t *buf, s
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
 		return;
 	}
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare expected bang payload but received something else\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected bang payload but received something else\n");
 		return;
 	}
 
 	if(!msg.bang_payload.version_accepted)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare bang remote didn't accept version\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept version\n");
 		goto error;
 	}
 
 	if(!msg.bang_payload.encrypted_key_accepted)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare bang remote didn't accept encrypted key\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept encrypted key\n");
 		goto error;
 	}
 
 	if(!ecdh_pub_key_buf.size)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare didn't get remote ECDH pub key from bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH pub key from bang\n");
 		goto error;
 	}
 
 	if(!ecdh_sig_buf.size)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare didn't get remote ECDH sig from bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH sig from bang\n");
 		goto error;
 	}
 
-	assert(!nagare->ecdh_secret);
-	nagare->ecdh_secret = malloc(CHIAKI_ECDH_SECRET_SIZE);
-	if(!nagare->ecdh_secret)
+	assert(!stream_connection->ecdh_secret);
+	stream_connection->ecdh_secret = malloc(CHIAKI_ECDH_SECRET_SIZE);
+	if(!stream_connection->ecdh_secret)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to alloc ECDH secret memory\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to alloc ECDH secret memory\n");
 		goto error;
 	}
 
-	ChiakiErrorCode err = chiaki_ecdh_derive_secret(&nagare->session->ecdh,
-			nagare->ecdh_secret,
+	ChiakiErrorCode err = chiaki_ecdh_derive_secret(&stream_connection->session->ecdh,
+			stream_connection->ecdh_secret,
 			ecdh_pub_key_buf.buf, ecdh_pub_key_buf.size,
-			nagare->session->handshake_key,
+			stream_connection->session->handshake_key,
 			ecdh_sig_buf.buf, ecdh_sig_buf.size);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		free(nagare->ecdh_secret);
-		nagare->ecdh_secret = NULL;
-		CHIAKI_LOGE(nagare->log, "Nagare failed to derive secret from bang\n");
+		free(stream_connection->ecdh_secret);
+		stream_connection->ecdh_secret = NULL;
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to derive secret from bang\n");
 		goto error;
 	}
 
-	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_SUCCESS);
+	chiaki_mirai_signal(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_RESPONSE_SUCCESS);
 	return;
 error:
-	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_FAIL);
+	chiaki_mirai_signal(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_RESPONSE_FAIL);
 }
 
 typedef struct decode_resolutions_context_t
 {
-	ChiakiNagare *nagare;
+	ChiakiStreamConnection *stream_connection;
 	ChiakiVideoProfile video_profiles[CHIAKI_VIDEO_PROFILES_MAX];
 	size_t video_profiles_count;
 } DecodeResolutionsContext;
@@ -329,13 +329,13 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 
 	if(!header_buf.buf)
 	{
-		CHIAKI_LOGE(&ctx->nagare->session->log, "Failed to decode video header\n");
+		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to decode video header\n");
 		return true;
 	}
 
 	if(ctx->video_profiles_count >= CHIAKI_VIDEO_PROFILES_MAX)
 	{
-		CHIAKI_LOGE(&ctx->nagare->session->log, "Received more resolutions than the maximum\n");
+		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Received more resolutions than the maximum\n");
 		return true;
 	}
 
@@ -348,7 +348,7 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 }
 
 
-static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *buf, size_t buf_size)
+static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -359,7 +359,7 @@ static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *
 	msg.stream_info_payload.audio_header.funcs.decode = chiaki_pb_decode_buf;
 
 	DecodeResolutionsContext decode_resolutions_context;
-	decode_resolutions_context.nagare = nagare;
+	decode_resolutions_context.stream_connection = stream_connection;
 	memset(decode_resolutions_context.video_profiles, 0, sizeof(decode_resolutions_context.video_profiles));
 	decode_resolutions_context.video_profiles_count = 0;
 	msg.stream_info_payload.resolution.arg = &decode_resolutions_context;
@@ -369,38 +369,38 @@ static void nagare_takion_data_expect_streaminfo(ChiakiNagare *nagare, uint8_t *
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to decode data protobuf\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
 		return;
 	}
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_STREAMINFO || !msg.has_stream_info_payload)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare expected streaminfo payload but received something else\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else\n");
 		return;
 	}
 
 	if(audio_header_buf.size != CHIAKI_AUDIO_HEADER_SIZE)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare receoved invalid audio header in streaminfo\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection receoved invalid audio header in streaminfo\n");
 		goto error;
 	}
 
 	ChiakiAudioHeader audio_header_s;
 	chiaki_audio_header_load(&audio_header_s, audio_header);
-	chiaki_audio_receiver_stream_info(nagare->session->audio_receiver, &audio_header_s);
+	chiaki_audio_receiver_stream_info(stream_connection->session->audio_receiver, &audio_header_s);
 
-	chiaki_video_receiver_stream_info(nagare->session->video_receiver,
+	chiaki_video_receiver_stream_info(stream_connection->session->video_receiver,
 			decode_resolutions_context.video_profiles,
 			decode_resolutions_context.video_profiles_count);
 
 	// TODO: do some checks?
 
-	nagare_send_streaminfo_ack(nagare);
+	stream_connection_send_streaminfo_ack(stream_connection);
 
-	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_SUCCESS);
+	chiaki_mirai_signal(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_RESPONSE_SUCCESS);
 	return;
 error:
-	chiaki_mirai_signal(&nagare->mirai, NAGARE_MIRAI_RESPONSE_FAIL);
+	chiaki_mirai_signal(&stream_connection->mirai, STREAM_CONNECTION_MIRAI_RESPONSE_FAIL);
 }
 
 
@@ -415,9 +415,9 @@ static bool chiaki_pb_encode_zero_encrypted_key(pb_ostream_t *stream, const pb_f
 
 #define LAUNCH_SPEC_JSON_BUF_SIZE 1024
 
-static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
+static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection)
 {
-	ChiakiSession *session = nagare->session;
+	ChiakiSession *session = stream_connection->session;
 
 	ChiakiLaunchSpec launch_spec;
 	launch_spec.mtu = session->mtu;
@@ -432,12 +432,12 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	ssize_t launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
 	if(launch_spec_json_size < 0)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to format LaunchSpec json\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to format LaunchSpec json\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 	launch_spec_json_size += 1; // we also want the trailing 0
 
-	CHIAKI_LOGD(nagare->log, "LaunchSpec: %s\n", launch_spec_buf.json);
+	CHIAKI_LOGD(stream_connection->log, "LaunchSpec: %s\n", launch_spec_buf.json);
 
 	uint8_t launch_spec_json_enc[LAUNCH_SPEC_JSON_BUF_SIZE];
 	memset(launch_spec_json_enc, 0, (size_t)launch_spec_json_size);
@@ -445,7 +445,7 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 			(size_t)launch_spec_json_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to encrypt LaunchSpec\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encrypt LaunchSpec\n");
 		return err;
 	}
 
@@ -453,7 +453,7 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	err = chiaki_base64_encode(launch_spec_json_enc, (size_t)launch_spec_json_size, launch_spec_buf.b64, sizeof(launch_spec_buf.b64));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to encode LaunchSpec as base64\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encode LaunchSpec as base64\n");
 		return err;
 	}
 
@@ -467,7 +467,7 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 			ecdh_sig, &ecdh_sig_buf.size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare failed to get ECDH key and sig\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to get ECDH key and sig\n");
 		return err;
 	}
 
@@ -494,17 +494,17 @@ static ChiakiErrorCode nagare_send_big(ChiakiNagare *nagare)
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare big protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection big protobuf encoding failed\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	buf_size = stream.bytes_written;
-	err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
+	err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 1, buf, buf_size);
 
 	return err;
 }
 
-static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare)
+static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection)
 {
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -517,15 +517,15 @@ static ChiakiErrorCode nagare_send_streaminfo_ack(ChiakiNagare *nagare)
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare streaminfo ack protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection streaminfo ack protobuf encoding failed\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	buf_size = stream.bytes_written;
-	return chiaki_takion_send_message_data(&nagare->takion, 0, 1, 9, buf, buf_size);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 9, buf, buf_size);
 }
 
-static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
+static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection)
 {
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -542,50 +542,50 @@ static ChiakiErrorCode nagare_send_disconnect(ChiakiNagare *nagare)
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(nagare->log, "Nagare disconnect protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection disconnect protobuf encoding failed\n");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&nagare->takion, 0, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, 1, buf, buf_size);
 
 	return err;
 }
 
 
-static void nagare_takion_av(ChiakiTakionAVPacket *packet, void *user)
+static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user)
 {
-	ChiakiNagare *nagare = user;
+	ChiakiStreamConnection *stream_connection = user;
 
-	chiaki_gkcrypt_decrypt(nagare->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
+	chiaki_gkcrypt_decrypt(stream_connection->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
 
-	/*CHIAKI_LOGD(nagare->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
+	/*CHIAKI_LOGD(stream_connection->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
 				header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->units_in_frame_total, header->units_in_frame_additional, header->codec,
 				header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
-	chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);*/
+	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);*/
 
 	if(packet->is_video)
 	{
-		chiaki_video_receiver_av_packet(nagare->session->video_receiver, packet);
+		chiaki_video_receiver_av_packet(stream_connection->session->video_receiver, packet);
 	}
 	else
 	{
 		if(packet->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
 		{
-			//CHIAKI_LOGD(nagare->log, "audio!\n");
-			chiaki_audio_receiver_frame_packet(nagare->session->audio_receiver, packet->data, 0x50); // TODO: why 0x50? this is dangerous!!!
+			//CHIAKI_LOGD(stream_connection->log, "audio!\n");
+			chiaki_audio_receiver_frame_packet(stream_connection->session->audio_receiver, packet->data, 0x50); // TODO: why 0x50? this is dangerous!!!
 		}
 		else
 		{
-			//CHIAKI_LOGD(nagare->log, "NON-audio\n");
+			//CHIAKI_LOGD(stream_connection->log, "NON-audio\n");
 		}
 	}
 
 	/*else if(base_type == 2 && buf[0] != 0xf4)
 	{
-		CHIAKI_LOGD(nagare->log, "av frame 2, which is not audio\n");
+		CHIAKI_LOGD(stream_connection->log, "av frame 2, which is not audio\n");
 	}*/
 
-	//CHIAKI_LOGD(nagare->log, "Nagare AV %lu\n", buf_size);
-	//chiaki_log_hexdump(nagare->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	//CHIAKI_LOGD(stream_connection->log, "StreamConnection AV %lu\n", buf_size);
+	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }

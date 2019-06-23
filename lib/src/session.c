@@ -199,7 +199,7 @@ static void *session_thread_func(void *arg)
 		goto quit_audio_receiver;
 	}
 
-	err = chiaki_nagare_run(session);
+	err = chiaki_stream_connection_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Nagare failed\n");

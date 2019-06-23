@@ -10,7 +10,7 @@ set(HEADER_FILES
 		include/chiaki/rpcrypt.h
 		include/chiaki/takion.h
 		include/chiaki/senkusha.h
-		include/chiaki/nagare.h
+		include/chiaki/streamconnection.h
 		include/chiaki/mirai.h
 		include/chiaki/ecdh.h
 		include/chiaki/launchspec.h
@@ -39,7 +39,7 @@ set(SOURCE_FILES
 		src/senkusha.c
 		src/utils.h
 		src/pb_utils.h
-		src/nagare.c
+		src/streamconnection.c
 		src/mirai.c
 		src/ecdh.c
 		src/launchspec.c
