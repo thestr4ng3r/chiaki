@@ -78,8 +78,6 @@ ssize_t takion_packet_type_key_pos_offset(TakionPacketType type)
 }
 
 
-typedef uint32_t TakionPacketKeyPos;
-
 
 // TODO: find out what these are
 #define TAKION_LOCAL_SOMETHING 0x19000
@@ -338,45 +336,57 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, ChiakiTakionPacketKeyPos *key_pos_out)
 {
 	if(buf_size < 1)
-	{
-		CHIAKI_LOGE(takion->log, "Takion send buf too small\n");
 		return CHIAKI_ERR_BUF_TOO_SMALL;
-	}
 
 	TakionPacketType base_type = buf[0] & 0xf;
 	ssize_t mac_offset = takion_packet_type_mac_offset(base_type);
 	ssize_t key_pos_offset = takion_packet_type_key_pos_offset(base_type);
 	if(mac_offset < 0 || key_pos_offset < 0)
-	{
-		CHIAKI_LOGE(takion->log, "Invalid Takion packet type for mac and key pos offset\n");
 		return CHIAKI_ERR_INVALID_DATA;
-	}
 
-	if(buf_size < mac_offset + CHIAKI_GKCRYPT_GMAC_SIZE || buf_size < key_pos_offset + sizeof(TakionPacketKeyPos))
-	{
-		CHIAKI_LOGE(takion->log, "Takion send buf too small for mac and key pos\n");
+	if(buf_size < mac_offset + CHIAKI_GKCRYPT_GMAC_SIZE || buf_size < key_pos_offset + sizeof(ChiakiTakionPacketKeyPos))
 		return CHIAKI_ERR_BUF_TOO_SMALL;
-	}
 
-	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
-	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
+	if(mac_old_out)
+		memcpy(mac_old_out, buf + mac_offset, CHIAKI_GKCRYPT_GMAC_SIZE);
 
 	memset(buf + mac_offset, 0, CHIAKI_GKCRYPT_GMAC_SIZE);
 
-	if(takion->gkcrypt_local)
+	ChiakiTakionPacketKeyPos key_pos = ntohl(*((ChiakiTakionPacketKeyPos *)(buf + key_pos_offset)));
+
+	if(crypt)
 	{
-		TakionPacketKeyPos key_pos = htonl(*((TakionPacketKeyPos *)(buf + key_pos_offset)));
-		chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, buf_size, buf + mac_offset);
+		if(base_type == TAKION_PACKET_TYPE_CONTROL)
+			memset(buf + key_pos_offset, 0, sizeof(ChiakiTakionPacketKeyPos));
+		chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
+		*((ChiakiTakionPacketKeyPos *)(buf + key_pos_offset)) = htonl(key_pos);
 	}
 
-	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
+	if(key_pos_out)
+		*key_pos_out = key_pos;
 
-	CHIAKI_LOGD(takion->log, "Takion sending:\n");
-	chiaki_log_hexdump_raw(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	memcpy(mac_out, buf + mac_offset, CHIAKI_GKCRYPT_GMAC_SIZE);
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
+	err = chiaki_takion_packet_mac(takion->gkcrypt_local, buf, buf_size, mac, NULL, NULL);
+	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	//CHIAKI_LOGD(takion->log, "Takion sending:\n");
+	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 
 	return chiaki_takion_send_raw(takion, buf, buf_size);
 }
@@ -513,50 +523,17 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 	if(!takion->gkcrypt_remote)
 		return CHIAKI_ERR_SUCCESS;
 
-	size_t mac_offset;
-	size_t key_pos_offset;
-	switch(base_type)
-	{
-		case TAKION_PACKET_TYPE_CONTROL:
-			mac_offset = 5;
-			key_pos_offset = 0x9;
-			break;
-		case TAKION_PACKET_TYPE_VIDEO:
-		case TAKION_PACKET_TYPE_AUDIO:
-			mac_offset = 0xa;
-			key_pos_offset = 0xe;
-			break;
-		default:
-			CHIAKI_LOGW(takion->log, "Takion packet with unknown type (for gmac) %#x received\n", base_type);
-			//chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, buf, buf_size);
-			return CHIAKI_ERR_INVALID_DATA;
-	}
-
-	if(buf_size < mac_offset + CHIAKI_GKCRYPT_GMAC_SIZE || buf_size < key_pos_offset + 4) {
-		CHIAKI_LOGW(takion->log, "Takion packet with type %#x too short\n", base_type);
-		return CHIAKI_ERR_INVALID_DATA;
-	}
-
-	uint32_t key_pos = ntohl(*((uint32_t *)(buf + key_pos_offset)));
-	if(base_type == TAKION_PACKET_TYPE_CONTROL)
-		memset(buf + key_pos_offset, 0, sizeof(uint32_t));
 
 	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
-	memcpy(mac, buf + mac_offset, sizeof(mac));
-	memset(buf + mac_offset, 0, sizeof(mac));
-
 	uint8_t mac_expected[CHIAKI_GKCRYPT_GMAC_SIZE];
-	memset(mac_expected, 0, sizeof(mac_expected));
-
-	//CHIAKI_LOGD(takion->log, "calculating GMAC for:\n");
-	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, buf_size);
-
-	ChiakiErrorCode err = chiaki_gkcrypt_gmac(takion->gkcrypt_remote, key_pos, buf, buf_size, mac_expected);
+	ChiakiTakionPacketKeyPos key_pos;
+	ChiakiErrorCode err = chiaki_takion_packet_mac(takion->gkcrypt_remote, buf, buf_size, mac_expected, mac, &key_pos);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to calculate MAC\n");
+		CHIAKI_LOGE(takion->log, "Takion failed to calculate mac for received packet\n");
 		return err;
 	}
+
 	if(memcmp(mac_expected, mac, sizeof(mac)) != 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#lx\n", base_type, key_pos);
@@ -677,7 +654,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 		CHIAKI_LOGW(takion->log, "Takion received data ack with nonzero %#x at buf+0xa\n", zero);
 
 	// TODO: check seq_num, etc.
-	CHIAKI_LOGD(takion->log, "Takion received data ack with seq_num = %#x, something = %#x, size_or_something = %#x, zero = %#x\n", seq_num, something, size_internal, zero);
+	//CHIAKI_LOGD(takion->log, "Takion received data ack with seq_num = %#x, something = %#x, size_or_something = %#x, zero = %#x\n", seq_num, something, size_internal, zero);
 }
 
 /**

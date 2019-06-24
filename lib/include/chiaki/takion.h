@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+typedef uint32_t ChiakiTakionPacketKeyPos;
+
 typedef enum chiaki_takion_message_data_type_t {
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF = 0,
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_9 = 9
@@ -141,6 +143,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *
  * Thread-safe while Takion is running.
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const uint8_t *buf, size_t buf_size);
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, ChiakiTakionPacketKeyPos *key_pos_out);
 
 /**
  * Calculate the MAC for the packet depending on the type derived from the first byte in buf,

@@ -253,8 +253,8 @@ static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type,
 		return;
 	}
 
-	CHIAKI_LOGD(stream_connection->log, "StreamConnection received data\n");
-	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	//CHIAKI_LOGD(stream_connection->log, "StreamConnection received data\n");
+	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
 
 static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
