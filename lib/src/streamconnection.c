@@ -74,7 +74,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *sessio
 
 	stream_connection->ecdh_secret = NULL;
 
-	ChiakiErrorCode err = chiaki_pred_cond_init(&stream_connection->stop_cond);
+	ChiakiErrorCode err = chiaki_bool_pred_cond_init(&stream_connection->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 
@@ -177,12 +177,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *sessio
 
 	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo\n");
 
-	err = chiaki_pred_cond_lock(&stream_connection->stop_cond);
+	err = chiaki_bool_pred_cond_lock(&stream_connection->stop_cond);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	while(true)
 	{
-		err = chiaki_pred_cond_timedwait(&stream_connection->stop_cond, HEARTBEAT_INTERVAL_MS);
+		err = chiaki_bool_pred_cond_timedwait(&stream_connection->stop_cond, HEARTBEAT_INTERVAL_MS);
 		if(err != CHIAKI_ERR_TIMEOUT)
 			break;
 
@@ -193,7 +193,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiSession *sessio
 			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat\n");
 	}
 
-	err = chiaki_pred_cond_unlock(&stream_connection->stop_cond);
+	err = chiaki_bool_pred_cond_unlock(&stream_connection->stop_cond);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting\n");
@@ -212,7 +212,7 @@ error_takion:
 error_mirai:
 	chiaki_mirai_fini(&stream_connection->mirai);
 error_stop_cond:
-	chiaki_pred_cond_fini(&stream_connection->stop_cond);
+	chiaki_bool_pred_cond_fini(&stream_connection->stop_cond);
 error:
 	free(stream_connection->ecdh_secret);
 	return err;

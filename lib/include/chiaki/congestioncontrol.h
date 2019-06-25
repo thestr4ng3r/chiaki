@@ -29,7 +29,7 @@ typedef struct chiaki_congestion_control_t
 {
 	ChiakiTakion *takion;
 	ChiakiThread thread;
-	ChiakiPredCond stop_cond;
+	ChiakiBoolPredCond stop_cond;
 } ChiakiCongestionControl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion);
