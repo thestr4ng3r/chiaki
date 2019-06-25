@@ -199,14 +199,24 @@ static void *session_thread_func(void *arg)
 		goto quit_audio_receiver;
 	}
 
-	err = chiaki_stream_connection_run(session);
+	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Nagare failed\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection init failed\n");
 		goto quit_video_receiver;
 	}
 
-	CHIAKI_LOGI(&session->log, "Nagare completed successfully\n");
+	err = chiaki_stream_connection_run(&session->stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "StreamConnection run failed\n");
+		goto quit_stream_connection;
+	}
+
+	CHIAKI_LOGI(&session->log, "StreamConnection completed successfully\n");
+
+quit_stream_connection:
+	chiaki_stream_connection_fini(&session->stream_connection);
 
 quit_video_receiver:
 	chiaki_video_receiver_free(session->video_receiver);

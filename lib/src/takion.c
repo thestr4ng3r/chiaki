@@ -471,9 +471,9 @@ static void *takion_thread_func(void *user)
 {
 	ChiakiTakion *takion = user;
 
-	ChiakiCongestionControl congestion_control;
-	if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
-		goto beach;
+	// TODO ChiakiCongestionControl congestion_control;
+	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
+	// 	goto beach;
 
 	while(true)
 	{
@@ -485,7 +485,7 @@ static void *takion_thread_func(void *user)
 		takion_handle_packet(takion, buf, received_size);
 	}
 
-	chiaki_congestion_control_stop(&congestion_control);
+	// chiaki_congestion_control_stop(&congestion_control);
 
 beach:
 	close(takion->sock);
@@ -496,7 +496,7 @@ beach:
 static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, struct timeval *timeout)
 {
 	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, timeout);
-	if(err == CHIAKI_ERR_TIMEOUT)
+	if(err == CHIAKI_ERR_TIMEOUT || err == CHIAKI_ERR_CANCELED)
 		return err;
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

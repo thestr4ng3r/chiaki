@@ -33,6 +33,10 @@ typedef struct chiaki_congestion_control_t
 } ChiakiCongestionControl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion);
+
+/**
+ * Stop control and join the thread
+ */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_stop(ChiakiCongestionControl *control);
 
 #ifdef __cplusplus

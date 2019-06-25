@@ -30,19 +30,45 @@
 extern "C" {
 #endif
 
+typedef struct chiaki_session_t ChiakiSession;
+
 typedef struct chiaki_stream_connection_t
 {
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
 	ChiakiTakion takion;
-	ChiakiMirai mirai;
 	uint8_t *ecdh_secret;
 	ChiakiGKCrypt *gkcrypt_local;
 	ChiakiGKCrypt *gkcrypt_remote;
-	ChiakiBoolPredCond stop_cond;
+
+	/**
+	 * signaled on change of state_finished or should_stop
+	 */
+	ChiakiCond state_cond;
+
+	/**
+	 * protects state, state_finished, state_failed and should_stop
+	 */
+	ChiakiMutex state_mutex;
+
+	int state;
+	bool state_finished;
+	bool state_failed;
+	bool should_stop;
 } ChiakiStreamConnection;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnection *stream_connection, ChiakiSession *session);
+CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_connection);
+
+/**
+ * Run stream_connection synchronously
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection);
+
+/**
+ * To be called from a thread other than the one chiaki_stream_connection_run() is running on to stop stream_connection
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_stop(ChiakiStreamConnection *stream_connection);
 
 #ifdef __cplusplus
 }
