@@ -27,27 +27,31 @@
 extern "C" {
 #endif
 
-typedef uint16_t ChiakiSeqNum16;
-
-#define CHIAKI_SEQ_NUM_16_MAX 0xffff
-
-static inline bool chiaki_seq_num_16_lt(ChiakiSeqNum16 a, ChiakiSeqNum16 b)
-{
-	if(a == b)
-		return false;
-	int32_t d = (int32_t)b - (int32_t)a;
-	return (a < b && d < (1 << 15))
-		|| ((a > b) && -d > (1 << 15));
+#define CHIAKI_DEFINE_SEQNUM(bits, greater_sint) \
+\
+typedef uint##bits##_t ChiakiSeqNum##bits; \
+\
+static inline bool chiaki_seq_num_##bits##_lt(ChiakiSeqNum##bits a, ChiakiSeqNum##bits b) \
+{ \
+	if(a == b) \
+		return false; \
+	greater_sint d = (greater_sint)b - (greater_sint)a; \
+	return (a < b && d < ((ChiakiSeqNum##bits)1 << (bits - 1))) \
+		|| ((a > b) && -d > ((ChiakiSeqNum##bits)1 << (bits - 1))); \
+} \
+\
+static inline bool chiaki_seq_num_##bits##_gt(ChiakiSeqNum##bits a, ChiakiSeqNum##bits b) \
+{ \
+	if(a == b) \
+		return false; \
+	greater_sint d = (greater_sint)b - (greater_sint)a; \
+	return (a < b && d > ((ChiakiSeqNum##bits)1 << (bits - 1))) \
+		   || ((a > b) && -d < ((ChiakiSeqNum##bits)1 << (bits - 1))); \
 }
 
-static inline bool chiaki_seq_num_16_gt(ChiakiSeqNum16 a, ChiakiSeqNum16 b)
-{
-	if(a == b)
-		return false;
-	int32_t d = (int32_t)b - (int32_t)a;
-	return (a < b && d > (1 << 15))
-		   || ((a > b) && -d < (1 << 15));
-}
+CHIAKI_DEFINE_SEQNUM(16, int32_t)
+CHIAKI_DEFINE_SEQNUM(32, int64_t)
+#undef CHIAKI_DEFINE_SEQNUM
 
 #ifdef __cplusplus
 }

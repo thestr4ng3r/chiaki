@@ -51,10 +51,32 @@ static MunitResult test_seq_num_16(const MunitParameter params[], void *user)
 }
 
 
+static MunitResult test_seq_num_32(const MunitParameter params[], void *user)
+{
+	munit_assert(chiaki_seq_num_32_gt(1, 0));
+	munit_assert(!chiaki_seq_num_32_gt(0, 1));
+	munit_assert(!chiaki_seq_num_32_lt(1, 0));
+	munit_assert(chiaki_seq_num_32_lt(0, 1));
+	munit_assert(chiaki_seq_num_32_gt(1, 0xfffffff5));
+	munit_assert(!chiaki_seq_num_32_gt(0xfffffff5, 1));
+
+	return MUNIT_OK;
+}
+
+
+
 MunitTest tests_seq_num[] = {
 	{
 		"/seq_num_16",
 		test_seq_num_16,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/seq_num_32",
+		test_seq_num_32,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
