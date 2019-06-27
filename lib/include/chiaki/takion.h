@@ -107,18 +107,29 @@ typedef struct chiaki_takion_connect_info_t
 } ChiakiTakionConnectInfo;
 
 
-typedef enum chiaki_takion_crypt_mode_t {
-	CHIAKI_TAKION_CRYPT_MODE_NO_CRYPT, // encryption disabled completely, for Senkusha
-	CHIAKI_TAKION_CRYPT_MODE_PRE_CRYPT, // encryption required, but not yet initialized (during handshake)
-	CHIAKI_TAKION_CRYPT_MODE_CRYPT // encryption required
-} ChiakiTakionCryptMode;
-
 
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
 
-	ChiakiTakionCryptMode crypt_mode;
+	/**
+	 * Whether encryption should be used.
+	 *
+	 * If false, encryption and MACs are disabled completely.
+	 *
+	 * If true, encryption and MACs will be used depending on whether gkcrypt_local and gkcrypt_remote are non-null, respectively.
+	 * However, if gkcrypt_remote is null, only control data packets are passed to the callback and all other packets are postponed until
+	 * gkcrypt_remote is set, so it has been set, so eventually all MACs will be checked.
+	 */
+	bool enable_crypt;
+
+	/**
+	 * Array to be temporarily allocated when non-data packets come, enable_crypt is true, but gkcrypt_remote is NULL
+	 * to not ignore any MACs in this period.
+	 */
+	struct chiaki_takion_postponed_packet_t *postponed_packets;
+	size_t postponed_packets_size;
+	size_t postponed_packets_count;
 
 	ChiakiGKCrypt *gkcrypt_local; // if NULL (default), no gmac is calculated and nothing is encrypted
 	size_t key_pos_local;
@@ -145,6 +156,9 @@ typedef struct chiaki_takion_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 
+/**
+ * Must be called from within the Takion thread, i.e. inside the callback!
+ */
 static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote) {
 	takion->gkcrypt_local = gkcrypt_local;
 	takion->gkcrypt_remote = gkcrypt_remote;
