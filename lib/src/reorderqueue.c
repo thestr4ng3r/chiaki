@@ -62,6 +62,16 @@ REORDER_QUEUE_INIT(32)
 
 CHIAKI_EXPORT void chiaki_reorder_queue_fini(ChiakiReorderQueue *queue)
 {
+	if(queue->drop_cb)
+	{
+		for(uint64_t i=0; i<queue->count; i++)
+		{
+			uint64_t seq_num = add(queue->begin, i);
+			ChiakiReorderQueueEntry *entry = &queue->queue[idx(seq_num)];
+			if(entry->set)
+				queue->drop_cb(seq_num, entry->user, queue->drop_cb_user);
+		}
+	}
 	free(queue->queue);
 }
 
@@ -140,8 +150,10 @@ CHIAKI_EXPORT bool chiaki_reorder_queue_pull(ChiakiReorderQueue *queue, uint64_t
 	if(!entry->set)
 		return false;
 
-	*seq_num = queue->begin;
-	*user = entry->user;
+	if(seq_num)
+		*seq_num = queue->begin;
+	if(user)
+		*user = entry->user;
 	queue->begin = add(queue->begin, 1);
 	queue->count--;
 	return true;

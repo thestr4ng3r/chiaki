@@ -24,6 +24,7 @@
 #include "gkcrypt.h"
 #include "seqnum.h"
 #include "stoppipe.h"
+#include "reorderqueue.h"
 
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -124,6 +125,8 @@ typedef struct chiaki_takion_t
 	ChiakiMutex gkcrypt_local_mutex;
 
 	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
+
+	ChiakiReorderQueue data_queue;
 
 	ChiakiTakionCallback cb;
 	void *cb_user;
