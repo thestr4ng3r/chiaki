@@ -158,12 +158,12 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(&session->log, "Starting Senkusha\n");
 
-	err = chiaki_senkusha_run(session);
+	/* TODO err = chiaki_senkusha_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha failed\n");
 		goto quit_ctrl;
-	}
+	}*/
 
 	// TODO: Senkusha should set that
 	session->mtu = 1454;

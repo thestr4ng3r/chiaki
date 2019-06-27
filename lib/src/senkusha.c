@@ -44,6 +44,9 @@ typedef struct senkusha_t
 	ChiakiMirai bang_mirai;
 } Senkusha;
 
+#define MIRAI_REQUEST_CONNECT 1
+#define MIRAI_REQUEST_BANG 2
+
 
 static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user);
 static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
@@ -74,6 +77,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	takion_info.cb = senkusha_takion_cb;
 	takion_info.cb_user = &senkusha;
 
+	err = chiaki_mirai_request_begin(&senkusha.bang_mirai, MIRAI_REQUEST_CONNECT, true);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
 	err = chiaki_takion_connect(&senkusha.takion, &takion_info);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -82,9 +88,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 		goto error_bang_mirai;
 	}
 
+	err = chiaki_mirai_request_wait(&senkusha.bang_mirai, BIG_TIMEOUT_MS, false);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+	if(!senkusha.bang_mirai.response)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+			CHIAKI_LOGE(&session->log, "Senkusha connect timeout\n");
+
+		CHIAKI_LOGE(&session->log, "Senkusha Takion connect failed\n");
+		err = CHIAKI_ERR_UNKNOWN;
+		goto error_takion;
+	}
+
 	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
 
-	err = chiaki_mirai_request_begin(&senkusha.bang_mirai, 1, true);
+	err = chiaki_mirai_request_begin(&senkusha.bang_mirai, MIRAI_REQUEST_BANG, true);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	err = senkusha_send_big(&senkusha);
@@ -127,6 +146,12 @@ static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user)
 	Senkusha *senkusha = user;
 	switch(event->type)
 	{
+		case CHIAKI_TAKION_EVENT_TYPE_CONNECTED:
+		case CHIAKI_TAKION_EVENT_TYPE_DISCONNECT:
+			if(senkusha->bang_mirai.request == MIRAI_REQUEST_CONNECT)
+			{
+				chiaki_mirai_signal(&senkusha->bang_mirai, event->type == CHIAKI_TAKION_EVENT_TYPE_CONNECTED);
+			}
 		case CHIAKI_TAKION_EVENT_TYPE_DATA:
 			senkusha_takion_data(senkusha, event->data.data_type, event->data.buf, event->data.buf_size);
 			break;
@@ -151,7 +176,7 @@ static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType
 		return;
 	}
 
-	if(senkusha->bang_mirai.request)
+	if(senkusha->bang_mirai.request == MIRAI_REQUEST_BANG)
 	{
 		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 		{

@@ -70,6 +70,8 @@ typedef struct chiaki_takion_congestion_packet_t
 
 
 typedef enum {
+	CHIAKI_TAKION_EVENT_TYPE_CONNECTED,
+	CHIAKI_TAKION_EVENT_TYPE_DISCONNECT,
 	CHIAKI_TAKION_EVENT_TYPE_DATA,
 	CHIAKI_TAKION_EVENT_TYPE_AV
 } ChiakiTakionEventType;

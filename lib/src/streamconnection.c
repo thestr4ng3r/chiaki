@@ -45,6 +45,7 @@
 
 typedef enum {
 	STATE_IDLE,
+	STATE_TAKION_CONNECT,
 	STATE_EXPECT_BANG,
 	STATE_EXPECT_STREAMINFO
 } StreamConnectionState;
@@ -128,7 +129,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	takion_info.cb = stream_connection_takion_cb;
 	takion_info.cb_user = stream_connection;
 
-	// TODO: make this call stoppable
+	err = chiaki_mutex_lock(&stream_connection->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	stream_connection->state = STATE_TAKION_CONNECT;
+	stream_connection->state_finished = false;
+	stream_connection->state_failed = false;
 	err = chiaki_takion_connect(&stream_connection->takion, &takion_info);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -137,8 +143,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		return err;
 	}
 
-	err = chiaki_mutex_lock(&stream_connection->state_mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
+	err = chiaki_cond_wait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, state_finished_cond_check, stream_connection);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed\n");
+		goto close_takion;
+	}
 
 	CHIAKI_LOGI(&session->log, "StreamConnection sending big\n");
 
@@ -233,6 +244,7 @@ disconnect:
 
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
+close_takion:
 	chiaki_takion_close(&stream_connection->takion);
 	CHIAKI_LOGI(&session->log, "StreamConnection closed takion\n");
 
@@ -255,6 +267,17 @@ static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user)
 	ChiakiStreamConnection *stream_connection = user;
 	switch(event->type)
 	{
+		case CHIAKI_TAKION_EVENT_TYPE_CONNECTED:
+		case CHIAKI_TAKION_EVENT_TYPE_DISCONNECT:
+			chiaki_mutex_lock(&stream_connection->state_mutex);
+			if(stream_connection->state == STATE_TAKION_CONNECT)
+			{
+				stream_connection->state_finished = event->type == CHIAKI_TAKION_EVENT_TYPE_CONNECTED;
+				stream_connection->state_failed = event->type == CHIAKI_TAKION_EVENT_TYPE_DISCONNECT;
+				chiaki_cond_signal(&stream_connection->state_cond);
+			}
+			chiaki_mutex_unlock(&stream_connection->state_mutex);
+			break;
 		case CHIAKI_TAKION_EVENT_TYPE_DATA:
 			stream_connection_takion_data(stream_connection, event->data.data_type, event->data.buf, event->data.buf_size);
 			break;

@@ -175,7 +175,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to create stop pipe\n");
-		return CHIAKI_ERR_UNKNOWN;
+		return err;
 	}
 
 	takion->sock = socket(info->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
@@ -193,90 +193,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		ret = CHIAKI_ERR_NETWORK;
 		goto error_sock;
 	}
-
-
-	// INIT ->
-
-	TakionMessagePayloadInit init_payload;
-	init_payload.tag0 = takion->tag_local;
-	init_payload.something = TAKION_LOCAL_SOMETHING;
-	init_payload.min = TAKION_LOCAL_MIN;
-	init_payload.max = TAKION_LOCAL_MIN;
-	init_payload.tag1 = takion->tag_local;
-	err = takion_send_message_init(takion, &init_payload);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send init\n");
-		ret = err;
-		goto error_sock;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent init\n");
-
-
-	// INIT_ACK <-
-
-	TakionMessagePayloadInitAck init_ack_payload;
-	err = takion_recv_message_init_ack(takion, &init_ack_payload);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to receive init ack\n");
-		ret = CHIAKI_ERR_UNKNOWN;
-		goto error_sock;
-	}
-
-	if(init_ack_payload.tag == 0)
-	{
-		CHIAKI_LOGE(takion->log, "Takion remote tag in init ack is 0\n");
-		ret = CHIAKI_ERR_INVALID_RESPONSE;
-		goto error_sock;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion received init ack with remote tag %#x, min: %#x, max: %#x\n",
-			init_ack_payload.tag, init_ack_payload.min, init_ack_payload.max);
-
-	takion->tag_remote = init_ack_payload.tag;
-
-	if(init_ack_payload.min == 0 || init_ack_payload.max == 0
-		|| init_ack_payload.min > TAKION_LOCAL_MAX
-		|| init_ack_payload.max < TAKION_LOCAL_MAX)
-	{
-		CHIAKI_LOGE(takion->log, "Takion min/max check failed\n");
-		ret = CHIAKI_ERR_INVALID_RESPONSE;
-		goto error_sock;
-	}
-
-
-
-	// COOKIE ->
-
-	err = takion_send_message_cookie(takion, init_ack_payload.cookie);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send cookie\n");
-		ret = err;
-		goto error_sock;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent cookie\n");
-
-
-	// COOKIE_ACK <-
-
-	err = takion_recv_message_cookie_ack(takion);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to receive cookie ack\n");
-		ret = err;
-		goto error_sock;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion received cookie ack\n");
-
-
-	// done!
-
-	CHIAKI_LOGI(takion->log, "Takion connected\n");
 
 	err = chiaki_thread_create(&takion->thread, takion_thread_func, takion);
 	if(r != CHIAKI_ERR_SUCCESS)
@@ -465,9 +381,103 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion
 	return chiaki_takion_send_raw(takion, buf, sizeof(buf));
 }
 
+static ChiakiErrorCode takion_handshake(ChiakiTakion *takion)
+{
+	ChiakiErrorCode err;
+
+	// INIT ->
+
+	TakionMessagePayloadInit init_payload;
+	init_payload.tag0 = takion->tag_local;
+	init_payload.something = TAKION_LOCAL_SOMETHING;
+	init_payload.min = TAKION_LOCAL_MIN;
+	init_payload.max = TAKION_LOCAL_MIN;
+	init_payload.tag1 = takion->tag_local;
+	err = takion_send_message_init(takion, &init_payload);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to send init\n");
+		return err;
+	}
+
+	CHIAKI_LOGI(takion->log, "Takion sent init\n");
+
+
+	// INIT_ACK <-
+
+	TakionMessagePayloadInitAck init_ack_payload;
+	err = takion_recv_message_init_ack(takion, &init_ack_payload);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to receive init ack\n");
+		return err;
+	}
+
+	if(init_ack_payload.tag == 0)
+	{
+		CHIAKI_LOGE(takion->log, "Takion remote tag in init ack is 0\n");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
+
+	CHIAKI_LOGI(takion->log, "Takion received init ack with remote tag %#x, min: %#x, max: %#x\n",
+				init_ack_payload.tag, init_ack_payload.min, init_ack_payload.max);
+
+	takion->tag_remote = init_ack_payload.tag;
+
+	if(init_ack_payload.min == 0 || init_ack_payload.max == 0
+	   || init_ack_payload.min > TAKION_LOCAL_MAX
+	   || init_ack_payload.max < TAKION_LOCAL_MAX)
+	{
+		CHIAKI_LOGE(takion->log, "Takion min/max check failed\n");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
+
+
+
+	// COOKIE ->
+
+	err = takion_send_message_cookie(takion, init_ack_payload.cookie);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to send cookie\n");
+		return err;
+	}
+
+	CHIAKI_LOGI(takion->log, "Takion sent cookie\n");
+
+
+	// COOKIE_ACK <-
+
+	err = takion_recv_message_cookie_ack(takion);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to receive cookie ack\n");
+		return err;
+	}
+
+	CHIAKI_LOGI(takion->log, "Takion received cookie ack\n");
+
+
+	// done!
+
+	CHIAKI_LOGI(takion->log, "Takion connected\n");
+
+	if(takion->cb)
+	{
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_CONNECTED;
+		takion->cb(&event, takion->cb_user);
+	}
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
 static void *takion_thread_func(void *user)
 {
 	ChiakiTakion *takion = user;
+
+	if(takion_handshake(takion) != CHIAKI_ERR_SUCCESS)
+		goto beach;
 
 	// TODO ChiakiCongestionControl congestion_control;
 	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
@@ -486,6 +496,12 @@ static void *takion_thread_func(void *user)
 	// chiaki_congestion_control_stop(&congestion_control);
 
 beach:
+	if(takion->cb)
+	{
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_DISCONNECT;
+		takion->cb(&event, takion->cb_user);
+	}
 	close(takion->sock);
 	return NULL;
 }
