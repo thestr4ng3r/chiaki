@@ -8,7 +8,8 @@ add_executable(chiaki-unit
 		rpcrypt.c
 		gkcrypt.c
 		takion.c
-		seqnum.c)
+		seqnum.c
+		reorderqueue.c)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

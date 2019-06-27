@@ -24,7 +24,8 @@ set(HEADER_FILES
 		include/chiaki/seqnum.h
 		include/chiaki/discovery.h
 		include/chiaki/congestioncontrol.h
-		include/chiaki/stoppipe.h)
+		include/chiaki/stoppipe.h
+		include/chiaki/reorderqueue.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -51,7 +52,8 @@ set(SOURCE_FILES
 		src/frameprocessor.c
 		src/discovery.c
 		src/congestioncontrol.c
-		src/stoppipe.c)
+		src/stoppipe.c
+		src/reorderqueue.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
