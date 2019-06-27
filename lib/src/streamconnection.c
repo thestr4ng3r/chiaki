@@ -171,33 +171,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout\n");
 
-		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it\n");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
 
 	CHIAKI_LOGI(&session->log, "StreamConnection successfully received bang\n");
-
-
-	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 2, session->handshake_key, stream_connection->ecdh_secret);
-	if(!stream_connection->gkcrypt_local)
-	{
-		CHIAKI_LOGE(&session->log, "StreamConnection failed to initialize GKCrypt with index 2\n");
-		goto disconnect;
-	}
-	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(&session->log, 0 /* TODO */, 3, session->handshake_key, stream_connection->ecdh_secret);
-	if(!stream_connection->gkcrypt_remote)
-	{
-		CHIAKI_LOGE(&session->log, "StreamConnection failed to initialize GKCrypt with index 3\n");
-		goto disconnect;
-	}
-
-	// TODO: IMPORTANT!!!
-	// This all needs to be synchronized correctly!!!
-	// After receiving the bang, we MUST wait for the gkcrypts to be set before handling any new takion packets!
-	// Otherwise we might ignore some macs.
-	// Also, access to the gkcrypts must be synchronized for key_pos and everything.
-	chiaki_takion_set_crypt(&stream_connection->takion, stream_connection->gkcrypt_local, stream_connection->gkcrypt_remote);
 
 	stream_connection->state = STATE_EXPECT_STREAMINFO;
 	stream_connection->state_finished = false;
@@ -329,6 +308,30 @@ static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_co
 	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
 
+static ChiakiErrorCode stream_connection_init_crypt(ChiakiStreamConnection *stream_connection)
+{
+	ChiakiSession *session = stream_connection->session;
+
+	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 2, session->handshake_key, stream_connection->ecdh_secret);
+	if(!stream_connection->gkcrypt_local)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize local GKCrypt with index 2\n");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 3, session->handshake_key, stream_connection->ecdh_secret);
+	if(!stream_connection->gkcrypt_remote)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize remote GKCrypt with index 3\n");
+		free(stream_connection->gkcrypt_local);
+		stream_connection->gkcrypt_local = NULL;
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	chiaki_takion_set_crypt(&stream_connection->takion, stream_connection->gkcrypt_local, stream_connection->gkcrypt_remote);
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
 static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	char ecdh_pub_key[128];
@@ -403,6 +406,13 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 		free(stream_connection->ecdh_secret);
 		stream_connection->ecdh_secret = NULL;
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to derive secret from bang\n");
+		goto error;
+	}
+
+	err = stream_connection_init_crypt(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to init crypt after receiving bang\n");
 		goto error;
 	}
 
