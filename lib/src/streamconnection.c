@@ -50,14 +50,15 @@ typedef enum {
 } StreamConnectionState;
 
 
-static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
+static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user);
+static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection);
 static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection);
-static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user);
+static void stream_connection_takion_av(ChiakiStreamConnection *stream_connection, ChiakiTakionAVPacket *packet);
 static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *stream_connection);
 
 
@@ -124,10 +125,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = set_port(takion_info.sa, htons(STREAM_CONNECTION_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
-	takion_info.data_cb = stream_connection_takion_data;
-	takion_info.data_cb_user = stream_connection;
-	takion_info.av_cb = stream_connection_takion_av;
-	takion_info.av_cb_user = stream_connection;
+	takion_info.cb = stream_connection_takion_cb;
+	takion_info.cb_user = stream_connection;
 
 	// TODO: make this call stoppable
 	err = chiaki_takion_connect(&stream_connection->takion, &takion_info);
@@ -251,13 +250,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_stop(ChiakiStreamConnecti
 	return err == CHIAKI_ERR_SUCCESS ? unlock_err : err;
 }
 
+static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user)
+{
+	ChiakiStreamConnection *stream_connection = user;
+	switch(event->type)
+	{
+		case CHIAKI_TAKION_EVENT_TYPE_DATA:
+			stream_connection_takion_data(stream_connection, event->data.data_type, event->data.buf, event->data.buf_size);
+			break;
+		case CHIAKI_TAKION_EVENT_TYPE_AV:
+			stream_connection_takion_av(stream_connection, event->av);
+			break;
+		default:
+			break;
+	}
+}
 
-static void stream_connection_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
+static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size)
 {
 	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
 		return;
-
-	ChiakiStreamConnection *stream_connection = user;
 
 	chiaki_mutex_lock(&stream_connection->state_mutex);
 	switch(stream_connection->state)
@@ -627,10 +639,8 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 }
 
 
-static void stream_connection_takion_av(ChiakiTakionAVPacket *packet, void *user)
+static void stream_connection_takion_av(ChiakiStreamConnection *stream_connection, ChiakiTakionAVPacket *packet)
 {
-	ChiakiStreamConnection *stream_connection = user;
-
 	chiaki_gkcrypt_decrypt(stream_connection->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
 
 	/*CHIAKI_LOGD(stream_connection->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",

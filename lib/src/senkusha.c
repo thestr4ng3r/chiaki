@@ -45,7 +45,8 @@ typedef struct senkusha_t
 } Senkusha;
 
 
-static void senkusha_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user);
+static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user);
+static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha);
 static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha);
 
@@ -70,8 +71,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
-	takion_info.data_cb = senkusha_takion_data;
-	takion_info.data_cb_user = &senkusha;
+	takion_info.cb = senkusha_takion_cb;
+	takion_info.cb_user = &senkusha;
 
 	err = chiaki_takion_connect(&senkusha.takion, &takion_info);
 	free(takion_info.sa);
@@ -121,12 +122,23 @@ error_bang_mirai:
 	return err;
 }
 
-static void senkusha_takion_data(ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size, void *user)
+static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user)
+{
+	Senkusha *senkusha = user;
+	switch(event->type)
+	{
+		case CHIAKI_TAKION_EVENT_TYPE_DATA:
+			senkusha_takion_data(senkusha, event->data.data_type, event->data.buf, event->data.buf_size);
+			break;
+		default:
+			break;
+	}
+}
+
+static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size)
 {
 	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
 		return;
-
-	Senkusha *senkusha = user;
 
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));

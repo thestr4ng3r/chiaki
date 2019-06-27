@@ -69,18 +69,36 @@ typedef struct chiaki_takion_congestion_packet_t
 } ChiakiTakionCongestionPacket;
 
 
-typedef void (*ChiakiTakionDataCallback)(ChiakiTakionMessageDataType, uint8_t *buf, size_t buf_size, void *user);
-typedef void (*ChiakiTakionAVCallback)(ChiakiTakionAVPacket *packet, void *user);
+typedef enum {
+	CHIAKI_TAKION_EVENT_TYPE_DATA,
+	CHIAKI_TAKION_EVENT_TYPE_AV
+} ChiakiTakionEventType;
 
+typedef struct chiaki_takion_event_t
+{
+	ChiakiTakionEventType type;
+	union
+	{
+		struct
+		{
+			ChiakiTakionMessageDataType data_type;
+			uint8_t *buf;
+			size_t buf_size;
+		} data;
+
+		ChiakiTakionAVPacket *av;
+	};
+} ChiakiTakionEvent;
+
+typedef void (*ChiakiTakionCallback)(ChiakiTakionEvent *event, void *user);
 
 typedef struct chiaki_takion_connect_info_t
 {
 	ChiakiLog *log;
 	struct sockaddr *sa;
 	socklen_t sa_len;
-	ChiakiTakionDataCallback data_cb;
-	void *data_cb_user;
-	ChiakiTakionAVCallback av_cb;
+	ChiakiTakionCallback cb;
+	void *cb_user;
 	void *av_cb_user;
 	bool enable_crypt;
 } ChiakiTakionConnectInfo;
@@ -105,10 +123,8 @@ typedef struct chiaki_takion_t
 
 	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
 
-	ChiakiTakionDataCallback data_cb;
-	void *data_cb_user;
-	ChiakiTakionAVCallback av_cb;
-	void *av_cb_user;
+	ChiakiTakionCallback cb;
+	void *cb_user;
 	int sock;
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;

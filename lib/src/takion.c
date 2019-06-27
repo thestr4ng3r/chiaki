@@ -156,10 +156,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		return ret;
 	takion->key_pos_local = 0;
 	takion->gkcrypt_remote = NULL;
-	takion->data_cb = info->data_cb;
-	takion->data_cb_user = info->data_cb_user;
-	takion->av_cb = info->av_cb;
-	takion->av_cb_user = info->av_cb_user;
+	takion->cb = info->cb;
+	takion->cb_user = info->cb_user;
 	takion->something = TAKION_LOCAL_SOMETHING;
 
 	takion->tag_local = 0x4823; // "random" tag
@@ -619,11 +617,14 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t type
 
 	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF && data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_9)
 		CHIAKI_LOGW(takion->log, "Takion received data with unexpected data type %#x\n", data_type);
-	else if(takion->data_cb)
+	else if(takion->cb)
 	{
-		uint8_t *data = buf + 9;
-		size_t data_size = buf_size - 9;
-		takion->data_cb((ChiakiTakionMessageDataType)data_type, data, data_size, takion->data_cb_user);
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_DATA;
+		event.data.data_type = (ChiakiTakionMessageDataType)data_type;
+		event.data.buf = buf + 9;
+		event.data.buf_size = buf_size - 9;
+		takion->cb(&event, takion->cb_user);
 	}
 
 	chiaki_takion_send_message_data_ack(takion, 0, channel, seq_num);
@@ -843,8 +844,13 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		return;
 	}
 
-	if(takion->av_cb)
-		takion->av_cb(&packet, takion->av_cb_user);
+	if(takion->cb)
+	{
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_AV;
+		event.av = &packet;
+		takion->cb(&event, takion->cb_user);
+	}
 }
 
 #define AV_HEADER_SIZE_VIDEO 0x17
