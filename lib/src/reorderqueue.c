@@ -108,7 +108,7 @@ CHIAKI_EXPORT void chiaki_reorder_queue_push(ChiakiReorderQueue *queue, uint64_t
 		while(queue->count > 0 && lt(total_end, new_end))
 		{
 			ChiakiReorderQueueEntry *entry = &queue->queue[idx(queue->begin)];
-			if(entry->set)
+			if(entry->set && queue->drop_cb)
 				queue->drop_cb(queue->begin, entry->user, queue->drop_cb_user);
 			queue->begin = add(queue->begin, 1);
 			queue->count--;
@@ -137,7 +137,8 @@ CHIAKI_EXPORT void chiaki_reorder_queue_push(ChiakiReorderQueue *queue, uint64_t
 
 	return;
 drop_it:
-	queue->drop_cb(seq_num, user, queue->drop_cb_user);
+	if(queue->drop_cb)
+		queue->drop_cb(seq_num, user, queue->drop_cb_user);
 }
 
 CHIAKI_EXPORT bool chiaki_reorder_queue_pull(ChiakiReorderQueue *queue, uint64_t *seq_num, void **user)
@@ -157,4 +158,46 @@ CHIAKI_EXPORT bool chiaki_reorder_queue_pull(ChiakiReorderQueue *queue, uint64_t
 	queue->begin = add(queue->begin, 1);
 	queue->count--;
 	return true;
+}
+
+CHIAKI_EXPORT bool chiaki_reorder_queue_peek(ChiakiReorderQueue *queue, uint64_t index, uint64_t *seq_num, void **user)
+{
+	if(index >= queue->count)
+		return false;
+
+	uint64_t seq_num_val = add(queue->begin, index);
+	ChiakiReorderQueueEntry *entry = &queue->queue[idx(seq_num_val)];
+	if(!entry->set)
+		return false;
+
+	*seq_num = seq_num_val;
+	*user = entry->user;
+	return true;
+}
+
+CHIAKI_EXPORT void chiaki_reorder_queue_drop(ChiakiReorderQueue *queue, uint64_t index)
+{
+	if(index >= queue->count)
+		return;
+
+	uint64_t seq_num = add(queue->begin, index);
+	ChiakiReorderQueueEntry *entry = &queue->queue[idx(seq_num)];
+	if(!entry->set)
+		return;
+
+	if(queue->drop_cb)
+		queue->drop_cb(seq_num, entry->user, queue->drop_cb_user);
+
+	// reduce count if necessary
+	if(index == queue->count - 1)
+	{
+		while(!entry->set)
+		{
+			queue->count--;
+			if(queue->count == 0)
+				break;
+			seq_num = add(queue->begin, queue->count - 1);
+			entry = &queue->queue[idx(seq_num)];
+		}
+	}
 }

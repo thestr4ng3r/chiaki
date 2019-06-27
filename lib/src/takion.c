@@ -90,6 +90,8 @@ ssize_t takion_packet_type_key_pos_offset(TakionPacketType type)
 
 #define MESSAGE_HEADER_SIZE 0x10
 
+#define TAKION_PACKET_BASE_TYPE_MASK 0xf
+
 typedef enum takion_message_type_a_t {
 	TAKION_MESSAGE_TYPE_A_DATA = 0,
 	TAKION_MESSAGE_TYPE_A_INIT = 1,
@@ -154,6 +156,7 @@ typedef struct chiaki_takion_postponed_packet_t
 
 static void *takion_thread_func(void *user);
 static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *packet_buf, size_t packet_buf_size, uint8_t type_b, uint8_t *payload, size_t payload_size);
 static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
@@ -280,7 +283,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uin
 	if(buf_size < 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	TakionPacketType base_type = buf[0] & 0xf;
+	TakionPacketType base_type = buf[0] & TAKION_PACKET_BASE_TYPE_MASK;
 	ssize_t mac_offset = takion_packet_type_mac_offset(base_type);
 	ssize_t key_pos_offset = takion_packet_type_key_pos_offset(base_type);
 	if(mac_offset < 0 || key_pos_offset < 0)
@@ -519,8 +522,32 @@ static void *takion_thread_func(void *user)
 	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
 	// 	goto beach;
 
+	bool crypt_available = takion->gkcrypt_remote ? true : false;
+
 	while(true)
 	{
+		if(takion->enable_crypt && !crypt_available && takion->gkcrypt_remote)
+		{
+			crypt_available = true;
+			CHIAKI_LOGI(takion->log, "Crypt has become available. Re-checking MACs of %llu packets\n", (unsigned long long)chiaki_reorder_queue_count(&takion->data_queue));
+			for(uint64_t i=0; i<chiaki_reorder_queue_count(&takion->data_queue); i++)
+			{
+				TakionDataPacketEntry *packet;
+				bool peeked = chiaki_reorder_queue_peek(&takion->data_queue, i, NULL, (void **)&packet);
+				if(!peeked)
+					continue;
+				if(packet->packet_size == 0)
+					continue;
+				uint8_t base_type = (uint8_t)(packet->packet_buf[0] & TAKION_PACKET_BASE_TYPE_MASK);
+				if(takion_handle_packet_mac(takion, base_type, packet->packet_buf, packet->packet_size) != CHIAKI_ERR_SUCCESS)
+				{
+					CHIAKI_LOGW(takion->log, "Found an invalid MAC\n");
+					chiaki_reorder_queue_drop(&takion->data_queue, i);
+				}
+			}
+
+		}
+
 		if(takion->postponed_packets && takion->gkcrypt_remote)
 		{
 			// there are some postponed packets that were waiting until crypt is initialized and it is now :-)
@@ -600,7 +627,6 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 	if(!takion->gkcrypt_remote)
 		return CHIAKI_ERR_SUCCESS;
 
-
 	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
 	uint8_t mac_expected[CHIAKI_GKCRYPT_GMAC_SIZE];
 	ChiakiTakionPacketKeyPos key_pos;
@@ -655,7 +681,7 @@ static void takion_postpone_packet(ChiakiTakion *takion, uint8_t *buf, size_t bu
 static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size)
 {
 	assert(buf_size > 0);
-	uint8_t base_type = (uint8_t)(buf[0] & 0xf);
+	uint8_t base_type = (uint8_t)(buf[0] & TAKION_PACKET_BASE_TYPE_MASK);
 
 	if(takion_handle_packet_mac(takion, base_type, buf, buf_size) != CHIAKI_ERR_SUCCESS)
 	{

@@ -117,9 +117,26 @@ CHIAKI_EXPORT void chiaki_reorder_queue_push(ChiakiReorderQueue *queue, uint64_t
  *
  * @param seq_num pointer where the sequence number of the pulled packet is written, undefined contents if false is returned
  * @param user pointer where the user pointer of the pulled packet is written, undefined contents if false is returned
- * @return true if a packet was pulled in order
+ * @return true if an element was pulled in order
  */
 CHIAKI_EXPORT bool chiaki_reorder_queue_pull(ChiakiReorderQueue *queue, uint64_t *seq_num, void **user);
+
+/**
+ * Peek the element at a specific index inside the queue.
+ *
+ * @param index Offset to be added to the begin sequence number, this is NOT a sequence number itself! (0 <= index < count)
+ * @param seq_num pointer where the sequence number of the peeked packet is written, undefined contents if false is returned
+ * @param user pointer where the user pointer of the pulled packet is written, undefined contents if false is returned
+ * @return true if an element was peeked, false if there is no element at index.
+ */
+CHIAKI_EXPORT bool chiaki_reorder_queue_peek(ChiakiReorderQueue *queue, uint64_t index, uint64_t *seq_num, void **user);
+
+/**
+ * Drop a specific element from the queue.
+ * begin will not be changed.
+ * @param index Offset to be added to the begin sequence number, this is NOT a sequence number itself! (0 <= index < count)
+ */
+CHIAKI_EXPORT void chiaki_reorder_queue_drop(ChiakiReorderQueue *queue, uint64_t index);
 
 #ifdef __cplusplus
 }
