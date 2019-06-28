@@ -15,24 +15,27 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_MAINWINDOW_H
-#define CHIAKI_MAINWINDOW_H
+#ifndef CHIAKI_SERVERITEMWIDGET_H
+#define CHIAKI_SERVERITEMWIDGET_H
 
 #include <QWidget>
 
-class DynamicGridWidget;
-class ServerItemWidget;
-
-class MainWindow : public QWidget
+class ServerItemWidget : public QWidget
 {
 	Q_OBJECT
 
 	private:
-		DynamicGridWidget *grid_widget;
-		QList<ServerItemWidget *> server_item_widgets;
+		bool selected;
+
+	protected:
+		void mousePressEvent(QMouseEvent *event) override;
+		void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 	public:
-		explicit MainWindow(QWidget *parent = nullptr);
+		explicit ServerItemWidget(QWidget *parent = nullptr);
+
+		bool IsSelected() { return selected; }
+		void SetSelected(bool selected);
 };
 
-#endif //CHIAKI_MAINWINDOW_H
+#endif //CHIAKI_CONSOLEITEMWIDGET_H

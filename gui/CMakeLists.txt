@@ -18,7 +18,9 @@ add_executable(chiaki
 		include/mainwindow.h
 		src/mainwindow.cpp
 		include/dynamicgridwidget.h
-		src/dynamicgridwidget.cpp)
+		src/dynamicgridwidget.cpp
+		include/serveritemwidget.h
+		src/serveritemwidget.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)

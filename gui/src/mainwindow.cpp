@@ -17,6 +17,7 @@
 
 #include <mainwindow.h>
 #include <dynamicgridwidget.h>
+#include <serveritemwidget.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -37,16 +38,14 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 	scroll_content_widget->setLayout(scroll_content_layout);
 	scroll_area->setWidget(scroll_content_widget);
 
-	grid_widget = new DynamicGridWidget(100, scroll_content_widget);
+	grid_widget = new DynamicGridWidget(200, scroll_content_widget);
 	scroll_content_layout->addWidget(grid_widget);
 	scroll_content_layout->addStretch(0);
 	grid_widget->setContentsMargins(0, 0, 0, 0);
 
 	for(int i=0; i<10; i++)
 	{
-		QWidget *w = new QWidget(grid_widget);
-		w->setFixedSize(100, 100);
-		w->setStyleSheet("background-color: red;");
+		auto w = new ServerItemWidget(grid_widget);
 		grid_widget->AddWidget(w);
 	}
 
