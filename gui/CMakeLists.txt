@@ -14,7 +14,9 @@ add_executable(chiaki
 		include/videodecoder.h
 		src/videodecoder.cpp
 		include/discoverycmd.h
-		src/discoverycmd.cpp)
+		src/discoverycmd.cpp
+		include/mainwindow.h
+		src/mainwindow.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)

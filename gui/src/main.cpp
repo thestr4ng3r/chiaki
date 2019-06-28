@@ -2,6 +2,7 @@
 #include <streamwindow.h>
 #include <videodecoder.h>
 #include <discoverycmd.h>
+#include <mainwindow.h>
 
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
@@ -16,6 +17,7 @@
 
 
 int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did);
+int RunMain(QApplication &app);
 
 int main(int argc, char *argv[])
 {
@@ -47,6 +49,9 @@ int main(int argc, char *argv[])
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
 
+	if(args.length() == 0)
+		return RunMain(app);
+
 	if(args.length() < 2)
 		parser.showHelp(1);
 
@@ -73,6 +78,12 @@ int main(int argc, char *argv[])
 	}
 }
 
+int RunMain(QApplication &app)
+{
+	MainWindow main_window;
+	main_window.show();
+	return app.exec();
+}
 
 QAudioOutput *audio_out;
 QIODevice *audio_io;
@@ -97,7 +108,6 @@ void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
 	//StreamRelayIODevice *io_device = reinterpret_cast<StreamRelayIODevice *>(user);
 	//io_device->PushSample(buf, buf_size);
 }
-
 
 int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did)
 {
