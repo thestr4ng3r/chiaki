@@ -501,6 +501,8 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion)
 
 static void takion_data_drop(uint64_t seq_num, void *elem_user, void *cb_user)
 {
+	ChiakiTakion *takion = cb_user;
+	CHIAKI_LOGE(takion->log, "Takion dropping data with seq num %llx\n", (unsigned long long)seq_num);
 	TakionDataPacketEntry *entry = elem_user;
 	free(entry->packet_buf);
 	free(entry);
@@ -516,7 +518,7 @@ static void *takion_thread_func(void *user)
 	if(chiaki_reorder_queue_init_32(&takion->data_queue, TAKION_REORDER_QUEUE_SIZE_EXP, takion->tag_remote) != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	chiaki_reorder_queue_set_drop_cb(&takion->data_queue, takion_data_drop, NULL);
+	chiaki_reorder_queue_set_drop_cb(&takion->data_queue, takion_data_drop, takion);
 
 	// TODO ChiakiCongestionControl congestion_control;
 	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
@@ -794,6 +796,8 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *pac
 		return;
 
 	entry->type_b = type_b;
+	entry->packet_buf = packet_buf;
+	entry->packet_size = packet_buf_size;
 	entry->payload = payload;
 	entry->payload_size = payload_size;
 	entry->channel = ntohs(*((uint16_t *)(payload + 4)));

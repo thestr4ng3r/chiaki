@@ -74,6 +74,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
 
+	takion_info.enable_crypt = false;
+
 	takion_info.cb = senkusha_takion_cb;
 	takion_info.cb_user = &senkusha;
 
