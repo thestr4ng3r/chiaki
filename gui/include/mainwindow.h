@@ -18,12 +18,12 @@
 #ifndef CHIAKI_MAINWINDOW_H
 #define CHIAKI_MAINWINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 
 class DynamicGridWidget;
 class ServerItemWidget;
 
-class MainWindow : public QWidget
+class MainWindow : public QMainWindow
 {
 	Q_OBJECT
 
@@ -37,6 +37,9 @@ class MainWindow : public QWidget
 	public slots:
 		void ServerItemWidgetSelected();
 		void ServerItemWidgetTriggered();
+
+		void RunDiscovery();
+		void ShowSettings();
 };
 
 #endif //CHIAKI_MAINWINDOW_H

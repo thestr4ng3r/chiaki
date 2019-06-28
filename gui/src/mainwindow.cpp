@@ -22,11 +22,32 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QScrollArea>
+#include <QToolBar>
+#include <QDebug>
 
-MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
+	auto main_widget = new QWidget(this);
 	auto layout = new QVBoxLayout();
-	setLayout(layout);
+	main_widget->setLayout(layout);
+	setCentralWidget(main_widget);
+	layout->setMargin(0);
+
+	auto tool_bar = new QToolBar(this);
+	tool_bar->setMovable(false);
+	addToolBar(tool_bar);
+
+	auto discover_action = new QAction(tr("Discover"), this);
+	tool_bar->addAction(discover_action);
+	connect(discover_action, &QAction::triggered, this, &MainWindow::RunDiscovery);
+
+	auto tool_bar_spacer = new QWidget();
+	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
+	tool_bar->addWidget(tool_bar_spacer);
+
+	auto settings_action = new QAction(tr("Settings"), this);
+	tool_bar->addAction(settings_action);
+	connect(settings_action, &QAction::triggered, this, &MainWindow::ShowSettings);
 
 	auto scroll_area = new QScrollArea(this);
 	scroll_area->setWidgetResizable(true);
@@ -76,4 +97,14 @@ void MainWindow::ServerItemWidgetTriggered()
 		return;
 
 	// TODO: connect
+}
+
+void MainWindow::RunDiscovery()
+{
+	qDebug() << "TODO: RunDiscovery()";
+}
+
+void MainWindow::ShowSettings()
+{
+	qDebug() << "TODO: ShowSettings()";
 }
