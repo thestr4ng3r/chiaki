@@ -36,6 +36,10 @@ class ServerItemWidget : public QWidget
 
 		bool IsSelected() { return selected; }
 		void SetSelected(bool selected);
+
+	signals:
+		void Selected();
+		void Triggered();
 };
 
 #endif //CHIAKI_CONSOLEITEMWIDGET_H

@@ -46,8 +46,34 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 	for(int i=0; i<10; i++)
 	{
 		auto w = new ServerItemWidget(grid_widget);
+		connect(w, &ServerItemWidget::Selected, this, &MainWindow::ServerItemWidgetSelected);
+		connect(w, &ServerItemWidget::Triggered, this, &MainWindow::ServerItemWidgetTriggered);
+		server_item_widgets.append(w);
 		grid_widget->AddWidget(w);
 	}
 
 	resize(800, 600);
+}
+
+void MainWindow::ServerItemWidgetSelected()
+{
+	auto server_item_widget = qobject_cast<ServerItemWidget *>(sender());
+	if(!server_item_widget)
+		return;
+
+	for(auto widget : server_item_widgets)
+	{
+		if(widget != server_item_widget)
+			widget->SetSelected(false);
+	}
+	server_item_widget->SetSelected(true);
+}
+
+void MainWindow::ServerItemWidgetTriggered()
+{
+	auto server_item_widget = qobject_cast<ServerItemWidget *>(sender());
+	if(!server_item_widget)
+		return;
+
+	// TODO: connect
 }

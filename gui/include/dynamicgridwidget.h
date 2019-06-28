@@ -43,9 +43,12 @@ class DynamicGridWidget : public QWidget
 		explicit DynamicGridWidget(unsigned int item_width, QWidget *parent = nullptr);
 
 		void AddWidget(QWidget *widget);
-		void RemoveWidget(QWidget *widget);
+		void AddWidgets(const QList<QWidget *> &widgets);
 
-		void SetItemWidth(int item_width) { this->item_width = item_width; UpdateLayoutIfNecessary(); }
+		void RemoveWidget(QWidget *widget);
+		void ClearWidgets();
+
+		void SetItemWidth(unsigned int item_width) { this->item_width = item_width; UpdateLayoutIfNecessary(); }
 
 };
 

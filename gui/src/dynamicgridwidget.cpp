@@ -38,11 +38,35 @@ void DynamicGridWidget::AddWidget(QWidget *widget)
 	UpdateLayout();
 }
 
+void DynamicGridWidget::AddWidgets(const QList<QWidget *> &widgets)
+{
+	for(auto widget : widgets)
+	{
+		if(this->widgets.contains(widget))
+			continue;
+		widget->setParent(this);
+		this->widgets.append(widget);
+	}
+	UpdateLayout();
+}
+
 void DynamicGridWidget::RemoveWidget(QWidget *widget)
 {
 	layout->removeWidget(widget);
 	widget->setParent(nullptr);
 	widgets.removeAll(widget);
+	UpdateLayout();
+}
+
+void DynamicGridWidget::ClearWidgets()
+{
+	for(auto widget : widgets)
+	{
+		layout->removeWidget(widget);
+		widget->setParent(nullptr);
+	}
+	widgets.clear();
+	UpdateLayout();
 }
 
 unsigned int DynamicGridWidget::CalculateColumns()

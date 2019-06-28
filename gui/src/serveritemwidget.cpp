@@ -36,11 +36,12 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QWidget(parent)
 
 void ServerItemWidget::mousePressEvent(QMouseEvent *event)
 {
-	SetSelected(!IsSelected());
+	emit Selected();
 }
 
 void ServerItemWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
+	emit Triggered();
 }
 
 void ServerItemWidget::SetSelected(bool selected)
@@ -49,5 +50,4 @@ void ServerItemWidget::SetSelected(bool selected)
 		return;
 	this->selected = selected;
 	setStyleSheet(selected ? "background-color: palette(highlight);" : "");
-	update();
 }

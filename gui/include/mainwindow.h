@@ -33,6 +33,10 @@ class MainWindow : public QWidget
 
 	public:
 		explicit MainWindow(QWidget *parent = nullptr);
+
+	public slots:
+		void ServerItemWidgetSelected();
+		void ServerItemWidgetTriggered();
 };
 
 #endif //CHIAKI_MAINWINDOW_H
