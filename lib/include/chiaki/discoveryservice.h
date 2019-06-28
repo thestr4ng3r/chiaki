@@ -25,12 +25,32 @@
 extern "C" {
 #endif
 
+typedef struct chiaki_discovery_service_options_t
+{
+	size_t servers_max;
+	uint64_t ping_ms;
+	struct sockaddr *send_addr;
+	size_t send_addr_size;
+} ChiakiDiscoveryServiceOptions;
+
+typedef struct chiaki_discovery_service_server_t
+{
+	uint64_t last_ping_index;
+} ChiakiDiscoveryServiceServer;
+
 typedef struct chiaki_discovery_service_t
 {
+	ChiakiLog *log;
+	ChiakiDiscoveryServiceOptions options;
 	ChiakiDiscovery discovery;
+	uint64_t ping_index;
+	ChiakiDiscoveryServiceServer *servers;
+	size_t servers_count;
+	ChiakiThread thread;
+	ChiakiBoolPredCond stop_cond;
 } ChiakiDiscoveryService;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryService *service, ChiakiLog *log, sa_family_t family);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryService *service, ChiakiDiscoveryServiceOptions *options, ChiakiLog *log);
 CHIAKI_EXPORT void chiaki_discovery_service_fini(ChiakiDiscoveryService *service);
 
 #ifdef __cplusplus
