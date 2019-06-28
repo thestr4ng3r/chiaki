@@ -15,23 +15,38 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_MAINWINDOW_H
-#define CHIAKI_MAINWINDOW_H
+#ifndef CHIAKI_DYNAMICGRIDWIDGET_H
+#define CHIAKI_DYNAMICGRIDWIDGET_H
 
 #include <QWidget>
 
-class QTableWidget;
-class DynamicGridWidget;
+class QGridLayout;
 
-class MainWindow : public QWidget
+class DynamicGridWidget : public QWidget
 {
 	Q_OBJECT
 
 	private:
-		DynamicGridWidget *grid_widget;
+		QGridLayout *layout;
+		QList<QWidget *> widgets;
+		unsigned int item_width;
+		unsigned int columns;
+
+		void UpdateLayout();
+		void UpdateLayoutIfNecessary();
+		unsigned int CalculateColumns();
+
+	protected:
+		void resizeEvent(QResizeEvent *) override { UpdateLayoutIfNecessary(); }
 
 	public:
-		explicit MainWindow(QWidget *parent = nullptr);
+		explicit DynamicGridWidget(unsigned int item_width, QWidget *parent = nullptr);
+
+		void AddWidget(QWidget *widget);
+		void RemoveWidget(QWidget *widget);
+
+		void SetItemWidth(int item_width) { this->item_width = item_width; UpdateLayoutIfNecessary(); }
+
 };
 
-#endif //CHIAKI_MAINWINDOW_H
+#endif //CHIAKI_DYNAMICGRIDWIDGET_H

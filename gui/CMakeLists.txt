@@ -16,7 +16,9 @@ add_executable(chiaki
 		include/discoverycmd.h
 		src/discoverycmd.cpp
 		include/mainwindow.h
-		src/mainwindow.cpp)
+		src/mainwindow.cpp
+		include/dynamicgridwidget.h
+		src/dynamicgridwidget.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
