@@ -18,21 +18,45 @@
 #ifndef CHIAKI_STREAMSESSION_H
 #define CHIAKI_STREAMSESSION_H
 
+#include "videodecoder.h"
+
 #include <QObject>
-#include <QGamepad>
+#include <QImage>
+
+#include <chiaki/session.h>
+
+class QGamepad;
+class QAudioOutput;
+class QIODevice;
 
 class StreamSession : public QObject
 {
+	friend class StreamSessionPrivate;
+
 	Q_OBJECT
 
 	private:
+		ChiakiSession session;
+
 		QGamepad *gamepad;
 
+		VideoDecoder video_decoder;
+
+		QAudioOutput *audio_output;
+		QIODevice *audio_io;
+
+		void PushAudioFrame(int16_t *buf, size_t samples_count);
+		void PushVideoSample(uint8_t *buf, size_t buf_size);
+
 	public:
-		explicit StreamSession(QObject *parent = nullptr);
+		explicit StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent = nullptr);
 		~StreamSession();
 
 		QGamepad *GetGamepad()	{ return gamepad; }
+		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
+
+	signals:
+		void CurrentImageUpdated();
 
 	private slots:
 		void UpdateGamepads();

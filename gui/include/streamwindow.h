@@ -21,19 +21,25 @@
 #include <QMainWindow>
 
 class QLabel;
+class StreamSession;
 
 class StreamWindow: public QMainWindow
 {
 	Q_OBJECT
 
 	public:
-		explicit StreamWindow(QWidget *parent = nullptr);
+		explicit StreamWindow(StreamSession *session, QWidget *parent = nullptr);
 		~StreamWindow();
+
+	private:
+		StreamSession *session;
+
+		QLabel *imageLabel;
 
 		void SetImage(const QImage &image);
 
-	private:
-		QLabel *imageLabel;
+	private slots:
+		void FramesAvailable();
 };
 
 #endif // CHIAKI_GUI_STREAMWINDOW_H

@@ -16,11 +16,13 @@
  */
 
 #include <streamwindow.h>
+#include <streamsession.h>
 
 #include <QLabel>
 
-StreamWindow::StreamWindow(QWidget *parent)
-	: QMainWindow(parent)
+StreamWindow::StreamWindow(StreamSession *session, QWidget *parent)
+	: QMainWindow(parent),
+	session(session)
 {
 	imageLabel = new QLabel(this);
 	setCentralWidget(imageLabel);
@@ -29,6 +31,8 @@ StreamWindow::StreamWindow(QWidget *parent)
 	imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	imageLabel->setScaledContents(true);
 
+	connect(session->GetVideoDecoder(), &VideoDecoder::FramesAvailable, this, &StreamWindow::FramesAvailable);
+	FramesAvailable();
 }
 
 StreamWindow::~StreamWindow()
@@ -38,4 +42,20 @@ StreamWindow::~StreamWindow()
 void StreamWindow::SetImage(const QImage &image)
 {
 	imageLabel->setPixmap(QPixmap::fromImage(image));
+}
+
+void StreamWindow::FramesAvailable()
+{
+	QImage prev;
+	QImage image;
+	do
+	{
+		prev = image;
+		image = session->GetVideoDecoder()->PullFrame();
+	} while(!image.isNull());
+
+	if(!prev.isNull())
+	{
+		SetImage(prev);
+	}
 }
