@@ -3,7 +3,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia Gamepad)
 
 find_package(FFMPEG REQUIRED COMPONENTS avcodec)
 
@@ -22,9 +22,11 @@ add_executable(chiaki
 		include/serveritemwidget.h
 		src/serveritemwidget.cpp
 		include/discoverymanager.h
-		src/discoverymanager.cpp)
+		src/discoverymanager.cpp
+		include/streamsession.h
+		src/streamsession.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
 target_link_libraries(chiaki FFMPEG::avcodec)
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::Gamepad)

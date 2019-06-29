@@ -3,6 +3,7 @@
 #include <videodecoder.h>
 #include <discoverycmd.h>
 #include <mainwindow.h>
+#include <streamsession.h>
 
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
@@ -111,6 +112,8 @@ void video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
 
 int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did)
 {
+	StreamSession stream_session;
+
 	QByteArray host_str = host.toUtf8();
 	QByteArray registkey_str = registkey.toUtf8();
 	QByteArray ostype_str = ostype.toUtf8();
