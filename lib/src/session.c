@@ -56,7 +56,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(chiaki_mutex_init(&session->ctrl_cond_mutex) != CHIAKI_ERR_SUCCESS)
+	if(chiaki_mutex_init(&session->ctrl_cond_mutex, false) != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_cond_fini(&session->ctrl_cond);
 		return CHIAKI_ERR_UNKNOWN;

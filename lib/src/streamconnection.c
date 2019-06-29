@@ -72,7 +72,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
 
-	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex);
+	stream_connection->feedback_state_seq_num = 0;
+
+	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 
@@ -726,4 +728,12 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 	}
 
 	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, stream.bytes_written);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_send_feedback_state(ChiakiStreamConnection *stream_connection, ChiakiFeedbackState *state)
+{
+	ChiakiErrorCode err = chiaki_takion_send_feedback_state(&stream_connection->takion, stream_connection->feedback_state_seq_num++, state);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send feedback state\n");
+	return err;
 }

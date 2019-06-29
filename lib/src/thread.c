@@ -39,9 +39,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **re
 
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec)
 {
-	int r = pthread_mutex_init(&mutex->mutex, NULL);
+	pthread_mutexattr_t attr;
+	int r = pthread_mutexattr_init(&attr);
+	if(r != 0)
+		return CHIAKI_ERR_UNKNOWN;
+
+	pthread_mutexattr_settype(&attr, rec ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_DEFAULT);
+
+	r = pthread_mutex_init(&mutex->mutex, &attr);
+
+	pthread_mutexattr_destroy(&attr);
+
 	if(r != 0)
 		return CHIAKI_ERR_UNKNOWN;
 	return CHIAKI_ERR_SUCCESS;
@@ -203,7 +213,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_bool_pred_cond_init(ChiakiBoolPredCond *con
 {
 	cond->pred = false;
 
-	ChiakiErrorCode err = chiaki_mutex_init(&cond->mutex);
+	ChiakiErrorCode err = chiaki_mutex_init(&cond->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 

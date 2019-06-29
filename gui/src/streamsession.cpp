@@ -113,8 +113,26 @@ void StreamSession::UpdateGamepads()
 		{
 			gamepad = new QGamepad(connected_pads[0], this);
 			qDebug() << "gamepad" << connected_pads[0] << "connected: " << gamepad->name();
+			connect(gamepad, &QGamepad::axisLeftXChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::axisLeftYChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::axisRightXChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::axisRightYChanged, this, &StreamSession::SendFeedbackState);
 		}
 	}
+
+	SendFeedbackState();
+}
+
+void StreamSession::SendFeedbackState()
+{
+	if(!gamepad)
+		return;
+	ChiakiFeedbackState state;
+	state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+	state.left_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+	state.right_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+	state.right_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+	chiaki_stream_connection_send_feedback_state(&session.stream_connection, &state);
 }
 
 void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)

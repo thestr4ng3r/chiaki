@@ -28,10 +28,10 @@ extern "C" {
 
 typedef struct chiaki_feedback_state_t
 {
-	uint16_t left_x;
-	uint16_t left_y;
-	uint16_t right_x;
-	uint16_t right_y;
+	int16_t left_x;
+	int16_t left_y;
+	int16_t right_x;
+	int16_t right_y;
 } ChiakiFeedbackState;
 
 #define CHIAKI_FEEDBACK_STATE_BUF_SIZE 0x19

@@ -38,8 +38,8 @@ CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackStat
 	buf[0xe] = 0xf7; // TODO
 	buf[0xf] = 0xef; // TODO
 	buf[0x10] = 0x1f; // TODO
-	*((uint16_t *)(buf + 0x11)) = htons(state->left_x);
-	*((uint16_t *)(buf + 0x13)) = htons(state->left_y);
-	*((uint16_t *)(buf + 0x15)) = htons(state->right_x);
-	*((uint16_t *)(buf + 0x17)) = htons(state->right_y);
+	*((uint16_t *)(buf + 0x11)) = htons((uint16_t)state->left_x);
+	*((uint16_t *)(buf + 0x13)) = htons((uint16_t)state->left_y);
+	*((uint16_t *)(buf + 0x15)) = htons((uint16_t)state->right_x);
+	*((uint16_t *)(buf + 0x17)) = htons((uint16_t)state->right_y);
 }

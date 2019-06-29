@@ -175,7 +175,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 
 	takion->log = info->log;
 	takion->gkcrypt_local = NULL;
-	ret = chiaki_mutex_init(&takion->gkcrypt_local_mutex);
+	ret = chiaki_mutex_init(&takion->gkcrypt_local_mutex, true);
 	if(ret != CHIAKI_ERR_SUCCESS)
 		return ret;
 	takion->key_pos_local = 0;
@@ -431,11 +431,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, sizeof(buf), buf + 4);
+	*((uint32_t *)(buf + 4)) = htonl((uint32_t)key_pos);
+
+	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, sizeof(buf), buf + 8);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	*((uint32_t *)(buf + 4)) = htonl((uint32_t)key_pos);
+	chiaki_takion_send_raw(takion, buf, sizeof(buf));
 
 beach:
 	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);

@@ -60,6 +60,7 @@ class StreamSession : public QObject
 
 	private slots:
 		void UpdateGamepads();
+		void SendFeedbackState();
 };
 
 #endif // CHIAKI_STREAMSESSION_H

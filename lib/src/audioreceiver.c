@@ -30,7 +30,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 	audio_receiver->opus_decoder = NULL;
 	memset(&audio_receiver->audio_header, 0, sizeof(audio_receiver->audio_header));
 
-	ChiakiErrorCode err = chiaki_mutex_init(&audio_receiver->mutex);
+	ChiakiErrorCode err = chiaki_mutex_init(&audio_receiver->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
