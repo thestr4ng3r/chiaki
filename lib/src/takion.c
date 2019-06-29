@@ -396,7 +396,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion
 	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	*((uint32_t *)(buf + 0xb)) = htonl((uint32_t)takion->key_pos_local);
+	*((uint32_t *)(buf + 0xb)) = htonl((uint32_t)takion->key_pos_local); // TODO: is this correct? shouldn't key_pos be 0 for mac calculation?
 	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, takion->key_pos_local, buf, sizeof(buf), buf + 7);
 	takion->key_pos_local += sizeof(buf);
 	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
@@ -406,6 +406,40 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion
 	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, sizeof(buf));
 
 	return chiaki_takion_send_raw(takion, buf, sizeof(buf));
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, ChiakiFeedbackState *feedback_state)
+{
+	uint8_t buf[0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE];
+	buf[0] = TAKION_PACKET_TYPE_FEEDBACK_STATE;
+	*((uint16_t *)(buf + 1)) = htons(seq_num);
+	buf[3] = 0; // TODO
+	*((uint32_t *)(buf + 4)) = 0; // key pos
+	*((uint32_t *)(buf + 8)) = 0; // gmac
+	chiaki_feedback_state_format(buf + 0xc, feedback_state);
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	size_t key_pos;
+	err = chiaki_takion_crypt_advance_key_pos(takion, CHIAKI_FEEDBACK_STATE_BUF_SIZE, &key_pos);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	err = chiaki_gkcrypt_encrypt(takion->gkcrypt_local, key_pos, buf + 0xc, CHIAKI_FEEDBACK_STATE_BUF_SIZE);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, sizeof(buf), buf + 4);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	*((uint32_t *)(buf + 4)) = htonl((uint32_t)key_pos);
+
+beach:
+	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
+	return err;
 }
 
 static ChiakiErrorCode takion_handshake(ChiakiTakion *takion)

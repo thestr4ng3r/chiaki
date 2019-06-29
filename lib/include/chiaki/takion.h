@@ -25,6 +25,7 @@
 #include "seqnum.h"
 #include "stoppipe.h"
 #include "reorderqueue.h"
+#include "feedback.h"
 
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -198,6 +199,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
  * Thread-safe while Takion is running.
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet);
+
+/**
+ * Thread-safe while Takion is running.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, ChiakiFeedbackState *feedback_state);
+
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size);
 
