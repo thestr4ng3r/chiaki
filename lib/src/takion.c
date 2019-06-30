@@ -1132,6 +1132,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 		//av_size -= 2;
 	}
 
+	if(packet->uses_nalu_info_structs)
+	{
+		av += 3;
+		av_size -= 3;
+	}
+
 	packet->data = av;
 	packet->data_size = av_size;
 

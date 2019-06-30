@@ -60,10 +60,26 @@ static MunitResult test_av_packet_parse(const MunitParameter params[], void *use
 }
 
 
+static MunitResult test_av_packet_parse_real_video(const MunitParameter params[], void *user)
+{
+#include "takion_av_packet_parse_real_video.inl"
+	return MUNIT_OK;
+}
+
+
+
 MunitTest tests_takion[] = {
 	{
 		"/av_packet_parse",
 		test_av_packet_parse,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/av_packet_parse_real_video",
+		test_av_packet_parse_real_video,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
