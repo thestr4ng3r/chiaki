@@ -15,35 +15,38 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_FEEDBACK_H
-#define CHIAKI_FEEDBACK_H
-
-#include "common.h"
-#include "log.h"
+#ifndef CHIAKI_CONTROLLER_H
+#define CHIAKI_CONTROLLER_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct chiaki_feedback_state_t
+typedef struct chiaki_controller_state_t
 {
 	int16_t left_x;
 	int16_t left_y;
 	int16_t right_x;
 	int16_t right_y;
-} ChiakiFeedbackState;
+} ChiakiControllerState;
 
-#define CHIAKI_FEEDBACK_STATE_BUF_SIZE 0x19
+CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state);
 
-/**
- * @param buf buffer of at least CHIAKI_FEEDBACK_STATE_BUF_SIZE
- */
-CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state);
+static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b)
+{
+	return a->left_x == b->left_x
+		&& a->left_y == b->left_y
+		&& a->right_x == b->right_x
+		&& a->right_y == b->right_y;
+}
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CHIAKI_FEEDBACK_H
+#endif // CHIAKI_CONTROLLER_H

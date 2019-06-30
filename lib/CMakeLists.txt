@@ -27,7 +27,9 @@ set(HEADER_FILES
 		include/chiaki/stoppipe.h
 		include/chiaki/reorderqueue.h
 		include/chiaki/discoveryservice.h
-		include/chiaki/feedback.h)
+		include/chiaki/feedback.h
+		include/chiaki/feedbacksender.h
+		include/chiaki/controller.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -57,7 +59,9 @@ set(SOURCE_FILES
 		src/stoppipe.c
 		src/reorderqueue.c
 		src/discoveryservice.c
-		src/feedback.c)
+		src/feedback.c
+		src/feedbacksender.c
+		src/controller.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")

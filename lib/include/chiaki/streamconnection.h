@@ -18,7 +18,7 @@
 #ifndef CHIAKI_STREAMCONNECTION_H
 #define CHIAKI_STREAMCONNECTION_H
 
-#include "mirai.h"
+#include "feedbacksender.h"
 #include "takion.h"
 #include "log.h"
 #include "ecdh.h"
@@ -41,7 +41,16 @@ typedef struct chiaki_stream_connection_t
 	ChiakiGKCrypt *gkcrypt_local;
 	ChiakiGKCrypt *gkcrypt_remote;
 
-	ChiakiSeqNum16 feedback_state_seq_num;
+	ChiakiFeedbackSender feedback_sender;
+	/**
+	 * whether feedback_sender is initialized
+	 * only if this is true, feedback_sender may be accessed!
+	 */
+	bool feedback_sender_active;
+	/**
+	 * protects feedback_sender and feedback_sender_active
+	 */
+	ChiakiMutex feedback_sender_mutex;
 
 	/**
 	 * signaled on change of state_finished or should_stop
@@ -71,8 +80,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
  * To be called from a thread other than the one chiaki_stream_connection_run() is running on to stop stream_connection
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_stop(ChiakiStreamConnection *stream_connection);
-
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_send_feedback_state(ChiakiStreamConnection *stream_connection, ChiakiFeedbackState *state);
 
 #ifdef __cplusplus
 }

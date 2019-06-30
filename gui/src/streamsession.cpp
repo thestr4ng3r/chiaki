@@ -127,12 +127,12 @@ void StreamSession::SendFeedbackState()
 {
 	if(!gamepad)
 		return;
-	ChiakiFeedbackState state;
+	ChiakiControllerState state;
 	state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
 	state.left_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
 	state.right_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
 	state.right_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-	chiaki_stream_connection_send_feedback_state(&session.stream_connection, &state);
+	chiaki_session_set_controller_state(&session, &state);
 }
 
 void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)

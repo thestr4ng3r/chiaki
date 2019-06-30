@@ -72,8 +72,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
 
-	stream_connection->feedback_state_seq_num = 0;
-
 	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
@@ -82,6 +80,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_state_mutex;
 
+	err = chiaki_mutex_init(&stream_connection->feedback_sender_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_state_cond;
+
 	stream_connection->state = STATE_IDLE;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
@@ -89,6 +91,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 
 	return CHIAKI_ERR_SUCCESS;
 
+error_state_cond:
+	chiaki_cond_fini(&stream_connection->state_cond);
 error_state_mutex:
 	chiaki_mutex_fini(&stream_connection->state_mutex);
 error:
@@ -101,6 +105,8 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
 	free(stream_connection->ecdh_secret);
+
+	chiaki_mutex_fini(&stream_connection->feedback_sender_mutex);
 
 	chiaki_cond_fini(&stream_connection->state_cond);
 	chiaki_mutex_fini(&stream_connection->state_mutex);
@@ -200,6 +206,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 
 	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo\n");
 
+	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	err = chiaki_feedback_sender_init(&stream_connection->feedback_sender, &stream_connection->takion);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_mutex_unlock(&stream_connection->feedback_sender_mutex);
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to start Feedback Sender\n");
+		goto disconnect;
+	}
+	stream_connection->feedback_sender_active = true;
+	chiaki_feedback_sender_set_controller_state(&stream_connection->feedback_sender, &session->controller_state);
+	chiaki_mutex_unlock(&stream_connection->feedback_sender_mutex);
+
 	stream_connection->state = STATE_IDLE;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
@@ -215,6 +234,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		else
 			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat\n");
 	}
+
+	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	stream_connection->feedback_sender_active = false;
+	chiaki_feedback_sender_fini(&stream_connection->feedback_sender);
+	chiaki_mutex_unlock(&stream_connection->feedback_sender_mutex);
 
 	err = CHIAKI_ERR_SUCCESS;
 
@@ -728,12 +753,4 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 	}
 
 	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, stream.bytes_written);
-}
-
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_send_feedback_state(ChiakiStreamConnection *stream_connection, ChiakiFeedbackState *state)
-{
-	ChiakiErrorCode err = chiaki_takion_send_feedback_state(&stream_connection->takion, stream_connection->feedback_state_seq_num++, state);
-	if(err != CHIAKI_ERR_SUCCESS)
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send feedback state\n");
-	return err;
 }

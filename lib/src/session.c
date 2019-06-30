@@ -51,15 +51,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 
-	if(chiaki_cond_init(&session->ctrl_cond) != CHIAKI_ERR_SUCCESS)
-	{
-		return CHIAKI_ERR_UNKNOWN;
-	}
+	ChiakiErrorCode err = chiaki_cond_init(&session->ctrl_cond);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error;
 
-	if(chiaki_mutex_init(&session->ctrl_cond_mutex, false) != CHIAKI_ERR_SUCCESS)
+	err = chiaki_mutex_init(&session->ctrl_cond_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_ctrl_cond;
+
+	err = chiaki_stream_connection_init(&session->stream_connection, session);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		chiaki_cond_fini(&session->ctrl_cond);
-		return CHIAKI_ERR_UNKNOWN;
+		CHIAKI_LOGE(&session->log, "StreamConnection init failed\n");
+		goto error_ctrl_cond_mutex;
 	}
 
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
@@ -83,17 +87,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 		return CHIAKI_ERR_MEMORY;
 	}
 
+	chiaki_controller_state_set_idle(&session->controller_state);
+
 	memcpy(session->connect_info.auth, connect_info->auth, sizeof(session->connect_info.auth));
 	memcpy(session->connect_info.morning, connect_info->morning, sizeof(session->connect_info.morning));
 	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
 
 	return CHIAKI_ERR_SUCCESS;
+error_ctrl_cond_mutex:
+	chiaki_mutex_fini(&session->ctrl_cond_mutex);
+error_ctrl_cond:
+	chiaki_cond_fini(&session->ctrl_cond);
+error:
+	return err;
 }
 
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 {
 	if(!session)
 		return;
+	chiaki_stream_connection_fini(&session->stream_connection);
 	chiaki_cond_fini(&session->ctrl_cond);
 	chiaki_mutex_fini(&session->ctrl_cond_mutex);
 	free(session->connect_info.regist_key);
@@ -109,6 +122,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session)
 {
 	return chiaki_thread_join(&session->session_thread, NULL);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&session->stream_connection.feedback_sender_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	session->controller_state = *state;
+	if(session->stream_connection.feedback_sender_active)
+		chiaki_feedback_sender_set_controller_state(&session->stream_connection.feedback_sender, &session->controller_state);
+	chiaki_mutex_unlock(&session->stream_connection.feedback_sender_mutex);
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static void session_send_event(ChiakiSession *session, ChiakiEvent *event)
@@ -197,13 +222,6 @@ static void *session_thread_func(void *arg)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to initialize Video Receiver\n");
 		goto quit_audio_receiver;
-	}
-
-	err = chiaki_stream_connection_init(&session->stream_connection, session);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(&session->log, "StreamConnection init failed\n");
-		goto quit_video_receiver;
 	}
 
 	err = chiaki_stream_connection_run(&session->stream_connection);

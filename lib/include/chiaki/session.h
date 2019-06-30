@@ -29,6 +29,7 @@
 #include "audio.h"
 #include "audioreceiver.h"
 #include "videoreceiver.h"
+#include "controller.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -138,12 +139,15 @@ typedef struct chiaki_session_t
 	ChiakiStreamConnection stream_connection;
 	ChiakiAudioReceiver *audio_receiver;
 	ChiakiVideoReceiver *video_receiver;
+
+	ChiakiControllerState controller_state;
 } ChiakiSession;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 
 static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
 {
