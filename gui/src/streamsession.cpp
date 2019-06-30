@@ -129,9 +129,9 @@ void StreamSession::SendFeedbackState()
 		return;
 	ChiakiControllerState state;
 	state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-	state.left_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-	state.right_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-	state.right_y = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+	state.left_y = static_cast<int16_t>(gamepad->axisLeftY() * 0x7fff);
+	state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);
+	state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
 	chiaki_session_set_controller_state(&session, &state);
 }
 

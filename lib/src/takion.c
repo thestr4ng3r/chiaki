@@ -418,16 +418,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 	*((uint32_t *)(buf + 8)) = 0; // gmac
 	chiaki_feedback_state_format(buf + 0xc, feedback_state);
 
+	//CHIAKI_LOGD(takion->log, "Takion sending Feedback State:\n");
+	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, sizeof(buf));
+
 	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
 	size_t key_pos;
-	err = chiaki_takion_crypt_advance_key_pos(takion, CHIAKI_FEEDBACK_STATE_BUF_SIZE, &key_pos);
+	err = chiaki_takion_crypt_advance_key_pos(takion, CHIAKI_FEEDBACK_STATE_BUF_SIZE + CHIAKI_GKCRYPT_BLOCK_SIZE, &key_pos);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	err = chiaki_gkcrypt_encrypt(takion->gkcrypt_local, key_pos, buf + 0xc, CHIAKI_FEEDBACK_STATE_BUF_SIZE);
+	err = chiaki_gkcrypt_encrypt(takion->gkcrypt_local, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf + 0xc, CHIAKI_FEEDBACK_STATE_BUF_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
