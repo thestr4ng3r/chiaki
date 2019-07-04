@@ -113,6 +113,10 @@ void StreamSession::UpdateGamepads()
 		{
 			gamepad = new QGamepad(connected_pads[0], this);
 			qDebug() << "gamepad" << connected_pads[0] << "connected: " << gamepad->name();
+			connect(gamepad, &QGamepad::buttonAChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::buttonBChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::buttonXChanged, this, &StreamSession::SendFeedbackState);
+			connect(gamepad, &QGamepad::buttonYChanged, this, &StreamSession::SendFeedbackState);
 			connect(gamepad, &QGamepad::axisLeftXChanged, this, &StreamSession::SendFeedbackState);
 			connect(gamepad, &QGamepad::axisLeftYChanged, this, &StreamSession::SendFeedbackState);
 			connect(gamepad, &QGamepad::axisRightXChanged, this, &StreamSession::SendFeedbackState);
@@ -128,6 +132,11 @@ void StreamSession::SendFeedbackState()
 	if(!gamepad)
 		return;
 	ChiakiControllerState state;
+	state.buttons = 0;
+	state.buttons |= gamepad->buttonA() ? CHIAKI_CONTROLLER_BUTTON_CROSS : 0;
+	state.buttons |= gamepad->buttonB() ? CHIAKI_CONTROLLER_BUTTON_MOON : 0;
+	state.buttons |= gamepad->buttonX() ? CHIAKI_CONTROLLER_BUTTON_BOX : 0;
+	state.buttons |= gamepad->buttonY() ? CHIAKI_CONTROLLER_BUTTON_PYRAMID : 0;
 	state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
 	state.left_y = static_cast<int16_t>(gamepad->axisLeftY() * 0x7fff);
 	state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);

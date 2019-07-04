@@ -16,6 +16,7 @@
  */
 
 #include <chiaki/feedback.h>
+#include <chiaki/controller.h>
 
 #include <arpa/inet.h>
 

@@ -29,6 +29,7 @@ extern "C" {
 
 typedef struct chiaki_feedback_state_t
 {
+	uint32_t buttons;
 	int16_t left_x;
 	int16_t left_y;
 	int16_t right_x;

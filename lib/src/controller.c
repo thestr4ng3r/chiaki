@@ -19,6 +19,7 @@
 
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state)
 {
+	state->buttons = 0;
 	state->left_x = 0;
 	state->left_y = 0;
 	state->right_x = 0;

@@ -87,6 +87,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_set_controller_state(Chiaki
 static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 {
 	ChiakiFeedbackState state;
+	state.buttons = feedback_sender->controller_state.buttons;
 	state.left_x = feedback_sender->controller_state.left_x;
 	state.left_y = feedback_sender->controller_state.left_y;
 	state.right_x = feedback_sender->controller_state.right_x;
