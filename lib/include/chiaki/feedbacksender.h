@@ -35,6 +35,9 @@ typedef struct chiaki_feedback_sender_t
 
 	ChiakiSeqNum16 state_seq_num;
 
+	ChiakiSeqNum16 history_seq_num;
+	ChiakiFeedbackHistoryBuffer history_buf;
+
 	bool should_stop;
 	ChiakiControllerState controller_state_prev;
 	ChiakiControllerState controller_state;

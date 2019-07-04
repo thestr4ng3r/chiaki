@@ -20,6 +20,7 @@
 
 #include "common.h"
 #include "log.h"
+#include "controller.h"
 
 #include <stdint.h>
 
@@ -29,7 +30,6 @@ extern "C" {
 
 typedef struct chiaki_feedback_state_t
 {
-	uint32_t buttons;
 	int16_t left_x;
 	int16_t left_y;
 	int16_t right_x;
@@ -42,6 +42,44 @@ typedef struct chiaki_feedback_state_t
  * @param buf buffer of at least CHIAKI_FEEDBACK_STATE_BUF_SIZE
  */
 CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state);
+
+
+#define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x3 // TODO: will be bigger later for touchpad at least
+
+typedef struct chiaki_feedback_history_event_t
+{
+	uint8_t buf[CHIAKI_HISTORY_EVENT_SIZE_MAX];
+	size_t len;
+} ChiakiFeedbackHistoryEvent;
+
+/**
+ * @param state 0x0 for not pressed, 0xff for pressed, intermediate values for analog triggers
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, ChiakiControllerButton button, uint8_t state);
+
+/**
+ * Ring buffer of ChiakiFeedbackHistoryEvent
+ */
+typedef struct chiaki_feedback_history_buffer_t
+{
+	ChiakiFeedbackHistoryEvent *events;
+	size_t size;
+	size_t begin;
+	size_t len;
+} ChiakiFeedbackHistoryBuffer;
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_buffer_init(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, size_t size);
+CHIAKI_EXPORT void chiaki_feedback_history_buffer_fini(ChiakiFeedbackHistoryBuffer *feedback_history_buffer);
+
+/**
+ * @param buf_size Pointer to the allocated size of buf, will contain the written size after a successful formatting.
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_buffer_format(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, uint8_t *buf, size_t *buf_size);
+
+/**
+ * Push an event to the front of the buffer
+ */
+CHIAKI_EXPORT void chiaki_feedback_history_buffer_push(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, ChiakiFeedbackHistoryEvent *event);
 
 #ifdef __cplusplus
 }

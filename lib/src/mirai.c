@@ -21,7 +21,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mirai_init(ChiakiMirai *mirai)
 {
 	mirai->request = -1;
 	mirai->response = -1;
-	ChiakiErrorCode err = chiaki_mutex_init(&mirai->mutex);
+	ChiakiErrorCode err = chiaki_mutex_init(&mirai->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 	err = chiaki_cond_init(&mirai->cond);

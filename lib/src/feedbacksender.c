@@ -20,6 +20,8 @@
 #define FEEDBACK_STATE_TIMEOUT_MIN_MS 8 // minimum time to wait between sending 2 packets
 #define FEEDBACK_STATE_TIMEOUT_MAX_MS 200 // maximum time to wait between sending 2 packets
 
+#define FEEDBACK_HISTORY_BUFFER_SIZE 0x10
+
 static void *feedback_sender_thread_func(void *user);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_init(ChiakiFeedbackSender *feedback_sender, ChiakiTakion *takion)
@@ -32,9 +34,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_init(ChiakiFeedbackSender *
 
 	feedback_sender->state_seq_num = 0;
 
-	ChiakiErrorCode err = chiaki_mutex_init(&feedback_sender->state_mutex, false);
+	feedback_sender->history_seq_num = 0;
+	ChiakiErrorCode err = chiaki_feedback_history_buffer_init(&feedback_sender->history_buf, FEEDBACK_HISTORY_BUFFER_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
+
+	err = chiaki_mutex_init(&feedback_sender->state_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_history_buffer;
 
 	err = chiaki_cond_init(&feedback_sender->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -49,6 +56,8 @@ error_cond:
 	chiaki_cond_fini(&feedback_sender->state_cond);
 error_mutex:
 	chiaki_mutex_fini(&feedback_sender->state_mutex);
+error_history_buffer:
+	chiaki_feedback_history_buffer_fini(&feedback_sender->history_buf);
 	return err;
 }
 
@@ -61,6 +70,7 @@ CHIAKI_EXPORT void chiaki_feedback_sender_fini(ChiakiFeedbackSender *feedback_se
 	chiaki_thread_join(&feedback_sender->thread, NULL);
 	chiaki_cond_fini(&feedback_sender->state_cond);
 	chiaki_mutex_fini(&feedback_sender->state_mutex);
+	chiaki_feedback_history_buffer_fini(&feedback_sender->history_buf);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_set_controller_state(ChiakiFeedbackSender *feedback_sender, ChiakiControllerState *state)
@@ -84,10 +94,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_set_controller_state(Chiaki
 	return CHIAKI_ERR_SUCCESS;
 }
 
+static bool controller_state_equals_for_feedback_state(ChiakiControllerState *a, ChiakiControllerState *b)
+{
+	return a->left_x == b->left_x
+		&& a->left_y == b->left_y
+		&& a->right_x == b->right_x
+		&& a->right_y == b->right_y;
+}
+
 static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 {
 	ChiakiFeedbackState state;
-	state.buttons = feedback_sender->controller_state.buttons;
 	state.left_x = feedback_sender->controller_state.left_x;
 	state.left_y = feedback_sender->controller_state.left_y;
 	state.right_x = feedback_sender->controller_state.right_x;
@@ -95,6 +112,53 @@ static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 	ChiakiErrorCode err = chiaki_takion_send_feedback_state(feedback_sender->takion, feedback_sender->state_seq_num++, &state);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(feedback_sender->log, "FeedbackSender failed to send Feedback State\n");
+}
+
+static bool controller_state_equals_for_feedback_history(ChiakiControllerState *a, ChiakiControllerState *b)
+{
+	return a->buttons == b->buttons;
+}
+
+static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
+{
+	// TODO: Is it legal to have more than one new event per packet?
+	size_t new_events_count = 0;
+	uint64_t buttons_prev = feedback_sender->controller_state_prev.buttons;
+	uint64_t buttons_now = feedback_sender->controller_state.buttons;
+	for(uint8_t i=0; i<CHIAKI_CONTROLLER_BUTTONS_COUNT; i++)
+	{
+		uint64_t button_id = 1 << i;
+		bool prev = buttons_prev & button_id;
+		bool now = buttons_now & button_id;
+		if(prev != now)
+		{
+			ChiakiFeedbackHistoryEvent event;
+			ChiakiErrorCode err = chiaki_feedback_history_event_set_button(&event, button_id, now ? 0xff : 0);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for button id %llu\n", (unsigned long long)button_id);
+				continue;
+			}
+			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
+			new_events_count++;
+		}
+	}
+
+	if(!new_events_count) // TODO: also send on timeout sometimes?
+		return;
+
+	uint8_t buf[0x300];
+	size_t buf_size = sizeof(buf);
+	ChiakiErrorCode err = chiaki_feedback_history_buffer_format(&feedback_sender->history_buf, buf, &buf_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format history buffer\n");
+		return;
+	}
+
+	CHIAKI_LOGD(feedback_sender->log, "Feedback History:\n");
+	chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	chiaki_takion_send_feedback_history(feedback_sender->takion, feedback_sender->history_seq_num++, buf, buf_size);
 }
 
 static bool state_cond_check(void *user)
@@ -121,13 +185,26 @@ static void *feedback_sender_thread_func(void *user)
 		if(feedback_sender->should_stop)
 			break;
 
+		bool send_feedback_state = true;
+		bool send_feedback_history = false;
+
 		if(feedback_sender->controller_state_changed)
 		{
 			// TODO: FEEDBACK_STATE_TIMEOUT_MIN_MS
 			feedback_sender->controller_state_changed = false;
-		}
 
-		feedback_sender_send_state(feedback_sender);
+			// don't need to send feedback state if nothing relevant changed
+			if(controller_state_equals_for_feedback_state(&feedback_sender->controller_state, &feedback_sender->controller_state_prev))
+				send_feedback_state = false;
+
+			send_feedback_history = !controller_state_equals_for_feedback_history(&feedback_sender->controller_state, &feedback_sender->controller_state_prev);
+		} // else: timeout
+
+		if(send_feedback_state)
+			feedback_sender_send_state(feedback_sender);
+
+		if(send_feedback_history)
+			feedback_sender_send_history(feedback_sender);
 
 		feedback_sender->controller_state_prev = feedback_sender->controller_state;
 	}

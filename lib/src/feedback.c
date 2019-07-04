@@ -19,6 +19,7 @@
 #include <chiaki/controller.h>
 
 #include <arpa/inet.h>
+#include <string.h>
 
 CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state)
 {
@@ -43,4 +44,110 @@ CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackStat
 	*((uint16_t *)(buf + 0x13)) = htons((uint16_t)state->left_y);
 	*((uint16_t *)(buf + 0x15)) = htons((uint16_t)state->right_x);
 	*((uint16_t *)(buf + 0x17)) = htons((uint16_t)state->right_y);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, ChiakiControllerButton button, uint8_t state)
+{
+	// some buttons use a third byte for the state, some don't
+	event->buf[0] = 0x80;
+	event->len = 2;
+	switch(button)
+	{
+		case CHIAKI_CONTROLLER_BUTTON_CROSS:
+			event->buf[1] = 0x88;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_MOON:
+			event->buf[1] = 0x89;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_BOX:
+			event->buf[1] = 0x8a;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_PYRAMID:
+			event->buf[1] = 0x8b;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT:
+			event->buf[1] = 0x82;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT:
+			event->buf[1] = 0x83;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_DPAD_UP:
+			event->buf[1] = 0x80;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN:
+			event->buf[1] = 0x81;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_L1:
+			event->buf[1] = 0x84;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_R1:
+			event->buf[1] = 0x85;
+			break;
+		case CHIAKI_CONTROLLER_BUTTON_L3:
+			event->buf[1] = state ? 0xaf : 0x8f;
+			return CHIAKI_ERR_SUCCESS;
+		case CHIAKI_CONTROLLER_BUTTON_R3:
+			event->buf[1] = state ? 0xb0 : 0x90;
+			return CHIAKI_ERR_SUCCESS;
+		case CHIAKI_CONTROLLER_BUTTON_OPTIONS:
+			event->buf[1] = state ? 0xac : 0x8c;
+			return CHIAKI_ERR_SUCCESS;
+		case CHIAKI_CONTROLLER_BUTTON_SHARE:
+			event->buf[1] = state ? 0xad : 0x8d;
+			return CHIAKI_ERR_SUCCESS;
+		case CHIAKI_CONTROLLER_BUTTON_TOUCHPAD:
+			event->buf[1] = state ? 0xb1 : 0x91;
+			return CHIAKI_ERR_SUCCESS;
+		case CHIAKI_CONTROLLER_BUTTON_PS:
+			event->buf[1] = state ? 0xae : 0x8e;
+			return CHIAKI_ERR_SUCCESS;
+		default:
+			return CHIAKI_ERR_INVALID_DATA;
+	}
+	event->buf[2] = state;
+	event->len = 3;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_buffer_init(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, size_t size)
+{
+	feedback_history_buffer->events = calloc(size, sizeof(ChiakiFeedbackHistoryEvent));
+	if(!feedback_history_buffer->events)
+		return CHIAKI_ERR_MEMORY;
+	feedback_history_buffer->size = size;
+	feedback_history_buffer->begin = 0;
+	feedback_history_buffer->len = 0;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT void chiaki_feedback_history_buffer_fini(ChiakiFeedbackHistoryBuffer *feedback_history_buffer)
+{
+	free(feedback_history_buffer->events);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_buffer_format(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, uint8_t *buf, size_t *buf_size)
+{
+	size_t size_max = *buf_size;
+	size_t written = 0;
+
+	for(size_t i=0; i<feedback_history_buffer->len; i++)
+	{
+		ChiakiFeedbackHistoryEvent *event = &feedback_history_buffer->events[(feedback_history_buffer->begin + i) % feedback_history_buffer->size];
+		if(written + event->len > size_max)
+			return CHIAKI_ERR_BUF_TOO_SMALL;
+		memcpy(buf + written, event->buf, event->len);
+		written += event->len;
+	}
+
+	*buf_size = written;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT void chiaki_feedback_history_buffer_push(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, ChiakiFeedbackHistoryEvent *event)
+{
+	feedback_history_buffer->begin = (feedback_history_buffer->begin + feedback_history_buffer->size - 1) % feedback_history_buffer->size;
+	feedback_history_buffer->len++;
+	if(feedback_history_buffer->len >= feedback_history_buffer->size)
+		feedback_history_buffer->len = feedback_history_buffer->size;
+	feedback_history_buffer->events[feedback_history_buffer->begin] = *event;
 }
