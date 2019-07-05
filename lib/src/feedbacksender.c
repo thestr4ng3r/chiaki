@@ -186,8 +186,8 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 		return;
 	}
 
-	CHIAKI_LOGD(feedback_sender->log, "Feedback History:\n");
-	chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	//CHIAKI_LOGD(feedback_sender->log, "Feedback History:\n");
+	//chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 	chiaki_takion_send_feedback_history(feedback_sender->takion, feedback_sender->history_seq_num++, buf, buf_size);
 }
 

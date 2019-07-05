@@ -57,7 +57,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 	{
 		ChiakiVideoProfile *profile = &video_receiver->profiles[i];
 		CHIAKI_LOGI(video_receiver->log, "  %zu: %ux%u\n", i, profile->width, profile->height);
-		chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, profile->header, profile->header_sz);
+		//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, profile->header, profile->header_sz);
 	}
 }
 
