@@ -150,7 +150,11 @@ typedef struct chiaki_takion_t
 	uint32_t tag_local;
 	uint32_t tag_remote;
 	uint32_t seq_num_local;
-	uint32_t something; // 0x19000, TODO: is this some kind of remaining buffer size?
+
+	/**
+	 * Advertised Receiver Window Credit
+	 */
+	uint32_t a_rwnd;
 } ChiakiTakion;
 
 
