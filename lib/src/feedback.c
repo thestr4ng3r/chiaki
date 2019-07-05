@@ -46,7 +46,7 @@ CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackStat
 	*((uint16_t *)(buf + 0x17)) = htons((uint16_t)state->right_y);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, ChiakiControllerButton button, uint8_t state)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state)
 {
 	// some buttons use a third byte for the state, some don't
 	event->buf[0] = 0x80;
@@ -60,10 +60,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFee
 			event->buf[1] = 0x89;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_BOX:
-			event->buf[1] = 0x8a;
+			event->buf[1] = 0x8b;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_PYRAMID:
-			event->buf[1] = 0x8b;
+			event->buf[1] = 0x8a;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT:
 			event->buf[1] = 0x82;
@@ -82,6 +82,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFee
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_R1:
 			event->buf[1] = 0x85;
+			break;
+		case CHIAKI_CONTROLLER_ANALOG_BUTTON_L2:
+			event->buf[1] = 0x86;
+			break;
+		case CHIAKI_CONTROLLER_ANALOG_BUTTON_R2:
+			event->buf[1] = 0x87;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_L3:
 			event->buf[1] = state ? 0xaf : 0x8f;

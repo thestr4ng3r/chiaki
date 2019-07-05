@@ -49,6 +49,13 @@ typedef enum chiaki_controller_button_t
 
 #define CHIAKI_CONTROLLER_BUTTONS_COUNT 16
 
+typedef enum chiaki_controller_analog_button_t
+{
+	// must not overlap with ChiakiControllerButton
+	CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 = (1 << 16),
+	CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 = (1 << 17)
+} ChiakiControllerAnalogButton;
+
 typedef struct chiaki_controller_state_t
 {
 	/**
@@ -70,6 +77,8 @@ CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state
 static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b)
 {
 	return a->buttons == b->buttons
+		&& a->l2_state == b->l2_state
+		&& a->r2_state == b->r2_state
 		&& a->left_x == b->left_x
 		&& a->left_y == b->left_y
 		&& a->right_x == b->right_x

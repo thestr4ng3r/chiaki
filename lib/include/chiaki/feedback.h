@@ -53,9 +53,10 @@ typedef struct chiaki_feedback_history_event_t
 } ChiakiFeedbackHistoryEvent;
 
 /**
+ * @param button ChiakiControllerButton or ChiakiControllerAnalogButton
  * @param state 0x0 for not pressed, 0xff for pressed, intermediate values for analog triggers
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, ChiakiControllerButton button, uint8_t state);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state);
 
 /**
  * Ring buffer of ChiakiFeedbackHistoryEvent
