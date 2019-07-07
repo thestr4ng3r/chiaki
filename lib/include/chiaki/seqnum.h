@@ -27,6 +27,8 @@
 extern "C" {
 #endif
 
+// RFC 1982
+
 #define CHIAKI_DEFINE_SEQNUM(bits, greater_sint) \
 \
 typedef uint##bits##_t ChiakiSeqNum##bits; \

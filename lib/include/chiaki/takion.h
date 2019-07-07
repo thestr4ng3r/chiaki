@@ -197,7 +197,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 /**
  * Thread-safe while Takion is running.
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t flags, uint16_t channel, uint8_t *buf, size_t buf_size);
 
 /**
  * Thread-safe while Takion is running.

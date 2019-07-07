@@ -27,6 +27,9 @@
 #include <assert.h>
 
 
+// VERY similar to SCTP, see RFC 4960
+
+
 /**
  * Base type of Takion packets. Lower nibble of the first byte in datagrams.
  */
@@ -338,7 +341,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 	return chiaki_takion_send_raw(takion, buf, buf_size);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t type_b, uint16_t channel, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t flags, uint16_t channel, uint8_t *buf, size_t buf_size)
 {
 	// TODO: can we make this more memory-efficient?
 	// TODO: split packet if necessary?
@@ -354,7 +357,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 		return CHIAKI_ERR_MEMORY;
 	packet_buf[0] = TAKION_PACKET_TYPE_CONTROL;
 
-	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, type_b, 9 + buf_size);
+	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, flags, 9 + buf_size);
 
 	uint8_t *msg_payload = packet_buf + 1 + MESSAGE_HEADER_SIZE;
 	*((uint32_t *)(msg_payload + 0)) = htonl(takion->seq_num_local++);
@@ -369,7 +372,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint16_t channel, uint32_t seq_num)
+static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion, uint32_t seq_num)
 {
 	uint8_t buf[1 + MESSAGE_HEADER_SIZE + 0xc];
 	buf[0] = TAKION_PACKET_TYPE_CONTROL;
@@ -379,7 +382,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
-	takion_write_message_header(buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA_ACK, type_b, 0xc);
+	takion_write_message_header(buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA_ACK, 0, 0xc);
 
 	uint8_t *data_ack = buf + 1 + MESSAGE_HEADER_SIZE;
 	*((uint32_t *)(data_ack + 0)) = htonl(seq_num);
@@ -871,7 +874,7 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *pac
 	entry->channel = ntohs(*((uint16_t *)(payload + 4)));
 	ChiakiSeqNum32 seq_num = ntohl(*((uint32_t *)(payload + 0)));
 
-	chiaki_takion_send_message_data_ack(takion, 0, entry->channel, seq_num);
+	chiaki_takion_send_message_data_ack(takion, seq_num);
 	chiaki_reorder_queue_push(&takion->data_queue, seq_num, entry);
 	takion_flush_data_queue(takion);
 }
