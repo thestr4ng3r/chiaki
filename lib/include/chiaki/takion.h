@@ -26,6 +26,7 @@
 #include "stoppipe.h"
 #include "reorderqueue.h"
 #include "feedback.h"
+#include "takionsendbuffer.h"
 
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -103,10 +104,8 @@ typedef struct chiaki_takion_connect_info_t
 	socklen_t sa_len;
 	ChiakiTakionCallback cb;
 	void *cb_user;
-	void *av_cb_user;
 	bool enable_crypt;
 } ChiakiTakionConnectInfo;
-
 
 
 typedef struct chiaki_takion_t
@@ -139,6 +138,7 @@ typedef struct chiaki_takion_t
 	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
 
 	ChiakiReorderQueue data_queue;
+	ChiakiTakionSendBuffer send_buffer;
 
 	ChiakiTakionCallback cb;
 	void *cb_user;
@@ -146,10 +146,9 @@ typedef struct chiaki_takion_t
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;
 	struct timeval recv_timeout;
-	int send_retries;
 	uint32_t tag_local;
 	uint32_t tag_remote;
-	uint32_t seq_num_local;
+	ChiakiSeqNum32 seq_num_local;
 
 	/**
 	 * Advertised Receiver Window Credit
@@ -183,8 +182,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *
  * Thread-safe while Takion is running.
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const uint8_t *buf, size_t buf_size);
-
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, ChiakiTakionPacketKeyPos *key_pos_out);
 
 /**
  * Calculate the MAC for the packet depending on the type derived from the first byte in buf,

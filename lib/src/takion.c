@@ -29,6 +29,19 @@
 
 // VERY similar to SCTP, see RFC 4960
 
+#define TAKION_A_RWND 0x19000
+#define TAKION_OUTBOUND_STREAMS 0x64
+#define TAKION_INBOUND_STREAMS 0x64
+
+#define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
+#define TAKION_SEND_BUFFER_SIZE 16
+
+#define TAKION_POSTPONE_PACKETS_SIZE 32
+
+#define TAKION_MESSAGE_HEADER_SIZE 0x10
+
+#define TAKION_PACKET_BASE_TYPE_MASK 0xf
+
 
 /**
  * Base type of Takion packets. Lower nibble of the first byte in datagrams.
@@ -79,18 +92,6 @@ ssize_t takion_packet_type_key_pos_offset(TakionPacketType type)
 			return -1;
 	}
 }
-
-#define TAKION_A_RWND 0x19000
-#define TAKION_OUTBOUND_STREAMS 0x64
-#define TAKION_INBOUND_STREAMS 0x64
-
-#define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
-
-#define TAKION_POSTPONE_PACKETS_SIZE 32
-
-#define MESSAGE_HEADER_SIZE 0x10
-
-#define TAKION_PACKET_BASE_TYPE_MASK 0xf
 
 typedef enum takion_chunk_type_t {
 	TAKION_CHUNK_TYPE_DATA = 0,
@@ -159,7 +160,7 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size);
 static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *packet_buf, size_t packet_buf_size, uint8_t type_b, uint8_t *payload, size_t payload_size);
-static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size);
+static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t flags, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, TakionMessage *msg);
 static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t chunk_type, uint8_t chunk_flags, size_t payload_data_size);
 static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload);
@@ -189,7 +190,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->tag_remote = 0;
 	takion->recv_timeout.tv_sec = 2;
 	takion->recv_timeout.tv_usec = 0;
-	takion->send_retries = 5;
 
 	takion->enable_crypt = info->enable_crypt;
 	takion->postponed_packets = NULL;
@@ -287,7 +287,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const
 }
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, ChiakiTakionPacketKeyPos *key_pos_out)
+static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, ChiakiTakionPacketKeyPos *key_pos_out)
 {
 	if(buf_size < 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
@@ -351,7 +351,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
-	size_t packet_size = 1 + MESSAGE_HEADER_SIZE + 9 + buf_size;
+	size_t packet_size = 1 + TAKION_MESSAGE_HEADER_SIZE + 9 + buf_size;
 	uint8_t *packet_buf = malloc(packet_size);
 	if(!packet_buf)
 		return CHIAKI_ERR_MEMORY;
@@ -359,22 +359,30 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 
 	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, flags, 9 + buf_size);
 
-	uint8_t *msg_payload = packet_buf + 1 + MESSAGE_HEADER_SIZE;
-	*((uint32_t *)(msg_payload + 0)) = htonl(takion->seq_num_local++);
+	uint8_t *msg_payload = packet_buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
+	ChiakiSeqNum32 seq_num = takion->seq_num_local++;
+	*((uint32_t *)(msg_payload + 0)) = htonl(seq_num);
 	*((uint16_t *)(msg_payload + 4)) = htons(channel);
 	*((uint16_t *)(msg_payload + 6)) = 0;
 	*(msg_payload + 8) = 0;
 	memcpy(msg_payload + 9, buf, buf_size);
 
-	// TODO: instead of just sending and forgetting about it, make sure to receive data ack, resend if necessary, etc.
-	err = chiaki_takion_send(takion, packet_buf, packet_size);
-	free(packet_buf);
+	err = chiaki_takion_send(takion, packet_buf, packet_size); // will alter packet_buf with gmac
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to send data packet: %s\n", chiaki_error_string(err));
+		free(packet_buf);
+		return err;
+	}
+
+	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num, packet_buf, packet_size);
+
 	return err;
 }
 
 static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion, uint32_t seq_num)
 {
-	uint8_t buf[1 + MESSAGE_HEADER_SIZE + 0xc];
+	uint8_t buf[1 + TAKION_MESSAGE_HEADER_SIZE + 0xc];
 	buf[0] = TAKION_PACKET_TYPE_CONTROL;
 
 	size_t key_pos;
@@ -384,7 +392,7 @@ static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion,
 
 	takion_write_message_header(buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA_ACK, 0, 0xc);
 
-	uint8_t *data_ack = buf + 1 + MESSAGE_HEADER_SIZE;
+	uint8_t *data_ack = buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
 	*((uint32_t *)(data_ack + 0)) = htonl(seq_num);
 	*((uint32_t *)(data_ack + 4)) = htonl(takion->a_rwnd);
 	*((uint16_t *)(data_ack + 8)) = 0;
@@ -559,20 +567,13 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion, uint32_t *seq_num_
 
 	CHIAKI_LOGI(takion->log, "Takion connected\n");
 
-	if(takion->cb)
-	{
-		ChiakiTakionEvent event = { 0 };
-		event.type = CHIAKI_TAKION_EVENT_TYPE_CONNECTED;
-		takion->cb(&event, takion->cb_user);
-	}
-
 	return CHIAKI_ERR_SUCCESS;
 }
 
 static void takion_data_drop(uint64_t seq_num, void *elem_user, void *cb_user)
 {
 	ChiakiTakion *takion = cb_user;
-	CHIAKI_LOGE(takion->log, "Takion dropping data with seq num %llx\n", (unsigned long long)seq_num);
+	CHIAKI_LOGE(takion->log, "Takion dropping data with seq num %#llx\n", (unsigned long long)seq_num);
 	TakionDataPacketEntry *entry = elem_user;
 	free(entry->packet_buf);
 	free(entry);
@@ -591,9 +592,19 @@ static void *takion_thread_func(void *user)
 
 	chiaki_reorder_queue_set_drop_cb(&takion->data_queue, takion_data_drop, takion);
 
+	if(chiaki_takion_send_buffer_init(&takion->send_buffer, takion, TAKION_SEND_BUFFER_SIZE) != CHIAKI_ERR_SUCCESS)
+		goto error_reoder_queue;
+
 	// TODO ChiakiCongestionControl congestion_control;
 	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
 	// 	goto beach;
+
+	if(takion->cb)
+	{
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_CONNECTED;
+		takion->cb(&event, takion->cb_user);
+	}
 
 	bool crypt_available = takion->gkcrypt_remote ? true : false;
 
@@ -656,6 +667,9 @@ static void *takion_thread_func(void *user)
 
 	// chiaki_congestion_control_stop(&congestion_control);
 
+	chiaki_takion_send_buffer_fini(&takion->send_buffer);
+
+error_reoder_queue:
 	chiaki_reorder_queue_fini(&takion->data_queue);
 
 beach:
@@ -879,7 +893,7 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *pac
 	takion_flush_data_queue(takion);
 }
 
-static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t type_b, uint8_t *buf, size_t buf_size)
+static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t flags, uint8_t *buf, size_t buf_size)
 {
 	if(buf_size != 0xc)
 	{
@@ -888,7 +902,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 	}
 
 	uint32_t seq_num = ntohl(*((uint32_t *)(buf + 0)));
-	uint32_t something = ntohl(*((uint32_t *)(buf + 4)));
+	uint32_t a_rwnd = ntohl(*((uint32_t *)(buf + 4)));
 	uint16_t size_internal = ntohs(*((uint16_t *)(buf + 8)));
 	uint16_t zero = ntohs(*((uint16_t *)(buf + 0xa)));
 
@@ -903,8 +917,8 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 	if(zero != 0)
 		CHIAKI_LOGW(takion->log, "Takion received data ack with nonzero %#x at buf+0xa\n", zero);
 
-	// TODO: check seq_num, etc.
 	//CHIAKI_LOGD(takion->log, "Takion received data ack with seq_num = %#x, something = %#x, size_or_something = %#x, zero = %#x\n", seq_num, something, size_internal, zero);
+	chiaki_takion_send_buffer_ack(&takion->send_buffer, seq_num);
 }
 
 /**
@@ -926,7 +940,7 @@ static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key
 
 static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, TakionMessage *msg)
 {
-	if(buf_size < MESSAGE_HEADER_SIZE)
+	if(buf_size < TAKION_MESSAGE_HEADER_SIZE)
 	{
 		CHIAKI_LOGE(takion->log, "Takion message received that is too short\n");
 		return CHIAKI_ERR_INVALID_DATA;
@@ -963,11 +977,11 @@ static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, 
 
 static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload)
 {
-	uint8_t message[1 + MESSAGE_HEADER_SIZE + 0x10];
+	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE + 0x10];
 	message[0] = TAKION_PACKET_TYPE_CONTROL;
 	takion_write_message_header(message + 1, takion->tag_remote, 0, TAKION_CHUNK_TYPE_INIT, 0, 0x10);
 
-	uint8_t *pl = message + 1 + MESSAGE_HEADER_SIZE;
+	uint8_t *pl = message + 1 + TAKION_MESSAGE_HEADER_SIZE;
 	*((uint32_t *)(pl + 0)) = htonl(payload->tag);
 	*((uint32_t *)(pl + 4)) = htonl(payload->a_rwnd);
 	*((uint16_t *)(pl + 8)) = htons(payload->outbound_streams);
@@ -981,10 +995,10 @@ static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMess
 
 static ChiakiErrorCode takion_send_message_cookie(ChiakiTakion *takion, uint8_t *cookie)
 {
-	uint8_t message[1 + MESSAGE_HEADER_SIZE + TAKION_COOKIE_SIZE];
+	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE + TAKION_COOKIE_SIZE];
 	message[0] = TAKION_PACKET_TYPE_CONTROL;
 	takion_write_message_header(message + 1, takion->tag_remote, 0, TAKION_CHUNK_TYPE_COOKIE, 0, TAKION_COOKIE_SIZE);
-	memcpy(message + 1 + MESSAGE_HEADER_SIZE, cookie, TAKION_COOKIE_SIZE);
+	memcpy(message + 1 + TAKION_MESSAGE_HEADER_SIZE, cookie, TAKION_COOKIE_SIZE);
 	return chiaki_takion_send_raw(takion, message, sizeof(message));
 }
 
@@ -992,7 +1006,7 @@ static ChiakiErrorCode takion_send_message_cookie(ChiakiTakion *takion, uint8_t 
 
 static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, TakionMessagePayloadInitAck *payload)
 {
-	uint8_t message[1 + MESSAGE_HEADER_SIZE + 0x10 + TAKION_COOKIE_SIZE];
+	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE + 0x10 + TAKION_COOKIE_SIZE];
 	size_t received_size = sizeof(message);
 	ChiakiErrorCode err = takion_recv(takion, message, &received_size, &takion->recv_timeout);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -1040,7 +1054,7 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 
 static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 {
-	uint8_t message[1 + MESSAGE_HEADER_SIZE];
+	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE];
 	size_t received_size = sizeof(message);
 	ChiakiErrorCode err = takion_recv(takion, message, &received_size, &takion->recv_timeout);
 	if(err != CHIAKI_ERR_SUCCESS)
