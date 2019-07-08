@@ -34,6 +34,7 @@ typedef enum {
 
 typedef struct chiaki_log_t
 {
+	uint8_t placeholder; // TODO
 } ChiakiLog;
 
 void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...);

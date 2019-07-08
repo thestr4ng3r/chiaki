@@ -605,9 +605,9 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 		return err;
 	}
 
-	char ecdh_pub_key[128];
+	uint8_t ecdh_pub_key[128];
 	ChiakiPBBuf ecdh_pub_key_buf = { sizeof(ecdh_pub_key), ecdh_pub_key };
-	char ecdh_sig[32];
+	uint8_t ecdh_sig[32];
 	ChiakiPBBuf ecdh_sig_buf = { sizeof(ecdh_sig), ecdh_sig };
 	err = chiaki_ecdh_get_local_pub_key(&session->ecdh,
 			ecdh_pub_key, &ecdh_pub_key_buf.size,

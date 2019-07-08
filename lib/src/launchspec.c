@@ -76,7 +76,7 @@ static const char launchspec_fmt[] =
 		"\"handshakeKey\":\"%s\"" // 2
 	"}";
 
-CHIAKI_EXPORT ssize_t chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec)
+CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec)
 {
 	char handshake_key_b64[CHIAKI_HANDSHAKE_KEY_SIZE * 2];
 	ChiakiErrorCode err = chiaki_base64_encode(launch_spec->handshake_key, CHIAKI_HANDSHAKE_KEY_SIZE, handshake_key_b64, sizeof(handshake_key_b64));

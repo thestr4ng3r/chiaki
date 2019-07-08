@@ -16,6 +16,7 @@
  */
 
 #include <chiaki/thread.h>
+#include <chiaki/time.h>
 
 #include <stdio.h>
 #include <errno.h>
@@ -100,12 +101,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
 	int r = pthread_condattr_init(&attr);
 	if(r != 0)
 		return CHIAKI_ERR_UNKNOWN;
+#if !__APPLE__
 	r = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
 	if(r != 0)
 	{
 		pthread_condattr_destroy(&attr);
 		return CHIAKI_ERR_UNKNOWN;
 	}
+#endif
 	r = pthread_cond_init(&cond->cond, &attr);
 	if(r != 0)
 	{
@@ -134,6 +137,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mu
 	return CHIAKI_ERR_SUCCESS;
 }
 
+#if !__APPLE__
 static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *mutex, struct timespec *timeout)
 {
 	int r = pthread_cond_timedwait(&cond->cond, &mutex->mutex, timeout);
@@ -157,12 +161,26 @@ static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 		timeout->tv_nsec %= 1000000000;
 	}
 }
+#endif
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
 {
 	struct timespec timeout;
+#if __APPLE__
+	timeout.tv_sec = (__darwin_time_t)(timeout_ms / 1000);
+	timeout.tv_nsec = (long)((timeout_ms % 1000) * 1000000);
+	int r = pthread_cond_timedwait_relative_np(&cond->cond, &mutex->mutex, &timeout);
+	if(r != 0)
+	{
+		if(r == ETIMEDOUT)
+			return CHIAKI_ERR_TIMEOUT;
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	return CHIAKI_ERR_SUCCESS;
+#else
 	set_timeout(&timeout, timeout_ms);
 	return chiaki_cond_timedwait_abs(cond, mutex, &timeout);
+#endif
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait_pred(ChiakiCond *cond, ChiakiMutex *mutex, ChiakiCheckPred check_pred, void *check_pred_user)
@@ -178,13 +196,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait_pred(ChiakiCond *cond, ChiakiMute
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait_pred(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms, ChiakiCheckPred check_pred, void *check_pred_user)
 {
+#if __APPLE__
+	uint64_t start_time = chiaki_time_now_monotonic_ms();
+	uint64_t elapsed = 0;
+#else
 	struct timespec timeout;
 	set_timeout(&timeout, timeout_ms);
+#endif
 	while(!check_pred(check_pred_user))
 	{
+#if __APPLE__
+		ChiakiErrorCode err = chiaki_cond_timedwait(cond, mutex, timeout_ms - elapsed);
+#else
 		ChiakiErrorCode err = chiaki_cond_timedwait_abs(cond, mutex, &timeout);
+#endif
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
+#if __APPLE__
+		elapsed = chiaki_time_now_monotonic_ms() - start_time;
+		if(elapsed >= timeout_ms)
+			return CHIAKI_ERR_TIMEOUT;
+#endif
 	}
 	return CHIAKI_ERR_SUCCESS;
 

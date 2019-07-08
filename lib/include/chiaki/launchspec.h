@@ -34,7 +34,7 @@ typedef struct chiaki_launch_spec_t
 	uint8_t *handshake_key;
 } ChiakiLaunchSpec;
 
-CHIAKI_EXPORT ssize_t chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec);
+CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec);
 
 #ifdef __cplusplus
 }
