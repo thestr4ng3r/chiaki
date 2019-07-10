@@ -19,9 +19,12 @@
 
 #include <chiaki/base64.h>
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 #include <QGamepadManager>
-#include <QAudioOutput>
 #include <QGamepad>
+#endif
+
+#include <QAudioOutput>
 #include <QDebug>
 
 
@@ -29,8 +32,10 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 
 StreamSession::StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent)
-	: QObject(parent),
-	gamepad(nullptr)
+	: QObject(parent)
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
+	,gamepad(nullptr)
+#endif
 {
 	QByteArray host_str = host.toUtf8();
 	QByteArray registkey_str = registkey.toUtf8();
@@ -88,16 +93,22 @@ StreamSession::StreamSession(const QString &host, const QString &registkey, cons
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
 	chiaki_session_start(&session);
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	connect(QGamepadManager::instance(), &QGamepadManager::connectedGamepadsChanged, this, &StreamSession::UpdateGamepads);
 	UpdateGamepads();
+#endif
 }
 
 StreamSession::~StreamSession()
 {
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
+	delete gamepad;
+#endif
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 }
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 void StreamSession::UpdateGamepads()
 {
 	if(!gamepad || !gamepad->isConnected())
@@ -139,34 +150,39 @@ void StreamSession::UpdateGamepads()
 
 	SendFeedbackState();
 }
+#endif
 
 void StreamSession::SendFeedbackState()
 {
-	if(!gamepad)
-		return;
-	ChiakiControllerState state;
-	state.buttons = 0;
-	state.buttons |= gamepad->buttonA() ? CHIAKI_CONTROLLER_BUTTON_CROSS : 0;
-	state.buttons |= gamepad->buttonB() ? CHIAKI_CONTROLLER_BUTTON_MOON : 0;
-	state.buttons |= gamepad->buttonX() ? CHIAKI_CONTROLLER_BUTTON_BOX : 0;
-	state.buttons |= gamepad->buttonY() ? CHIAKI_CONTROLLER_BUTTON_PYRAMID : 0;
-	state.buttons |= gamepad->buttonLeft() ? CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT : 0;
-	state.buttons |= gamepad->buttonRight() ? CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT : 0;
-	state.buttons |= gamepad->buttonUp() ? CHIAKI_CONTROLLER_BUTTON_DPAD_UP : 0;
-	state.buttons |= gamepad->buttonDown() ? CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN : 0;
-	state.buttons |= gamepad->buttonL1() ? CHIAKI_CONTROLLER_BUTTON_L1 : 0;
-	state.buttons |= gamepad->buttonR1() ? CHIAKI_CONTROLLER_BUTTON_R1 : 0;
-	state.buttons |= gamepad->buttonL3() ? CHIAKI_CONTROLLER_BUTTON_L3 : 0;
-	state.buttons |= gamepad->buttonR3() ? CHIAKI_CONTROLLER_BUTTON_R3 : 0;
-	state.buttons |= gamepad->buttonStart() ? CHIAKI_CONTROLLER_BUTTON_OPTIONS : 0;
-	state.buttons |= gamepad->buttonSelect() ? CHIAKI_CONTROLLER_BUTTON_SHARE : 0;
-	state.buttons |= gamepad->buttonGuide() ? CHIAKI_CONTROLLER_BUTTON_PS : 0;
-	state.l2_state = (uint8_t)(gamepad->buttonL2() * 0xff);
-	state.r2_state = (uint8_t)(gamepad->buttonR2() * 0xff);
-	state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-	state.left_y = static_cast<int16_t>(gamepad->axisLeftY() * 0x7fff);
-	state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);
-	state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
+	ChiakiControllerState state = {};
+
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
+	if(gamepad)
+	{
+		state.buttons |= gamepad->buttonA() ? CHIAKI_CONTROLLER_BUTTON_CROSS : 0;
+		state.buttons |= gamepad->buttonB() ? CHIAKI_CONTROLLER_BUTTON_MOON : 0;
+		state.buttons |= gamepad->buttonX() ? CHIAKI_CONTROLLER_BUTTON_BOX : 0;
+		state.buttons |= gamepad->buttonY() ? CHIAKI_CONTROLLER_BUTTON_PYRAMID : 0;
+		state.buttons |= gamepad->buttonLeft() ? CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT : 0;
+		state.buttons |= gamepad->buttonRight() ? CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT : 0;
+		state.buttons |= gamepad->buttonUp() ? CHIAKI_CONTROLLER_BUTTON_DPAD_UP : 0;
+		state.buttons |= gamepad->buttonDown() ? CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN : 0;
+		state.buttons |= gamepad->buttonL1() ? CHIAKI_CONTROLLER_BUTTON_L1 : 0;
+		state.buttons |= gamepad->buttonR1() ? CHIAKI_CONTROLLER_BUTTON_R1 : 0;
+		state.buttons |= gamepad->buttonL3() ? CHIAKI_CONTROLLER_BUTTON_L3 : 0;
+		state.buttons |= gamepad->buttonR3() ? CHIAKI_CONTROLLER_BUTTON_R3 : 0;
+		state.buttons |= gamepad->buttonStart() ? CHIAKI_CONTROLLER_BUTTON_OPTIONS : 0;
+		state.buttons |= gamepad->buttonSelect() ? CHIAKI_CONTROLLER_BUTTON_SHARE : 0;
+		state.buttons |= gamepad->buttonGuide() ? CHIAKI_CONTROLLER_BUTTON_PS : 0;
+		state.l2_state = (uint8_t)(gamepad->buttonL2() * 0xff);
+		state.r2_state = (uint8_t)(gamepad->buttonR2() * 0xff);
+		state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
+		state.left_y = static_cast<int16_t>(gamepad->axisLeftY() * 0x7fff);
+		state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);
+		state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
+	}
+#endif
+
 	chiaki_session_set_controller_state(&session, &state);
 }
 

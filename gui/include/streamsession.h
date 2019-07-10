@@ -25,7 +25,10 @@
 
 #include <chiaki/session.h>
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 class QGamepad;
+#endif
+
 class QAudioOutput;
 class QIODevice;
 
@@ -38,7 +41,9 @@ class StreamSession : public QObject
 	private:
 		ChiakiSession session;
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *gamepad;
+#endif
 
 		VideoDecoder video_decoder;
 
@@ -52,14 +57,18 @@ class StreamSession : public QObject
 		explicit StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent = nullptr);
 		~StreamSession();
 
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *GetGamepad()	{ return gamepad; }
+#endif
 		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
 
 	signals:
 		void CurrentImageUpdated();
 
 	private slots:
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		void UpdateGamepads();
+#endif
 		void SendFeedbackState();
 };
 
