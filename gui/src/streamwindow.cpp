@@ -33,6 +33,8 @@ StreamWindow::StreamWindow(StreamSession *session, QWidget *parent)
 
 	connect(session->GetVideoDecoder(), &VideoDecoder::FramesAvailable, this, &StreamWindow::FramesAvailable);
 	FramesAvailable();
+
+	grabKeyboard();
 }
 
 StreamWindow::~StreamWindow()
@@ -43,6 +45,17 @@ void StreamWindow::SetImage(const QImage &image)
 {
 	imageLabel->setPixmap(QPixmap::fromImage(image));
 }
+
+void StreamWindow::keyPressEvent(QKeyEvent *event)
+{
+	session->HandleKeyboardEvent(event);
+}
+
+void StreamWindow::keyReleaseEvent(QKeyEvent *event)
+{
+	session->HandleKeyboardEvent(event);
+}
+
 
 void StreamWindow::FramesAvailable()
 {

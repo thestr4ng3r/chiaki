@@ -38,6 +38,10 @@ class StreamWindow: public QMainWindow
 
 		void SetImage(const QImage &image);
 
+	protected:
+		void keyPressEvent(QKeyEvent *event) override;
+		void keyReleaseEvent(QKeyEvent *event) override;
+
 	private slots:
 		void FramesAvailable();
 };

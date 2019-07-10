@@ -24,9 +24,11 @@
 #include <QGamepad>
 #endif
 
+#include <QKeyEvent>
 #include <QAudioOutput>
 #include <QDebug>
 
+#include <cstring>
 
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
@@ -88,6 +90,8 @@ StreamSession::StreamSession(const QString &host, const QString &registkey, cons
 	audio_output = new QAudioOutput(audio_format, this);
 	audio_io = audio_output->start();
 
+	memset(&keyboard_state, 0, sizeof(keyboard_state));
+
 	chiaki_session_init(&session, &connect_info);
 	chiaki_session_set_audio_frame_cb(&session, AudioFrameCb, this);
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
@@ -106,6 +110,42 @@ StreamSession::~StreamSession()
 #endif
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
+}
+
+void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
+{
+	uint64_t button_mask;
+	switch(event->key())
+	{
+		case Qt::Key::Key_Left:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+			break;
+		case Qt::Key::Key_Right:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+			break;
+		case Qt::Key::Key_Up:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+			break;
+		case Qt::Key::Key_Down:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+			break;
+		case Qt::Key::Key_Return:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_CROSS;
+			break;
+		case Qt::Key::Key_Backspace:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_MOON;
+			break;
+		default:
+			// not interested
+			return;
+	}
+
+	if(event->type() == QEvent::KeyPress)
+		keyboard_state.buttons |= button_mask;
+	else
+		keyboard_state.buttons &= ~button_mask;
+
+	SendFeedbackState();
 }
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
@@ -182,6 +222,8 @@ void StreamSession::SendFeedbackState()
 		state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
 	}
 #endif
+
+	state.buttons |= keyboard_state.buttons;
 
 	chiaki_session_set_controller_state(&session, &state);
 }

@@ -31,6 +31,7 @@ class QGamepad;
 
 class QAudioOutput;
 class QIODevice;
+class QKeyEvent;
 
 class StreamSession : public QObject
 {
@@ -44,6 +45,8 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *gamepad;
 #endif
+
+		ChiakiControllerState keyboard_state;
 
 		VideoDecoder video_decoder;
 
@@ -61,6 +64,8 @@ class StreamSession : public QObject
 		QGamepad *GetGamepad()	{ return gamepad; }
 #endif
 		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
+
+		void HandleKeyboardEvent(QKeyEvent *event);
 
 	signals:
 		void CurrentImageUpdated();
