@@ -85,6 +85,8 @@ static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, Chia
 		&& a->right_y == b->right_y;
 }
 
+CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, ChiakiControllerState *a, ChiakiControllerState *b);
+
 #ifdef __cplusplus
 }
 #endif

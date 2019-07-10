@@ -223,8 +223,7 @@ void StreamSession::SendFeedbackState()
 	}
 #endif
 
-	state.buttons |= keyboard_state.buttons;
-
+	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_session_set_controller_state(&session, &state);
 }
 
