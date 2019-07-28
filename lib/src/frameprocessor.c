@@ -16,8 +16,10 @@
  */
 
 #include <chiaki/frameprocessor.h>
+#include <chiaki/fec.h>
 
 #include <string.h>
+#include <assert.h>
 
 
 #define UNIT_SLOTS_MAX 256
@@ -167,14 +169,86 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 	return CHIAKI_ERR_SUCCESS;
 }
 
+
+#include <jerasure.h>
+
+static ChiakiErrorCode chiaki_frame_processor_fec(ChiakiFrameProcessor *frame_processor)
+{
+	CHIAKI_LOGI(frame_processor->log, "Frame Processor received %u+%u / %u+%u units, attempting FEC",
+				frame_processor->units_regular_received, frame_processor->units_additional_received,
+				frame_processor->units_regular_expected, frame_processor->units_additional_expected);
+
+
+	size_t erasures_count = (frame_processor->units_regular_expected + frame_processor->units_additional_expected)
+			- (frame_processor->units_regular_received + frame_processor->units_additional_received);
+	unsigned int *erasures = calloc(erasures_count, sizeof(unsigned int));
+	if(!erasures)
+		return CHIAKI_ERR_MEMORY;
+
+	size_t erasure_index = 0;
+	for(size_t i=0; i<frame_processor->units_regular_expected + frame_processor->units_additional_expected; i++)
+	{
+		ChiakiFrameUnit *slot = frame_processor->unit_slots + i;
+		if(!slot->data_size)
+		{
+			if(erasure_index >= erasures_count)
+			{
+				// should never happen by design, but too scary not to check
+				assert(false);
+				free(erasures);
+				return CHIAKI_ERR_UNKNOWN;
+			}
+			erasures[erasure_index++] = (unsigned int)i;
+		}
+	}
+	assert(erasure_index == erasures_count);
+
+	ChiakiErrorCode err = chiaki_fec_decode(frame_processor->frame_buf, frame_processor->buf_size_per_unit,
+			frame_processor->units_regular_expected, frame_processor->units_additional_received,
+			erasures, erasures_count);
+
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		err = CHIAKI_ERR_FEC_FAILED;
+		CHIAKI_LOGE(frame_processor->log, "FEC failed");
+	}
+	else
+	{
+		err = CHIAKI_ERR_SUCCESS;
+		CHIAKI_LOGI(frame_processor->log, "FEC successful");
+
+		// restore unit sizes
+		for(size_t i=0; i<frame_processor->units_regular_expected; i++)
+		{
+			ChiakiFrameUnit *slot = frame_processor->unit_slots + i;
+			uint8_t *buf_ptr = frame_processor->frame_buf + frame_processor->buf_size_per_unit * i;
+			uint16_t padding = ntohs(*((uint16_t *)buf_ptr));
+			if(padding >= frame_processor->buf_size_per_unit)
+			{
+				CHIAKI_LOGE(frame_processor->log, "Padding in unit (%#x) is larger or equals to the whole unit size (%#llx)",
+							(unsigned int)padding, frame_processor->buf_size_per_unit);
+				chiaki_log_hexdump(frame_processor->log, CHIAKI_LOG_DEBUG, buf_ptr, 0x50);
+				continue;
+			}
+			slot->data_size = frame_processor->buf_size_per_unit - padding;
+		}
+	}
+
+	free(erasures);
+	return err;
+}
+
 CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(ChiakiFrameProcessor *frame_processor, uint8_t **frame, size_t *frame_size)
 {
 	if(frame_processor->units_regular_expected == 0)
 		return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
 
-	// TODO: FEC
 	if(frame_processor->units_regular_received < frame_processor->units_regular_expected)
-		return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
+	{
+		ChiakiErrorCode err = chiaki_frame_processor_fec(frame_processor);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
+	}
 
 	uint8_t *buf = malloc(frame_processor->frame_buf_size); // TODO: this should come from outside instead of mallocing all the time
 	if(!buf)
@@ -187,10 +261,13 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 		if(unit->data_size < 2)
 		{
 			CHIAKI_LOGE(frame_processor->log, "Saved unit has size < 2");
+			chiaki_log_hexdump(frame_processor->log, CHIAKI_LOG_DEBUG, frame_processor->frame_buf + i*frame_processor->buf_size_per_unit, 0x50);
 			continue;
 		}
 		size_t part_size = unit->data_size - 2;
-		memcpy(buf + buf_size, frame_processor->frame_buf + i*frame_processor->buf_size_per_unit + 2, part_size);
+		uint8_t *buf_ptr = frame_processor->frame_buf + i*frame_processor->buf_size_per_unit;
+		//CHIAKI_LOGD(frame_processor->log, "unit size: %#zx, in buf: %#x", unit->data_size, frame_processor->buf_size_per_unit - (unsigned int)ntohs(*((uint16_t *)buf_ptr)));
+		memcpy(buf + buf_size, buf_ptr + 2, part_size);
 		buf_size += part_size;
 	}
 

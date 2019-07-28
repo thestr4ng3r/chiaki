@@ -23,6 +23,7 @@ extern MunitTest tests_http[];
 extern MunitTest tests_rpcrypt[];
 extern MunitTest tests_gkcrypt[];
 extern MunitTest tests_takion[];
+extern MunitTest tests_fec[];
 
 static MunitSuite suites[] = {
 	{
@@ -63,6 +64,13 @@ static MunitSuite suites[] = {
 	{
 		"/takion",
 		tests_takion,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		"/fec",
+		tests_fec,
 		NULL,
 		1,
 		MUNIT_SUITE_OPTION_NONE

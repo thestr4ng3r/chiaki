@@ -46,8 +46,8 @@ typedef struct chiaki_frame_processor_t
 
 typedef enum chiaki_frame_flush_result_t {
 	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS = 0,
-	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED = 1
-	// TODO: FEC_SUCCESS, FEC_FAILED, ...
+	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS = 1,
+	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED = 2
 } ChiakiFrameProcessorFlushResult;
 
 CHIAKI_EXPORT void chiaki_frame_processor_init(ChiakiFrameProcessor *frame_processor, ChiakiLog *log);

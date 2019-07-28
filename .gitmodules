@@ -4,3 +4,9 @@
 [submodule "third-party/nanopb"]
 	path = third-party/nanopb
 	url = https://github.com/nanopb/nanopb.git
+[submodule "third-party/jerasure"]
+	path = third-party/jerasure
+	url = git@github.com:thestr4ng3r/jerasure.git
+[submodule "third-party/gf-complete"]
+	path = third-party/gf-complete
+	url = git@github.com:thestr4ng3r/gf-complete.git

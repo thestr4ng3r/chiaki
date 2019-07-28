@@ -15,41 +15,24 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_COMMON_H
-#define CHIAKI_COMMON_H
+#ifndef CHIAKI_FEC_H
+#define CHIAKI_FEC_H
+
+#include "common.h"
+
+#include <stdint.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define CHIAKI_EXPORT
+#define CHIAKI_FEC_WORDSIZE 8
 
-#define CHIAKI_NEW(t) ((t*)malloc(sizeof(t)))
-
-typedef enum
-{
-	CHIAKI_ERR_SUCCESS = 0,
-	CHIAKI_ERR_UNKNOWN,
-	CHIAKI_ERR_PARSE_ADDR,
-	CHIAKI_ERR_THREAD,
-	CHIAKI_ERR_MEMORY,
-	CHIAKI_ERR_OVERFLOW,
-	CHIAKI_ERR_NETWORK,
-	CHIAKI_ERR_INVALID_DATA,
-	CHIAKI_ERR_BUF_TOO_SMALL,
-	CHIAKI_ERR_MUTEX_LOCKED,
-	CHIAKI_ERR_CANCELED,
-	CHIAKI_ERR_TIMEOUT,
-	CHIAKI_ERR_INVALID_RESPONSE,
-	CHIAKI_ERR_INVALID_MAC,
-	CHIAKI_ERR_UNINITIALIZED,
-	CHIAKI_ERR_FEC_FAILED
-} ChiakiErrorCode;
-
-CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_size, unsigned int k, unsigned int m, const unsigned int *erasures, size_t erasures_count);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CHIAKI_COMMON_H
+#endif //CHIAKI_FEC_H

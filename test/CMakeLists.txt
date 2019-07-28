@@ -9,7 +9,8 @@ add_executable(chiaki-unit
 		gkcrypt.c
 		takion.c
 		seqnum.c
-		reorderqueue.c)
+		reorderqueue.c
+		fec.c)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

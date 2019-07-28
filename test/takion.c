@@ -18,6 +18,7 @@
 #include <munit.h>
 
 #include <chiaki/takion.h>
+#include <chiaki/base64.h>
 
 
 static MunitResult test_av_packet_parse(const MunitParameter params[], void *user)

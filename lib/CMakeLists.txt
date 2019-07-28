@@ -31,7 +31,8 @@ set(HEADER_FILES
 		include/chiaki/feedbacksender.h
 		include/chiaki/controller.h
 		include/chiaki/takionsendbuffer.h
-		include/chiaki/time.h)
+		include/chiaki/time.h
+		include/chiaki/fec.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -65,7 +66,8 @@ set(SOURCE_FILES
 		src/feedbacksender.c
 		src/controller.c
 		src/takionsendbuffer.c
-		src/time.c)
+		src/time.c
+		src/fec)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
@@ -88,5 +90,6 @@ find_package(OpenSSL REQUIRED)
 target_link_libraries(chiaki-lib OpenSSL::Crypto)
 
 target_link_libraries(chiaki-lib protobuf-nanopb-static)
+target_link_libraries(chiaki-lib jerasure)
 
 target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
