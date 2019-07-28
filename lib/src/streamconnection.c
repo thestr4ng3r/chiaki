@@ -149,7 +149,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection connect failed\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection connect failed");
 		return err;
 	}
 
@@ -157,11 +157,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed");
 		goto close_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection sending big\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection sending big");
 
 	stream_connection->state = STATE_EXPECT_BANG;
 	stream_connection->state_finished = false;
@@ -169,7 +169,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = stream_connection_send_big(stream_connection);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection failed to send big\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection failed to send big");
 		goto disconnect;
 	}
 
@@ -179,14 +179,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout\n");
+			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout");
 
-		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection successfully received bang\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection successfully received bang");
 
 	stream_connection->state = STATE_EXPECT_STREAMINFO;
 	stream_connection->state_finished = false;
@@ -197,14 +197,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "StreamConnection streaminfo receive timeout\n");
+			CHIAKI_LOGE(&session->log, "StreamConnection streaminfo receive timeout");
 
-		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive streaminfo\n");
+		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive streaminfo");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo");
 
 	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -212,7 +212,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_mutex_unlock(&stream_connection->feedback_sender_mutex);
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to start Feedback Sender\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to start Feedback Sender");
 		goto disconnect;
 	}
 	stream_connection->feedback_sender_active = true;
@@ -230,9 +230,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 
 		err = stream_connection_send_heartbeat(stream_connection);
 		if(err != CHIAKI_ERR_SUCCESS)
-			CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send heartbeat\n");
+			CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send heartbeat");
 		else
-			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat\n");
+			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat");
 	}
 
 	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
@@ -244,17 +244,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = CHIAKI_ERR_SUCCESS;
 
 disconnect:
-	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting");
 	stream_connection_send_disconnect(stream_connection);
 
 	if(stream_connection->should_stop)
-		CHIAKI_LOGI(stream_connection->log, "StreamConnection was requested to stop\n");
+		CHIAKI_LOGI(stream_connection->log, "StreamConnection was requested to stop");
 
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 close_takion:
 	chiaki_takion_close(&stream_connection->takion);
-	CHIAKI_LOGI(&session->log, "StreamConnection closed takion\n");
+	CHIAKI_LOGI(&session->log, "StreamConnection closed takion");
 
 	return err;
 }
@@ -328,12 +328,12 @@ static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_co
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf");
 		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		return;
 	}
 
-	//CHIAKI_LOGD(stream_connection->log, "StreamConnection received data\n");
+	//CHIAKI_LOGD(stream_connection->log, "StreamConnection received data");
 	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
 
@@ -344,13 +344,13 @@ static ChiakiErrorCode stream_connection_init_crypt(ChiakiStreamConnection *stre
 	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 2, session->handshake_key, stream_connection->ecdh_secret);
 	if(!stream_connection->gkcrypt_local)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize local GKCrypt with index 2\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize local GKCrypt with index 2");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 3, session->handshake_key, stream_connection->ecdh_secret);
 	if(!stream_connection->gkcrypt_remote)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize remote GKCrypt with index 3\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize remote GKCrypt with index 3");
 		free(stream_connection->gkcrypt_local);
 		stream_connection->gkcrypt_local = NULL;
 		return CHIAKI_ERR_UNKNOWN;
@@ -380,39 +380,39 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf");
 		return;
 	}
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected bang payload but received something else\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected bang payload but received something else");
 		return;
 	}
 
-	CHIAKI_LOGD(stream_connection->log, "Got a bang\n");
+	CHIAKI_LOGD(stream_connection->log, "Got a bang");
 
 	if(!msg.bang_payload.version_accepted)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept version\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept version");
 		goto error;
 	}
 
 	if(!msg.bang_payload.encrypted_key_accepted)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept encrypted key\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection bang remote didn't accept encrypted key");
 		goto error;
 	}
 
 	if(!ecdh_pub_key_buf.size)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH pub key from bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH pub key from bang");
 		goto error;
 	}
 
 	if(!ecdh_sig_buf.size)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH sig from bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection didn't get remote ECDH sig from bang");
 		goto error;
 	}
 
@@ -420,7 +420,7 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 	stream_connection->ecdh_secret = malloc(CHIAKI_ECDH_SECRET_SIZE);
 	if(!stream_connection->ecdh_secret)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to alloc ECDH secret memory\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to alloc ECDH secret memory");
 		goto error;
 	}
 
@@ -434,14 +434,14 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 	{
 		free(stream_connection->ecdh_secret);
 		stream_connection->ecdh_secret = NULL;
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to derive secret from bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to derive secret from bang");
 		goto error;
 	}
 
 	err = stream_connection_init_crypt(stream_connection);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to init crypt after receiving bang\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to init crypt after receiving bang");
 		goto error;
 	}
 
@@ -474,13 +474,13 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 
 	if(!header_buf.buf)
 	{
-		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to decode video header\n");
+		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to decode video header");
 		return true;
 	}
 
 	if(ctx->video_profiles_count >= CHIAKI_VIDEO_PROFILES_MAX)
 	{
-		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Received more resolutions than the maximum\n");
+		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Received more resolutions than the maximum");
 		return true;
 	}
 
@@ -514,19 +514,19 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf");
 		return;
 	}
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_STREAMINFO || !msg.has_stream_info_payload)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else");
 		return;
 	}
 
 	if(audio_header_buf.size != CHIAKI_AUDIO_HEADER_SIZE)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection received invalid audio header in streaminfo\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection received invalid audio header in streaminfo");
 		goto error;
 	}
 
@@ -580,12 +580,12 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	ssize_t launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
 	if(launch_spec_json_size < 0)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to format LaunchSpec json\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to format LaunchSpec json");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 	launch_spec_json_size += 1; // we also want the trailing 0
 
-	CHIAKI_LOGD(stream_connection->log, "LaunchSpec: %s\n", launch_spec_buf.json);
+	CHIAKI_LOGD(stream_connection->log, "LaunchSpec: %s", launch_spec_buf.json);
 
 	uint8_t launch_spec_json_enc[LAUNCH_SPEC_JSON_BUF_SIZE];
 	memset(launch_spec_json_enc, 0, (size_t)launch_spec_json_size);
@@ -593,7 +593,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 			(size_t)launch_spec_json_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encrypt LaunchSpec\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encrypt LaunchSpec");
 		return err;
 	}
 
@@ -601,7 +601,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	err = chiaki_base64_encode(launch_spec_json_enc, (size_t)launch_spec_json_size, launch_spec_buf.b64, sizeof(launch_spec_buf.b64));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encode LaunchSpec as base64\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to encode LaunchSpec as base64");
 		return err;
 	}
 
@@ -615,7 +615,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 			ecdh_sig, &ecdh_sig_buf.size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to get ECDH key and sig\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to get ECDH key and sig");
 		return err;
 	}
 
@@ -642,7 +642,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection big protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection big protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -665,7 +665,7 @@ static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnect
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection streaminfo ack protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection streaminfo ack protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -690,7 +690,7 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection disconnect protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection disconnect protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -705,7 +705,7 @@ static void stream_connection_takion_av(ChiakiStreamConnection *stream_connectio
 {
 	chiaki_gkcrypt_decrypt(stream_connection->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
 
-	/*CHIAKI_LOGD(stream_connection->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u\n",
+	/*CHIAKI_LOGD(stream_connection->log, "AV: index: %u,%u; b@0x1a: %d; is_video: %d; 0xa: %u; 0xc: %u; 0xe: %u; codec: %u; 0x18: %u; adaptive_stream: %u, 0x2c: %u",
 				header->packet_index, header->frame_index, header->byte_at_0x1a, header->is_video ? 1 : 0, header->word_at_0xa, header->units_in_frame_total, header->units_in_frame_additional, header->codec,
 				header->word_at_0x18, header->adaptive_stream_index, header->byte_at_0x2c);
 	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);*/
@@ -718,21 +718,21 @@ static void stream_connection_takion_av(ChiakiStreamConnection *stream_connectio
 	{
 		if(packet->codec == 5/*buf[0] == 0xf4 && buf_size >= 0x50*/)
 		{
-			//CHIAKI_LOGD(stream_connection->log, "audio!\n");
+			//CHIAKI_LOGD(stream_connection->log, "audio!");
 			chiaki_audio_receiver_frame_packet(stream_connection->session->audio_receiver, packet->data, 0x50); // TODO: why 0x50? this is dangerous!!!
 		}
 		else
 		{
-			//CHIAKI_LOGD(stream_connection->log, "NON-audio\n");
+			//CHIAKI_LOGD(stream_connection->log, "NON-audio");
 		}
 	}
 
 	/*else if(base_type == 2 && buf[0] != 0xf4)
 	{
-		CHIAKI_LOGD(stream_connection->log, "av frame 2, which is not audio\n");
+		CHIAKI_LOGD(stream_connection->log, "av frame 2, which is not audio");
 	}*/
 
-	//CHIAKI_LOGD(stream_connection->log, "StreamConnection AV %lu\n", buf_size);
+	//CHIAKI_LOGD(stream_connection->log, "StreamConnection AV %lu", buf_size);
 	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 }
 
@@ -748,7 +748,7 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection heartbeat protobuf encoding failed\n");
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection heartbeat protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 

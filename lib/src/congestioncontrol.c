@@ -35,7 +35,7 @@ static void *congestion_control_thread_func(void *user)
 		if(err != CHIAKI_ERR_TIMEOUT)
 			break;
 
-		//CHIAKI_LOGD(control->takion->log, "Sending Congestion Control Packet\n");
+		//CHIAKI_LOGD(control->takion->log, "Sending Congestion Control Packet");
 		ChiakiTakionCongestionPacket packet = { 0 }; // TODO: fill with real values
 		chiaki_takion_send_congestion(control->takion, &packet);
 	}

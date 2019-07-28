@@ -35,7 +35,7 @@ int RunDiscoveryCmd(const QString &host)
 	ChiakiErrorCode err = chiaki_discovery_init(&discovery, &log, AF_INET); // TODO: IPv6
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&log, "Discovery init failed\n");
+		CHIAKI_LOGE(&log, "Discovery init failed");
 		return 1;
 	}
 
@@ -43,7 +43,7 @@ int RunDiscoveryCmd(const QString &host)
 	err = chiaki_discovery_thread_start(&thread, &discovery);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&log, "Discovery thread init failed\n");
+		CHIAKI_LOGE(&log, "Discovery thread init failed");
 		chiaki_discovery_fini(&discovery);
 		return 1;
 	}
@@ -52,7 +52,7 @@ int RunDiscoveryCmd(const QString &host)
 	int r = getaddrinfo(host.toUtf8().constData(), NULL, NULL, &host_addrinfos);
 	if(r != 0)
 	{
-		CHIAKI_LOGE(&log, "getaddrinfo failed\n");
+		CHIAKI_LOGE(&log, "getaddrinfo failed");
 		return 1;
 	}
 
@@ -74,7 +74,7 @@ int RunDiscoveryCmd(const QString &host)
 	freeaddrinfo(host_addrinfos);
 
 	if(!host_addr)
-		CHIAKI_LOGE(&log, "Failed to get addr for hostname\n");
+		CHIAKI_LOGE(&log, "Failed to get addr for hostname");
 	else
 	{
 		((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT); // TODO: IPv6

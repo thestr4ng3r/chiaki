@@ -50,7 +50,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 {
 	if(packet->units_in_frame_total < packet->units_in_frame_additional)
 	{
-		CHIAKI_LOGE(frame_processor->log, "Packet has units_in_frame_total < units_in_frame_additional\n");
+		CHIAKI_LOGE(frame_processor->log, "Packet has units_in_frame_total < units_in_frame_additional");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
@@ -64,7 +64,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 	{
 		if(packet->data_size < 2)
 		{
-			CHIAKI_LOGE(frame_processor->log, "Packet too small to read buf size extension\n");
+			CHIAKI_LOGE(frame_processor->log, "Packet too small to read buf size extension");
 			return CHIAKI_ERR_BUF_TOO_SMALL;
 		}
 		frame_processor->buf_size_per_unit += ntohs(((uint16_t *)packet->data)[0]);
@@ -72,7 +72,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 
 	if(frame_processor->buf_size_per_unit == 0)
 	{
-		CHIAKI_LOGE(frame_processor->log, "Frame Processor doesn't handle empty units\n");
+		CHIAKI_LOGE(frame_processor->log, "Frame Processor doesn't handle empty units");
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 	}
 
@@ -82,7 +82,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 	size_t unit_slots_size_required = frame_processor->units_regular_expected + frame_processor->units_additional_expected;
 	if(unit_slots_size_required > UNIT_SLOTS_MAX)
 	{
-		CHIAKI_LOGE(frame_processor->log, "Packet suggests more than %u unit slots\n", UNIT_SLOTS_MAX);
+		CHIAKI_LOGE(frame_processor->log, "Packet suggests more than %u unit slots", UNIT_SLOTS_MAX);
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	if(unit_slots_size_required != frame_processor->unit_slots_size)
@@ -131,26 +131,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 {
 	if(packet->unit_index > frame_processor->unit_slots_size)
 	{
-		CHIAKI_LOGE(frame_processor->log, "Packet's unit index is too high\n");
+		CHIAKI_LOGE(frame_processor->log, "Packet's unit index is too high");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	
 	if(!packet->data_size)
 	{
-		CHIAKI_LOGW(frame_processor->log, "Unit is empty\n");
+		CHIAKI_LOGW(frame_processor->log, "Unit is empty");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
 	if(packet->data_size > frame_processor->buf_size_per_unit)
 	{
-		CHIAKI_LOGW(frame_processor->log, "Unit is bigger than pre-calculated size!\n");
+		CHIAKI_LOGW(frame_processor->log, "Unit is bigger than pre-calculated size!");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	
 	ChiakiFrameUnit *unit = frame_processor->unit_slots + packet->unit_index;
 	if(unit->data_size)
 	{
-		CHIAKI_LOGW(frame_processor->log, "Received duplicate unit\n");
+		CHIAKI_LOGW(frame_processor->log, "Received duplicate unit");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
@@ -186,7 +186,7 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 		ChiakiFrameUnit *unit = frame_processor->unit_slots + i;
 		if(unit->data_size < 2)
 		{
-			CHIAKI_LOGE(frame_processor->log, "Saved unit has size < 2\n");
+			CHIAKI_LOGE(frame_processor->log, "Saved unit has size < 2");
 			continue;
 		}
 		size_t part_size = unit->data_size - 2;

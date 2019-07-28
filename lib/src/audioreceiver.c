@@ -49,12 +49,12 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 {
 	chiaki_mutex_lock(&audio_receiver->mutex);
 
-	CHIAKI_LOGI(audio_receiver->log, "Audio Header:\n");
-	CHIAKI_LOGI(audio_receiver->log, "  channels = %d\n", audio_header->channels);
-	CHIAKI_LOGI(audio_receiver->log, "  bits = %d\n", audio_header->bits);
-	CHIAKI_LOGI(audio_receiver->log, "  rate = %d\n", audio_header->rate);
-	CHIAKI_LOGI(audio_receiver->log, "  frame size = %d\n", audio_header->frame_size);
-	CHIAKI_LOGI(audio_receiver->log, "  unknown = %d\n", audio_header->unknown);
+	CHIAKI_LOGI(audio_receiver->log, "Audio Header:");
+	CHIAKI_LOGI(audio_receiver->log, "  channels = %d", audio_header->channels);
+	CHIAKI_LOGI(audio_receiver->log, "  bits = %d", audio_header->bits);
+	CHIAKI_LOGI(audio_receiver->log, "  rate = %d", audio_header->rate);
+	CHIAKI_LOGI(audio_receiver->log, "  frame size = %d", audio_header->frame_size);
+	CHIAKI_LOGI(audio_receiver->log, "  unknown = %d", audio_header->unknown);
 	memcpy(&audio_receiver->audio_header, audio_header, sizeof(audio_receiver->audio_header));
 
 	opus_decoder_destroy(audio_receiver->opus_decoder);
@@ -63,9 +63,9 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	audio_receiver->opus_decoder = opus_decoder_create(audio_header->rate, audio_header->channels, &error);
 
 	if(error != OPUS_OK)
-		CHIAKI_LOGE(audio_receiver->log, "Audio Receiver failed to initialize opus decoder: %s\n", opus_strerror(error));
+		CHIAKI_LOGE(audio_receiver->log, "Audio Receiver failed to initialize opus decoder: %s", opus_strerror(error));
 	else
-		CHIAKI_LOGI(audio_receiver->log, "Audio Receiver initialized opus decoder with the settings above\n");
+		CHIAKI_LOGI(audio_receiver->log, "Audio Receiver initialized opus decoder with the settings above");
 
 	chiaki_mutex_unlock(&audio_receiver->mutex);
 }
@@ -77,7 +77,7 @@ CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio
 
 	if(!audio_receiver->opus_decoder)
 	{
-		CHIAKI_LOGE(audio_receiver->log, "Received audio frame, but opus decoder is not initialized\n");
+		CHIAKI_LOGE(audio_receiver->log, "Received audio frame, but opus decoder is not initialized");
 		chiaki_mutex_unlock(&audio_receiver->mutex);
 		return;
 	}
@@ -87,7 +87,7 @@ CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio
 
 	int r = opus_decode(audio_receiver->opus_decoder, buf, (opus_int32)buf_size, pcm, audio_receiver->audio_header.frame_size, 0);
 	if(r < 1)
-		CHIAKI_LOGE(audio_receiver->log, "Decoding audio frame with opus failed: %s\n", opus_strerror(r));
+		CHIAKI_LOGE(audio_receiver->log, "Decoding audio frame with opus failed: %s", opus_strerror(r));
 	else
 	{
 		audio_receiver->session->audio_frame_cb(pcm, (size_t)r, audio_receiver->session->audio_frame_cb_user);

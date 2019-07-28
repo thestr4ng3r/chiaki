@@ -45,18 +45,18 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 {
 	if(video_receiver->profiles_count > 0)
 	{
-		CHIAKI_LOGE(video_receiver->log, "Video Receiver profiles already set\n");
+		CHIAKI_LOGE(video_receiver->log, "Video Receiver profiles already set");
 		return;
 	}
 
 	memcpy(video_receiver->profiles, profiles, profiles_count * sizeof(ChiakiVideoProfile));
 	video_receiver->profiles_count = profiles_count;
 
-	CHIAKI_LOGI(video_receiver->log, "Video Profiles:\n");
+	CHIAKI_LOGI(video_receiver->log, "Video Profiles:");
 	for(size_t i=0; i<video_receiver->profiles_count; i++)
 	{
 		ChiakiVideoProfile *profile = &video_receiver->profiles[i];
-		CHIAKI_LOGI(video_receiver->log, "  %zu: %ux%u\n", i, profile->width, profile->height);
+		CHIAKI_LOGI(video_receiver->log, "  %zu: %ux%u", i, profile->width, profile->height);
 		//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, profile->header, profile->header_sz);
 	}
 }
@@ -67,7 +67,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	if(video_receiver->frame_index_cur >= 0
 		&& chiaki_seq_num_16_lt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
-		CHIAKI_LOGW(video_receiver->log, "Video Receiver received old frame packet\n");
+		CHIAKI_LOGW(video_receiver->log, "Video Receiver received old frame packet");
 		return;
 	}
 
@@ -75,7 +75,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	{
 		if(packet->adaptive_stream_index >= video_receiver->profiles_count)
 		{
-			CHIAKI_LOGE(video_receiver->log, "Packet has invalid adaptive stream index %lu >= %lu\n",
+			CHIAKI_LOGE(video_receiver->log, "Packet has invalid adaptive stream index %lu >= %lu",
 					(unsigned int)packet->adaptive_stream_index,
 					(unsigned int)video_receiver->profiles_count);
 			return;
@@ -83,7 +83,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		video_receiver->profile_cur = packet->adaptive_stream_index;
 
 		ChiakiVideoProfile *profile = video_receiver->profiles + video_receiver->profile_cur;
-		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u\n", video_receiver->profile_cur, profile->width, profile->height);
+		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u", video_receiver->profile_cur, profile->width, profile->height);
 		if(video_receiver->session->video_sample_cb)
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, video_receiver->session->video_sample_cb_user);
 	}
@@ -97,7 +97,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			size_t frame_size;
 			if(chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size) == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS)
 			{
-				//CHIAKI_LOGD(video_receiver->log, "Decoded frame %d\n", (int)video_receiver->frame_index_cur);
+				//CHIAKI_LOGD(video_receiver->log, "Decoded frame %d", (int)video_receiver->frame_index_cur);
 				//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, frame, frame_size);
 				if(video_receiver->session->video_sample_cb)
 					video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
@@ -106,7 +106,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			else
 			{
 				// TODO: fake frame?
-				CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d\n", (int)video_receiver->frame_index_cur);
+				CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
 			}
 
 			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
@@ -115,16 +115,16 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur + 1)
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
-			CHIAKI_LOGW(video_receiver->log, "Skipped from frame %d to %d\n", (int)video_receiver->frame_index_cur, (int)frame_index);
+			CHIAKI_LOGW(video_receiver->log, "Skipped from frame %d to %d", (int)video_receiver->frame_index_cur, (int)frame_index);
 			// TODO: fake frame?
 		}
 
 		video_receiver->frame_index_cur = frame_index;
-		//CHIAKI_LOGD(video_receiver->log, "Preparing slots for frame %d\n", (int)video_receiver->frame_index_cur);
+		//CHIAKI_LOGD(video_receiver->log, "Preparing slots for frame %d", (int)video_receiver->frame_index_cur);
 		chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 	}
 
-	//CHIAKI_LOGD(video_receiver->log, "Putting unit %lu of frame %d in processor\n",
+	//CHIAKI_LOGD(video_receiver->log, "Putting unit %lu of frame %d in processor",
 	//		(unsigned int)packet->unit_index, (int)video_receiver->frame_index_cur);
 	//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, packet->data, packet->data_size);
 	chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);

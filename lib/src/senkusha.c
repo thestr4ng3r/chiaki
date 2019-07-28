@@ -86,7 +86,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha connect failed\n");
+		CHIAKI_LOGE(&session->log, "Senkusha connect failed");
 		goto error_bang_mirai;
 	}
 
@@ -96,14 +96,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	if(!senkusha.bang_mirai.response)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Senkusha connect timeout\n");
+			CHIAKI_LOGE(&session->log, "Senkusha connect timeout");
 
-		CHIAKI_LOGE(&session->log, "Senkusha Takion connect failed\n");
+		CHIAKI_LOGE(&session->log, "Senkusha Takion connect failed");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto error_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "Senkusha sending big\n");
+	CHIAKI_LOGI(&session->log, "Senkusha sending big");
 
 	err = chiaki_mirai_request_begin(&senkusha.bang_mirai, MIRAI_REQUEST_BANG, true);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -111,7 +111,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	err = senkusha_send_big(&senkusha);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha failed to send big\n");
+		CHIAKI_LOGE(&session->log, "Senkusha failed to send big");
 		goto error_takion;
 	}
 
@@ -121,23 +121,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSession *session)
 	if(!senkusha.bang_mirai.response)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout\n");
+			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout");
 
-		CHIAKI_LOGE(&session->log, "Senkusha didn't receive bang\n");
+		CHIAKI_LOGE(&session->log, "Senkusha didn't receive bang");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto error_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "Senkusha successfully received bang\n");
+	CHIAKI_LOGI(&session->log, "Senkusha successfully received bang");
 
-	CHIAKI_LOGI(&session->log, "Senkusha is disconnecting\n");
+	CHIAKI_LOGI(&session->log, "Senkusha is disconnecting");
 
 	senkusha_send_disconnect(&senkusha);
 
 	err = CHIAKI_ERR_SUCCESS;
 error_takion:
 	chiaki_takion_close(&senkusha.takion);
-	CHIAKI_LOGI(&session->log, "Senkusha closed takion\n");
+	CHIAKI_LOGI(&session->log, "Senkusha closed takion");
 error_bang_mirai:
 	chiaki_mirai_fini(&senkusha.bang_mirai);
 	return err;
@@ -174,7 +174,7 @@ static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType
 	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!r)
 	{
-		CHIAKI_LOGE(senkusha->log, "Senkusha failed to decode data protobuf\n");
+		CHIAKI_LOGE(senkusha->log, "Senkusha failed to decode data protobuf");
 		return;
 	}
 
@@ -182,7 +182,7 @@ static void senkusha_takion_data(Senkusha *senkusha, ChiakiTakionMessageDataType
 	{
 		if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 		{
-			CHIAKI_LOGE(senkusha->log, "Senkusha expected bang payload but received something else\n");
+			CHIAKI_LOGE(senkusha->log, "Senkusha expected bang payload but received something else");
 			return;
 		}
 		chiaki_mirai_signal(&senkusha->bang_mirai, 1);
@@ -211,7 +211,7 @@ static ChiakiErrorCode senkusha_send_big(Senkusha *senkusha)
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(senkusha->log, "Senkusha big protobuf encoding failed\n");
+		CHIAKI_LOGE(senkusha->log, "Senkusha big protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -238,7 +238,7 @@ static ChiakiErrorCode senkusha_send_disconnect(Senkusha *senkusha)
 	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
 	if(!pbr)
 	{
-		CHIAKI_LOGE(senkusha->log, "Senkusha disconnect protobuf encoding failed\n");
+		CHIAKI_LOGE(senkusha->log, "Senkusha disconnect protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
 

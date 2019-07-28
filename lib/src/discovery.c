@@ -48,7 +48,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	discovery->socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if(discovery->socket < 0)
 	{
-		CHIAKI_LOGE(discovery->log, "Discovery failed to create socket\n");
+		CHIAKI_LOGE(discovery->log, "Discovery failed to create socket");
 		return CHIAKI_ERR_NETWORK;
 	}
 
@@ -71,7 +71,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	int r = bind(discovery->socket, &discovery->local_addr, sizeof(discovery->local_addr));
 	if(r < 0)
 	{
-		CHIAKI_LOGE(discovery->log, "Discovery failed to bind\n");
+		CHIAKI_LOGE(discovery->log, "Discovery failed to bind");
 		close(discovery->socket);
 		return CHIAKI_ERR_NETWORK;
 	}
@@ -79,7 +79,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	const int broadcast = 1;
 	r = setsockopt(discovery->socket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
 	if(r < 0)
-		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt SO_BROADCAST\n");
+		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt SO_BROADCAST");
 
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -117,7 +117,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThrea
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&thread->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(discovery->log, "Discovery (thread) failed to create pipe\n");
+		CHIAKI_LOGE(discovery->log, "Discovery (thread) failed to create pipe");
 		return err;
 	}
 
@@ -153,7 +153,7 @@ static void *discovery_thread_func(void *user)
 			break;
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(discovery->log, "Discovery thread failed to select\n");
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to select");
 			break;
 		}
 
@@ -163,7 +163,7 @@ static void *discovery_thread_func(void *user)
 		ssize_t n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
 		if(n < 0)
 		{
-			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket\n");
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket");
 			break;
 		}
 
@@ -175,7 +175,7 @@ static void *discovery_thread_func(void *user)
 
 		buf[n] = '\00';
 
-		CHIAKI_LOGD(discovery->log, "Discovery received:\n%s\n", buf);
+		CHIAKI_LOGD(discovery->log, "Discovery received:\n%s", buf);
 	}
 
 	return NULL;

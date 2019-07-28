@@ -111,7 +111,7 @@ static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 	state.right_y = feedback_sender->controller_state.right_y;
 	ChiakiErrorCode err = chiaki_takion_send_feedback_state(feedback_sender->takion, feedback_sender->state_seq_num++, &state);
 	if(err != CHIAKI_ERR_SUCCESS)
-		CHIAKI_LOGE(feedback_sender->log, "FeedbackSender failed to send Feedback State\n");
+		CHIAKI_LOGE(feedback_sender->log, "FeedbackSender failed to send Feedback State");
 }
 
 static bool controller_state_equals_for_feedback_history(ChiakiControllerState *a, ChiakiControllerState *b)
@@ -140,7 +140,7 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 			ChiakiErrorCode err = chiaki_feedback_history_event_set_button(&event, button_id, now ? 0xff : 0);
 			if(err != CHIAKI_ERR_SUCCESS)
 			{
-				CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for button id %llu\n", (unsigned long long)button_id);
+				CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for button id %llu", (unsigned long long)button_id);
 				continue;
 			}
 			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
@@ -158,7 +158,7 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 			new_events_count++;
 		}
 		else
-			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for L2\n");
+			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for L2");
 	}
 
 	if(state_prev->r2_state != state_now->r2_state)
@@ -171,7 +171,7 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 			new_events_count++;
 		}
 		else
-			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for R2\n");
+			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for R2");
 	}
 
 	if(!new_events_count) // TODO: also send on timeout sometimes?
@@ -182,11 +182,11 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 	ChiakiErrorCode err = chiaki_feedback_history_buffer_format(&feedback_sender->history_buf, buf, &buf_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format history buffer\n");
+		CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format history buffer");
 		return;
 	}
 
-	//CHIAKI_LOGD(feedback_sender->log, "Feedback History:\n");
+	//CHIAKI_LOGD(feedback_sender->log, "Feedback History:");
 	//chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
 	chiaki_takion_send_feedback_history(feedback_sender->takion, feedback_sender->history_seq_num++, buf, buf_size);
 }

@@ -20,10 +20,16 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...)
+CHIAKI_EXPORT void chiaki_log_init(ChiakiLog *log, uint32_t level_mask, ChiakiLogCb cb, void *user)
 {
-	va_list args;
-	va_start(args, fmt);
+	log->level_mask = level_mask;
+	log->cb = cb;
+	log->user = user;
+}
+
+CHIAKI_EXPORT void chiaki_log_cb_print(ChiakiLogLevel level, const char *msg, void *user)
+{
+	(void)user;
 
 	char c;
 	const char *color = NULL;
@@ -54,16 +60,52 @@ void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...)
 	printf("[%c] ", c);
 	if(color)
 		printf("\033[0m");
-	vprintf(fmt, args);
+	printf("%s\n", msg);
+}
 
+CHIAKI_EXPORT void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...)
+{
+	va_list args;
+	char buf[0x100];
+	char *msg = buf;
+
+	va_start(args, fmt);
+	int written = vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
+
+	if(written < 0)
+		return;
+
+	if(written >= sizeof(buf))
+	{
+		msg = malloc(written + 1);
+		if(!msg)
+			return;
+
+		va_start(args, fmt);
+		written = vsnprintf(msg, written + 1, fmt, args);
+		va_end(args);
+
+		if(written < 0)
+		{
+			free(msg);
+			return;
+		}
+	}
+
+	ChiakiLogCb cb = log && log->cb ? log->cb : chiaki_log_cb_print;
+	void *user = log ? log->user : NULL;
+	cb(level, msg, user);
+
+	if(msg != buf)
+		free(msg);
 }
 
 #define HEXDUMP_WIDTH 0x10
 
 static const char hex_char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
 	chiaki_log(log, level, "offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef\n");
 
@@ -114,7 +156,7 @@ void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf
 	}
 }
 
-void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
 	char *str = malloc(buf_size * 2 + 1);
 	if(!str)

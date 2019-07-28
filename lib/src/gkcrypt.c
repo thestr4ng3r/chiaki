@@ -42,7 +42,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, Chiaki
 	ChiakiErrorCode err = gkcrypt_gen_key_iv(gkcrypt, index, handshake_key, ecdh_secret);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(gkcrypt->log, "GKCrypt failed to generate key and IV\n");
+		CHIAKI_LOGE(gkcrypt->log, "GKCrypt failed to generate key and IV");
 		free(gkcrypt->key_buf);
 		return CHIAKI_ERR_UNKNOWN;
 	}
