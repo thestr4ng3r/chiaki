@@ -65,6 +65,9 @@ CHIAKI_EXPORT void chiaki_log_cb_print(ChiakiLogLevel level, const char *msg, vo
 
 CHIAKI_EXPORT void chiaki_log(ChiakiLog *log, ChiakiLogLevel level, const char *fmt, ...)
 {
+	if(log && !(log->level_mask & level))
+		return;
+
 	va_list args;
 	char buf[0x100];
 	char *msg = buf;
@@ -107,7 +110,7 @@ static const char hex_char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9
 
 CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
-	chiaki_log(log, level, "offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef\n");
+	chiaki_log(log, level, "offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef");
 
 	size_t offset = 0;
 
@@ -143,7 +146,7 @@ CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, cons
 			hex_buf[i*3+2] = ' ';
 		}
 
-		chiaki_log(log, level, "%6x %s%s\n", offset, hex_buf, ascii_buf);
+		chiaki_log(log, level, "%6x %s%s", offset, hex_buf, ascii_buf);
 
 		if(buf_size > HEXDUMP_WIDTH)
 		{
@@ -168,6 +171,6 @@ CHIAKI_EXPORT void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, 
 		str[i*2+1] = hex_char[v & 0xf];
 	}
 	str[buf_size*2] = 0;
-	chiaki_log(log, level, "%s\n", str);
+	chiaki_log(log, level, "%s", str);
 	free(str);
 }
