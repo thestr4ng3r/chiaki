@@ -20,6 +20,8 @@
 
 #include <string.h>
 
+static void chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *video_receiver);
+
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session)
 {
 	video_receiver->session = session;
@@ -63,6 +65,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 
 CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *packet)
 {
+	// old frame?
 	ChiakiSeqNum16 frame_index = packet->frame_index;
 	if(video_receiver->frame_index_cur >= 0
 		&& chiaki_seq_num_16_lt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
@@ -71,6 +74,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		return;
 	}
 
+	// check adaptive stream index
 	if(video_receiver->profile_cur < 0 || video_receiver->profile_cur != packet->adaptive_stream_index)
 	{
 		if(packet->adaptive_stream_index >= video_receiver->profiles_count)
@@ -88,44 +92,43 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, video_receiver->session->video_sample_cb_user);
 	}
 
+	// next frame?
 	if(video_receiver->frame_index_cur < 0 ||
 		chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
+		// last frame not flushed yet?
 		if(video_receiver->frame_index_cur >= 0 && video_receiver->frame_index_prev != video_receiver->frame_index_cur)
-		{
-			uint8_t *frame;
-			size_t frame_size;
-			if(chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size) == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS)
-			{
-				//CHIAKI_LOGD(video_receiver->log, "Decoded frame %d", (int)video_receiver->frame_index_cur);
-				//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, frame, frame_size);
-				if(video_receiver->session->video_sample_cb)
-					video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
-				free(frame);
-			}
-			else
-			{
-				// TODO: fake frame?
-				CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
-			}
+			chiaki_video_receiver_flush_frame(video_receiver);
 
-			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
-		}
-
-		if(chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur + 1)
+		if(chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_prev + 1)
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
-			CHIAKI_LOGW(video_receiver->log, "Skipped from frame %d to %d", (int)video_receiver->frame_index_cur, (int)frame_index);
-			// TODO: fake frame?
+			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", (int)video_receiver->frame_index_cur, (int)frame_index);
+			// TODO: report
 		}
 
 		video_receiver->frame_index_cur = frame_index;
-		//CHIAKI_LOGD(video_receiver->log, "Preparing slots for frame %d", (int)video_receiver->frame_index_cur);
 		chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 	}
 
-	//CHIAKI_LOGD(video_receiver->log, "Putting unit %lu of frame %d in processor",
-	//		(unsigned int)packet->unit_index, (int)video_receiver->frame_index_cur);
-	//chiaki_log_hexdump(video_receiver->log, CHIAKI_LOG_DEBUG, packet->data, packet->data_size);
 	chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
+}
+
+static void chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *video_receiver)
+{
+	uint8_t *frame;
+	size_t frame_size;
+	ChiakiFrameProcessorFlushResult flush_result = chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size);
+
+	if(flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS)
+	{
+		// TODO: fake frame?
+		CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
+		return;
+	}
+
+	if(video_receiver->session->video_sample_cb)
+		video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
+	free(frame);
+	video_receiver->frame_index_prev = video_receiver->frame_index_cur;
 }
