@@ -60,7 +60,7 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 
 static inline bool chiaki_frame_processor_flush_possible(ChiakiFrameProcessor *frame_processor)
 {
-	return frame_processor->units_source_received //+ frame_processor->units_fec_received
+	return frame_processor->units_source_received + frame_processor->units_fec_received
 		>= frame_processor->units_source_expected;
 }
 

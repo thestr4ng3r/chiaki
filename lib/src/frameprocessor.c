@@ -243,11 +243,13 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 	if(frame_processor->units_source_expected == 0)
 		return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
 
+	ChiakiFrameProcessorFlushResult result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS;
 	if(frame_processor->units_source_received < frame_processor->units_source_expected)
 	{
 		ChiakiErrorCode err = chiaki_frame_processor_fec(frame_processor);
 		if(err != CHIAKI_ERR_SUCCESS)
 			return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
+		result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS;
 	}
 
 	uint8_t *buf = malloc(frame_processor->frame_buf_size); // TODO: this should come from outside instead of mallocing all the time
@@ -273,5 +275,5 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 
 	*frame = buf;
 	*frame_size = buf_size;
-	return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS;
+	return result;
 }

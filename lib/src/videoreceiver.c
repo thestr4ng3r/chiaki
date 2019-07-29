@@ -100,10 +100,11 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(video_receiver->frame_index_cur >= 0 && video_receiver->frame_index_prev != video_receiver->frame_index_cur)
 			chiaki_video_receiver_flush_frame(video_receiver);
 
-		if(chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_prev + 1)
+		ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)video_receiver->frame_index_prev + 1;
+		if(chiaki_seq_num_16_gt(frame_index, next_frame_expected)
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
-			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", (int)video_receiver->frame_index_cur, (int)frame_index);
+			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
 			// TODO: report
 		}
 
@@ -128,7 +129,7 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 	size_t frame_size;
 	ChiakiFrameProcessorFlushResult flush_result = chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size);
 
-	if(flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS)
+	if(flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED)
 	{
 		// TODO: fake frame?
 		CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
