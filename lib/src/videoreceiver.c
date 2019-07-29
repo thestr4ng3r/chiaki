@@ -105,7 +105,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
 			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
-			// TODO: report
+			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
 		}
 
 		video_receiver->frame_index_cur = frame_index;

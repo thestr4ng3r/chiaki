@@ -341,7 +341,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 	return chiaki_takion_send_raw(takion, buf, buf_size);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t flags, uint16_t channel, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size)
 {
 	// TODO: can we make this more memory-efficient?
 	// TODO: split packet if necessary?
@@ -357,7 +357,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 		return CHIAKI_ERR_MEMORY;
 	packet_buf[0] = TAKION_PACKET_TYPE_CONTROL;
 
-	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, flags, 9 + buf_size);
+	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, chunk_flags, 9 + buf_size);
 
 	uint8_t *msg_payload = packet_buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
 	ChiakiSeqNum32 seq_num = takion->seq_num_local++;
