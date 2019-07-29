@@ -148,7 +148,9 @@ typedef struct chiaki_takion_t
 	struct timeval recv_timeout;
 	uint32_t tag_local;
 	uint32_t tag_remote;
+
 	ChiakiSeqNum32 seq_num_local;
+	ChiakiMutex seq_num_local_mutex;
 
 	/**
 	 * Advertised Receiver Window Credit

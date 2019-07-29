@@ -185,8 +185,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->cb_user = info->cb_user;
 	takion->a_rwnd = TAKION_A_RWND;
 
-	takion->tag_local = 0x4823; // "random" tag
+	takion->tag_local = 0x4823; // "random" tag TODO: use actual random tag
 	takion->seq_num_local = takion->tag_local;
+	ret = chiaki_mutex_init(&takion->seq_num_local_mutex, false);
+	if(ret != CHIAKI_ERR_SUCCESS)
+		goto error_gkcrypt_local_mutex;
 	takion->tag_remote = 0;
 	takion->recv_timeout.tv_sec = 2;
 	takion->recv_timeout.tv_usec = 0;
@@ -202,7 +205,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to create stop pipe");
-		return err;
+		goto error_seq_num_local_mutex;
 	}
 
 	takion->sock = socket(info->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
@@ -243,6 +246,10 @@ error_sock:
 	close(takion->sock);
 error_pipe:
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
+error_seq_num_local_mutex:
+	chiaki_mutex_fini(&takion->seq_num_local_mutex);
+error_gkcrypt_local_mutex:
+	chiaki_mutex_fini(&takion->gkcrypt_local_mutex);
 	return ret;
 }
 
@@ -360,7 +367,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, chunk_flags, 9 + buf_size);
 
 	uint8_t *msg_payload = packet_buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
+
+	err = chiaki_mutex_lock(&takion->seq_num_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 	ChiakiSeqNum32 seq_num = takion->seq_num_local++;
+	chiaki_mutex_unlock(&takion->seq_num_local_mutex);
+
 	*((uint32_t *)(msg_payload + 0)) = htonl(seq_num);
 	*((uint16_t *)(msg_payload + 4)) = htons(channel);
 	*((uint16_t *)(msg_payload + 6)) = 0;
