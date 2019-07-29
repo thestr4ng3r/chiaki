@@ -1146,13 +1146,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 	{
 		packet->unit_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
 		packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
-		packet->units_in_frame_additional = (uint16_t)(dword_2 & 0x3ff);
+		packet->units_in_frame_fec = (uint16_t)(dword_2 & 0x3ff);
 	}
 	else
 	{
 		packet->unit_index = (uint16_t)((dword_2 >> 0x18) & 0xff);
 		packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0x10) & 0xff) + 1);
-		packet->units_in_frame_additional = (uint16_t)(dword_2 & 0xffff);
+		packet->units_in_frame_fec = (uint16_t)(dword_2 & 0xffff);
 	}
 
 	packet->codec = av[8];

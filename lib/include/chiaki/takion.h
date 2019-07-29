@@ -50,8 +50,8 @@ typedef struct chiaki_takion_av_packet_t
 	bool uses_nalu_info_structs;
 	bool is_video;
 	ChiakiSeqNum16 unit_index;
-	uint16_t units_in_frame_total; // regular + units_in_frame_additional
-	uint16_t units_in_frame_additional;
+	uint16_t units_in_frame_total; // source + units_in_frame_fec
+	uint16_t units_in_frame_fec;
 	uint32_t codec;
 	uint16_t word_at_0x18;
 	uint8_t adaptive_stream_index;

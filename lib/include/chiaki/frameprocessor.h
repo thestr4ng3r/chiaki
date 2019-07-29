@@ -22,6 +22,7 @@
 #include "takion.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,10 +37,10 @@ typedef struct chiaki_frame_processor_t
 	uint8_t *frame_buf;
 	size_t frame_buf_size;
 	size_t buf_size_per_unit;
-	unsigned int units_regular_expected;
-	unsigned int units_additional_expected;
-	unsigned int units_regular_received;
-	unsigned int units_additional_received;
+	unsigned int units_source_expected;
+	unsigned int units_fec_expected;
+	unsigned int units_source_received;
+	unsigned int units_fec_received;
 	ChiakiFrameUnit *unit_slots;
 	size_t unit_slots_size;
 } ChiakiFrameProcessor;
@@ -56,6 +57,12 @@ CHIAKI_EXPORT void chiaki_frame_processor_fini(ChiakiFrameProcessor *frame_proce
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
 CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(ChiakiFrameProcessor *frame_processor, uint8_t **frame, size_t *frame_size);
+
+static inline bool chiaki_frame_processor_flush_possible(ChiakiFrameProcessor *frame_processor)
+{
+	return frame_processor->units_source_received //+ frame_processor->units_fec_received
+		>= frame_processor->units_source_expected;
+}
 
 #ifdef __cplusplus
 }

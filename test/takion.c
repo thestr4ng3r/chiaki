@@ -48,7 +48,7 @@ static MunitResult test_av_packet_parse(const MunitParameter params[], void *use
 	// TODO: uses_nalu_info_structs
 	munit_assert_uint16(av_packet.unit_index, ==, 6);
 	munit_assert_uint16(av_packet.units_in_frame_total, ==, 8);
-	munit_assert_uint16(av_packet.units_in_frame_additional, ==, 1);
+	munit_assert_uint16(av_packet.units_in_frame_fec, ==, 1);
 	munit_assert_uint32(av_packet.codec, ==, 3);
 //	munit_assert_uint16(av_packet.word_at_0x18, ==, 871);
 	munit_assert_uint8(av_packet.adaptive_stream_index, ==, 0);
