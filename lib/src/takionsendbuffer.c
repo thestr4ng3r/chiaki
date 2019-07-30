@@ -145,7 +145,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuff
 	size_t i;
 	for(i=0; i<send_buffer->packets_count; i++)
 	{
-		if(send_buffer->packets[i].seq_num == seq_num)
+		if(send_buffer->packets[i].seq_num == seq_num) // TODO: should be <= (with seqnum arithmetic)
 			break;
 	}
 
@@ -158,7 +158,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuff
 	free(send_buffer->packets[i].buf);
 
 	if(i < send_buffer->packets_count - 1)
-		memmove(send_buffer->packets + i, send_buffer->packets + i + 1, send_buffer->packets_count - i - 1);
+		memmove(send_buffer->packets + i, send_buffer->packets + i + 1, (send_buffer->packets_count - i - 1) * sizeof(ChiakiTakionSendBufferPacket));
 
 	send_buffer->packets_count--;
 

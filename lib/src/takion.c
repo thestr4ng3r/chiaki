@@ -914,24 +914,22 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 		return;
 	}
 
-	uint32_t seq_num = ntohl(*((uint32_t *)(buf + 0)));
+	uint32_t cumulative_seq_num = ntohl(*((uint32_t *)(buf + 0)));
 	uint32_t a_rwnd = ntohl(*((uint32_t *)(buf + 4)));
-	uint16_t size_internal = ntohs(*((uint16_t *)(buf + 8)));
-	uint16_t zero = ntohs(*((uint16_t *)(buf + 0xa)));
+	uint16_t gap_ack_blocks_count = ntohs(*((uint16_t *)(buf + 8)));
+	uint16_t dup_tsns_count = ntohs(*((uint16_t *)(buf + 0xa)));
 
-	// this check is basically size_or_something != 0, but it is done like that in the original code,
-	// so I assume size_or_something may be the size of additional data coming after the data ack header.
-	if(buf_size != size_internal * 4 + 0xc)
+	if(buf_size != gap_ack_blocks_count * 4 + 0xc)
 	{
-		CHIAKI_LOGW(takion->log, "Takion received data ack with invalid size_internal = %#x", size_internal);
+		CHIAKI_LOGW(takion->log, "Takion received data ack with invalid gap_ack_blocks_count");
 		return;
 	}
 
-	if(zero != 0)
-		CHIAKI_LOGW(takion->log, "Takion received data ack with nonzero %#x at buf+0xa", zero);
+	if(dup_tsns_count != 0)
+		CHIAKI_LOGW(takion->log, "Takion received data ack with nonzero dup_tsns_count %#x", dup_tsns_count);
 
 	//CHIAKI_LOGD(takion->log, "Takion received data ack with seq_num = %#x, something = %#x, size_or_something = %#x, zero = %#x", seq_num, something, size_internal, zero);
-	chiaki_takion_send_buffer_ack(&takion->send_buffer, seq_num);
+	chiaki_takion_send_buffer_ack(&takion->send_buffer, cumulative_seq_num);
 }
 
 /**
