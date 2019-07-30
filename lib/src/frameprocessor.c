@@ -18,9 +18,10 @@
 #include <chiaki/frameprocessor.h>
 #include <chiaki/fec.h>
 
+#include <jerasure.h>
+
 #include <string.h>
 #include <assert.h>
-
 
 #define UNIT_SLOTS_MAX 256
 
@@ -169,9 +170,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 	return CHIAKI_ERR_SUCCESS;
 }
 
-
-#include <jerasure.h>
-
 static ChiakiErrorCode chiaki_frame_processor_fec(ChiakiFrameProcessor *frame_processor)
 {
 	CHIAKI_LOGI(frame_processor->log, "Frame Processor received %u+%u / %u+%u units, attempting FEC",
@@ -252,11 +250,7 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 		result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS;
 	}
 
-	uint8_t *buf = malloc(frame_processor->frame_buf_size); // TODO: this should come from outside instead of mallocing all the time
-	if(!buf)
-		return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
-
-	size_t buf_size = 0;
+	size_t cur = 0;
 	for(size_t i=0; i<frame_processor->units_source_expected; i++)
 	{
 		ChiakiFrameUnit *unit = frame_processor->unit_slots + i;
@@ -268,12 +262,11 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 		}
 		size_t part_size = unit->data_size - 2;
 		uint8_t *buf_ptr = frame_processor->frame_buf + i*frame_processor->buf_size_per_unit;
-		//CHIAKI_LOGD(frame_processor->log, "unit size: %#zx, in buf: %#x", unit->data_size, frame_processor->buf_size_per_unit - (unsigned int)ntohs(*((uint16_t *)buf_ptr)));
-		memcpy(buf + buf_size, buf_ptr + 2, part_size);
-		buf_size += part_size;
+		memmove(frame_processor->frame_buf + cur, buf_ptr + 2, part_size);
+		cur += part_size;
 	}
 
-	*frame = buf;
-	*frame_size = buf_size;
+	*frame = frame_processor->frame_buf;
+	*frame_size = cur;
 	return result;
 }

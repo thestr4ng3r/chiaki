@@ -138,7 +138,7 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 
 	if(video_receiver->session->video_sample_cb)
 		video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
-	free(frame);
+
 	video_receiver->frame_index_prev = video_receiver->frame_index_cur;
 	return CHIAKI_ERR_SUCCESS;
 }

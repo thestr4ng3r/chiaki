@@ -48,7 +48,8 @@ typedef struct chiaki_frame_processor_t
 typedef enum chiaki_frame_flush_result_t {
 	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_SUCCESS = 0,
 	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS = 1,
-	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED = 2
+	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED = 2,
+	CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED = 3
 } ChiakiFrameProcessorFlushResult;
 
 CHIAKI_EXPORT void chiaki_frame_processor_init(ChiakiFrameProcessor *frame_processor, ChiakiLog *log);
@@ -56,6 +57,11 @@ CHIAKI_EXPORT void chiaki_frame_processor_fini(ChiakiFrameProcessor *frame_proce
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
+
+/**
+ * @param frame unless CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED returned, will receive a pointer into the internal buffer of frame_processor.
+ * MUST NOT be used after the next call to this frame processor!
+ */
 CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(ChiakiFrameProcessor *frame_processor, uint8_t **frame, size_t *frame_size);
 
 static inline bool chiaki_frame_processor_flush_possible(ChiakiFrameProcessor *frame_processor)
