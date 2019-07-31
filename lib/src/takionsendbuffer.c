@@ -149,28 +149,51 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuff
 		return err;
 
 	size_t i;
+	size_t shift = 0; // amount to shift back
+	size_t shift_start = SIZE_MAX;
 	for(i=0; i<send_buffer->packets_count; i++)
 	{
-		if(send_buffer->packets[i].seq_num == seq_num) // TODO: should be <= (with seqnum arithmetic)
-			break;
+		if(send_buffer->packets[i].seq_num == seq_num || chiaki_seq_num_32_lt(send_buffer->packets[i].seq_num, seq_num))
+		{
+			free(send_buffer->packets[i].buf);
+			if(shift_start == SIZE_MAX)
+			{
+				// first shift
+				shift_start = i;
+				shift = 1;
+			}
+			else if(shift_start + shift == i)
+			{
+				// still in the same gap
+				shift++;
+			}
+			else
+			{
+				// new gap, do shift
+				memmove(send_buffer->packets + shift_start,
+						send_buffer->packets + shift_start + shift,
+						(i - (shift_start + shift)) * sizeof(ChiakiTakionSendBufferPacket));
+				// start new shift
+				shift_start = i - shift;
+				shift++;
+			}
+		}
 	}
 
-	if(i == send_buffer->packets_count)
+	if(shift_start != SIZE_MAX)
 	{
-		CHIAKI_LOGW(send_buffer->log, "Takion Send Buffer got ack for seqnum not in buffer");
-		goto beach;
+		// do final shift
+		if(shift_start + shift < send_buffer->packets_count)
+		{
+			memmove(send_buffer->packets + shift_start,
+					send_buffer->packets + shift_start + shift,
+					(send_buffer->packets_count - (shift_start + shift)) * sizeof(ChiakiTakionSendBufferPacket));
+		}
+		send_buffer->packets_count -= shift;
 	}
-
-	free(send_buffer->packets[i].buf);
-
-	if(i < send_buffer->packets_count - 1)
-		memmove(send_buffer->packets + i, send_buffer->packets + i + 1, (send_buffer->packets_count - i - 1) * sizeof(ChiakiTakionSendBufferPacket));
-
-	send_buffer->packets_count--;
 
 	CHIAKI_LOGD(send_buffer->log, "Acked seq num %#llx from Takion Send Buffer", (unsigned long long)seq_num);
 
-beach:
 	chiaki_mutex_unlock(&send_buffer->mutex);
 	return err;
 }
