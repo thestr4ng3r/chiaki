@@ -21,6 +21,7 @@
 #include "common.h"
 #include "log.h"
 #include "audio.h"
+#include "takion.h"
 #include "thread.h"
 
 #ifdef __cplusplus
@@ -35,12 +36,14 @@ typedef struct chiaki_audio_receiver_t
 	ChiakiMutex mutex;
 	struct OpusDecoder *opus_decoder;
 	ChiakiAudioHeader audio_header;
+	ChiakiSeqNum16 frame_index_prev;
+	bool frame_index_startup; // whether frame_index_prev has definitely not wrapped yet
 } ChiakiAudioReceiver;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver);
 CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_receiver, ChiakiAudioHeader *audio_header);
-CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio_receiver, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_receiver, ChiakiTakionAVPacket *packet);
 
 static inline ChiakiAudioReceiver *chiaki_audio_receiver_new(struct chiaki_session_t *session)
 {

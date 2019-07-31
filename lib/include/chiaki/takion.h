@@ -63,6 +63,10 @@ typedef struct chiaki_takion_av_packet_t
 	size_t data_size;
 } ChiakiTakionAVPacket;
 
+static inline uint8_t chiaki_takion_av_packet_audio_unit_size(ChiakiTakionAVPacket *packet)				{ return packet->units_in_frame_fec >> 8; }
+static inline uint8_t chiaki_takion_av_packet_audio_source_units_count(ChiakiTakionAVPacket *packet)	{ return packet->units_in_frame_fec & 0xf; }
+static inline uint8_t chiaki_takion_av_packet_audio_fec_units_count(ChiakiTakionAVPacket *packet)		{ return (packet->units_in_frame_fec >> 4) & 0xf; }
+
 
 typedef struct chiaki_takion_congestion_packet_t
 {

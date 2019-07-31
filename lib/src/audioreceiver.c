@@ -22,6 +22,7 @@
 
 #include <string.h>
 
+static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, uint8_t *buf, size_t buf_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, ChiakiSession *session)
 {
@@ -29,6 +30,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 	audio_receiver->log = &session->log;
 	audio_receiver->opus_decoder = NULL;
 	memset(&audio_receiver->audio_header, 0, sizeof(audio_receiver->audio_header));
+
+	audio_receiver->frame_index_prev = 0;
+	audio_receiver->frame_index_startup = true;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&audio_receiver->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -70,17 +74,76 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	chiaki_mutex_unlock(&audio_receiver->mutex);
 }
 
+CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_receiver, ChiakiTakionAVPacket *packet)
+{
+	if(packet->codec != 5)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Received Audio Packet with unknown Codec");
+		return;
+	}
 
-CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio_receiver, uint8_t *buf, size_t buf_size)
+	// this is mostly observation-based, so may not necessarily cover everything yet.
+
+	uint8_t source_units_count = chiaki_takion_av_packet_audio_source_units_count(packet);
+	uint8_t fec_units_count = chiaki_takion_av_packet_audio_fec_units_count(packet);
+	uint8_t unit_size = chiaki_takion_av_packet_audio_unit_size(packet);
+
+	if(!packet->data_size)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Audio AV Packet is empty");
+		return;
+	}
+
+	if((uint16_t)fec_units_count + (uint16_t)source_units_count != packet->units_in_frame_total)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Source Units + FEC Units != Total Units in Audio AV Packet");
+		return;
+	}
+
+	if(packet->data_size != (size_t)unit_size * (size_t)packet->units_in_frame_total)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Audio AV Packet size mismatch");
+		return;
+	}
+
+	if(packet->frame_index > (1 << 15))
+		audio_receiver->frame_index_startup = false;
+
+	for(size_t i=0; i<source_units_count+fec_units_count; i++)
+	{
+		ChiakiSeqNum16 frame_index;
+		if(i < source_units_count)
+			frame_index = packet->frame_index + i;
+		else
+		{
+			// fec
+			size_t fec_index = i - source_units_count;
+
+			// first packets will contain the same frame multiple times, ignore those
+			if(audio_receiver->frame_index_startup && packet->frame_index + fec_index < fec_units_count + 1)
+				continue;
+
+			frame_index = packet->frame_index - fec_units_count + fec_index;
+		}
+
+		chiaki_audio_receiver_frame(audio_receiver->session->audio_receiver, frame_index, packet->data + unit_size * i, unit_size);
+	}
+}
+
+static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, uint8_t *buf, size_t buf_size)
 {
 	chiaki_mutex_lock(&audio_receiver->mutex);
 
 	if(!audio_receiver->opus_decoder)
 	{
 		CHIAKI_LOGE(audio_receiver->log, "Received audio frame, but opus decoder is not initialized");
-		chiaki_mutex_unlock(&audio_receiver->mutex);
-		return;
+		goto beach;
 	}
+
+	if(!chiaki_seq_num_16_gt(frame_index, audio_receiver->frame_index_prev))
+		goto beach;
+
+	audio_receiver->frame_index_prev = frame_index;
 
 	// TODO: don't malloc
 	opus_int16 *pcm = malloc(audio_receiver->audio_header.frame_size * audio_receiver->audio_header.channels * sizeof(opus_int16));
@@ -95,5 +158,6 @@ CHIAKI_EXPORT void chiaki_audio_receiver_frame_packet(ChiakiAudioReceiver *audio
 
 	free(pcm);
 
+beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
 }
