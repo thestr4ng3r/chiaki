@@ -10,7 +10,9 @@ add_executable(chiaki-unit
 		takion.c
 		seqnum.c
 		reorderqueue.c
-		fec.c)
+		fec.c
+		test_log.c
+		test_log.h)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

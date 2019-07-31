@@ -15,6 +15,8 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef CHIAKI_UNIT_TEST
+
 #include <chiaki/takionsendbuffer.h>
 #include <chiaki/takion.h>
 #include <chiaki/time.h>
@@ -22,11 +24,11 @@
 #include <string.h>
 #include <assert.h>
 
-
 #define TAKION_DATA_RESEND_TIMEOUT_MS 200
 #define TAKION_DATA_RESEND_WAKEUP_TIMEOUT_MS (TAKION_DATA_RESEND_TIMEOUT_MS/2)
 #define TAKION_DATA_RESEND_TRIES_MAX 10
 
+#endif
 
 struct chiaki_takion_send_buffer_packet_t
 {
@@ -37,12 +39,14 @@ struct chiaki_takion_send_buffer_packet_t
 	size_t buf_size;
 }; // ChiakiTakionSendBufferPacket
 
+#ifndef CHIAKI_UNIT_TEST
+
 static void *takion_send_buffer_thread_func(void *user);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_init(ChiakiTakionSendBuffer *send_buffer, ChiakiTakion *takion, size_t size)
 {
 	send_buffer->takion = takion;
-	send_buffer->log = takion->log;
+	send_buffer->log = takion ? takion->log : NULL;
 
 	send_buffer->packets = calloc(size, sizeof(ChiakiTakionSendBufferPacket));
 	if(!send_buffer->packets)
@@ -132,6 +136,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_push(ChiakiTakionSendBuf
 	}
 
 beach:
+	if(err != CHIAKI_ERR_SUCCESS)
+		free(buf);
 	chiaki_mutex_unlock(&send_buffer->mutex);
 	return err;
 }
@@ -214,6 +220,9 @@ static void *takion_send_buffer_thread_func(void *user)
 
 static void takion_send_buffer_resend(ChiakiTakionSendBuffer *send_buffer)
 {
+	if(!send_buffer->takion)
+		return;
+
 	uint64_t now = chiaki_time_now_monotonic_ms();
 
 	for(size_t i=0; i<send_buffer->packets_count; i++)
@@ -229,3 +238,5 @@ static void takion_send_buffer_resend(ChiakiTakionSendBuffer *send_buffer)
 		}
 	}
 }
+
+#endif

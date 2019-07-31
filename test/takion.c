@@ -18,7 +18,13 @@
 #include <munit.h>
 
 #include <chiaki/takion.h>
+#include <chiaki/seqnum.h>
 #include <chiaki/base64.h>
+
+#define CHIAKI_UNIT_TEST
+#include "../lib/src/takionsendbuffer.c"
+
+#include "test_log.h"
 
 
 static MunitResult test_av_packet_parse(const MunitParameter params[], void *user)
@@ -67,6 +73,104 @@ static MunitResult test_av_packet_parse_real_video(const MunitParameter params[]
 	return MUNIT_OK;
 }
 
+static void random_seqnums(ChiakiSeqNum32 *nums, size_t count)
+{
+	for(size_t i=0; i<count; i++)
+	{
+		ChiakiSeqNum32 seqnum;
+		retry:
+		seqnum = munit_rand_uint32();
+		for(size_t j=0; j<i; j++)
+		{
+			if(nums[j] == seqnum)
+				goto retry;
+		}
+		nums[i] = seqnum;
+	}
+}
+
+static bool check_send_buffer_contents(ChiakiTakionSendBuffer *send_buffer, const ChiakiSeqNum32 *nums_expected, size_t nums_expected_count)
+{
+	// nums_expected must be unique
+
+	if(chiaki_mutex_lock(&send_buffer->mutex) != CHIAKI_ERR_SUCCESS)
+		return false;
+
+	if(send_buffer->packets_count != nums_expected_count)
+		goto fail;
+
+	for(size_t i=0; i<nums_expected_count; i++)
+	{
+		bool found = false;
+		for(size_t j=0; j<send_buffer->packets_count; j++)
+		{
+			if(send_buffer->packets[j].seq_num == nums_expected[i])
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found)
+			goto fail;
+	}
+
+	chiaki_mutex_unlock(&send_buffer->mutex);
+	return true;
+fail:
+	chiaki_mutex_unlock(&send_buffer->mutex);
+	return false;
+}
+
+static void seqnums_ack(ChiakiSeqNum32 *nums, size_t *nums_count, ChiakiSeqNum32 ack_num)
+{
+	// simulate ack of ack_num
+	for(size_t i=0; i<*nums_count; i++)
+	{
+		if(nums[i] == ack_num || chiaki_seq_num_32_lt(nums[i], ack_num))
+		{
+			for(size_t j=i+1; j<*nums_count; j++)
+				nums[j-1] = nums[j];
+			(*nums_count)--;
+			i--;
+		}
+	}
+}
+
+static MunitResult test_takion_send_buffer(const MunitParameter params[], void *user)
+{
+	static const size_t nums_count = 0x30;
+	ChiakiTakionSendBuffer send_buffer;
+	ChiakiErrorCode err = chiaki_takion_send_buffer_init(&send_buffer, NULL, nums_count);
+	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
+	send_buffer.log = get_test_log();
+
+	ChiakiSeqNum32 nums_expected[nums_count + 1];
+	random_seqnums(nums_expected, nums_count + 1);
+
+	for(size_t i=0; i<nums_count; i++)
+	{
+		err = chiaki_takion_send_buffer_push(&send_buffer, nums_expected[i], malloc(8), 8);
+		munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
+	}
+
+	err = chiaki_takion_send_buffer_push(&send_buffer, nums_expected[nums_count], malloc(8), 8);
+	munit_assert_int(err, ==, CHIAKI_ERR_OVERFLOW);
+
+	size_t nums_count_cur = nums_count;
+	while(nums_count_cur > 0)
+	{
+		ChiakiSeqNum32 ack_num = nums_expected[nums_count_cur - 1]
+				+ munit_rand_int_range(-1, 1) * munit_rand_int_range(1, 32);
+		chiaki_takion_send_buffer_ack(&send_buffer, ack_num);
+		seqnums_ack(nums_expected, &nums_count_cur, ack_num);
+		bool correct = check_send_buffer_contents(&send_buffer, nums_expected, nums_count_cur);
+		munit_assert(correct);
+	}
+
+	chiaki_takion_send_buffer_fini(&send_buffer);
+	return MUNIT_OK;
+}
+
 
 
 MunitTest tests_takion[] = {
@@ -81,6 +185,14 @@ MunitTest tests_takion[] = {
 	{
 		"/av_packet_parse_real_video",
 		test_av_packet_parse_real_video,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/send_buffer",
+		test_takion_send_buffer,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,

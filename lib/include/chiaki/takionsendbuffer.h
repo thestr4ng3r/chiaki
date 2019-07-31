@@ -23,6 +23,8 @@
 #include "thread.h"
 #include "seqnum.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,12 +49,18 @@ typedef struct chiaki_takion_send_buffer_t
 } ChiakiTakionSendBuffer;
 
 
+/**
+ * Init a Send Buffer and start a thread that automatically re-sends packets on takion.
+ *
+ * @param takion if NULL, the Send Buffer thread will effectively do nothing (for unit testing)
+ * @param size number of packet slots
+ */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_init(ChiakiTakionSendBuffer *send_buffer, ChiakiTakion *takion, size_t size);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_start(ChiakiTakionSendBuffer *send_buffer);
 CHIAKI_EXPORT void chiaki_takion_send_buffer_fini(ChiakiTakionSendBuffer *send_buffer);
 
 /**
  * @param buf ownership of this is taken by the ChiakiTakionSendBuffer, which will free it automatically later!
+ * On error, buf is freed immediately.
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_push(ChiakiTakionSendBuffer *send_buffer, ChiakiSeqNum32 seq_num, uint8_t *buf, size_t buf_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuffer *send_buffer, ChiakiSeqNum32 seq_num);
