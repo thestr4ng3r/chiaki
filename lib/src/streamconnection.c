@@ -232,7 +232,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		if(err != CHIAKI_ERR_SUCCESS)
 			CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send heartbeat");
 		else
-			CHIAKI_LOGI(stream_connection->log, "StreamConnection sent heartbeat");
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection sent heartbeat");
 	}
 
 	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
@@ -390,7 +390,7 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 		return;
 	}
 
-	CHIAKI_LOGD(stream_connection->log, "Got a bang");
+	CHIAKI_LOGI(stream_connection->log, "BANG received");
 
 	if(!msg.bang_payload.version_accepted)
 	{
@@ -585,7 +585,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	}
 	launch_spec_json_size += 1; // we also want the trailing 0
 
-	CHIAKI_LOGD(stream_connection->log, "LaunchSpec: %s", launch_spec_buf.json);
+	CHIAKI_LOGV(stream_connection->log, "LaunchSpec: %s", launch_spec_buf.json);
 
 	uint8_t launch_spec_json_enc[LAUNCH_SPEC_JSON_BUF_SIZE];
 	memset(launch_spec_json_enc, 0, (size_t)launch_spec_json_size);

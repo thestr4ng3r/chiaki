@@ -49,7 +49,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 {
 	memset(session, 0, sizeof(ChiakiSession));
 
-	chiaki_log_init(&session->log, CHIAKI_LOG_ALL, NULL, NULL);
+	chiaki_log_init(&session->log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, NULL, NULL);
 
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 

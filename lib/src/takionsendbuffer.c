@@ -127,7 +127,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_push(ChiakiTakionSendBuf
 	packet->buf = buf;
 	packet->buf_size = buf_size;
 
-	CHIAKI_LOGD(send_buffer->log, "Pushed seq num %#llx into Takion Send Buffer", (unsigned long long)seq_num);
+	CHIAKI_LOGV(send_buffer->log, "Pushed seq num %#llx into Takion Send Buffer", (unsigned long long)seq_num);
 
 	if(send_buffer->packets_count == 1)
 	{
@@ -192,7 +192,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuff
 		send_buffer->packets_count -= shift;
 	}
 
-	CHIAKI_LOGD(send_buffer->log, "Acked seq num %#llx from Takion Send Buffer", (unsigned long long)seq_num);
+	CHIAKI_LOGV(send_buffer->log, "Acked seq num %#llx from Takion Send Buffer", (unsigned long long)seq_num);
 
 	chiaki_mutex_unlock(&send_buffer->mutex);
 	return err;
