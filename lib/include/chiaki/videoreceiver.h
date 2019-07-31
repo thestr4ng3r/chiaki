@@ -39,7 +39,8 @@ typedef struct chiaki_video_receiver_t
 	int profile_cur; // < 1 if no profile selected yet, else index in profiles
 
 	int32_t frame_index_cur; // frame that is currently being filled
-	int32_t frame_index_prev; // last frame that has been completely decoded/reported
+	int32_t frame_index_prev; // last frame that has been at least partially decoded
+	int32_t frame_index_prev_complete; // last frame that has been completely decoded
 	ChiakiFrameProcessor frame_processor;
 } ChiakiVideoReceiver;
 

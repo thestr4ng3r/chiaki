@@ -245,19 +245,25 @@ CHIAKI_EXPORT ChiakiFrameProcessorFlushResult chiaki_frame_processor_flush(Chiak
 	if(frame_processor->units_source_received < frame_processor->units_source_expected)
 	{
 		ChiakiErrorCode err = chiaki_frame_processor_fec(frame_processor);
-		if(err != CHIAKI_ERR_SUCCESS)
-			return CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED;
-		result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS;
+		if(err == CHIAKI_ERR_SUCCESS)
+			result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_SUCCESS;
+		else
+			result = CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED;
 	}
 
 	size_t cur = 0;
 	for(size_t i=0; i<frame_processor->units_source_expected; i++)
 	{
 		ChiakiFrameUnit *unit = frame_processor->unit_slots + i;
+		if(!unit->data_size)
+		{
+			CHIAKI_LOGW(frame_processor->log, "Missing unit %#llx", (unsigned long long)i);
+			continue;
+		}
 		if(unit->data_size < 2)
 		{
 			CHIAKI_LOGE(frame_processor->log, "Saved unit has size < 2");
-			chiaki_log_hexdump(frame_processor->log, CHIAKI_LOG_DEBUG, frame_processor->frame_buf + i*frame_processor->buf_size_per_unit, 0x50);
+			chiaki_log_hexdump(frame_processor->log, CHIAKI_LOG_VERBOSE, frame_processor->frame_buf + i*frame_processor->buf_size_per_unit, 0x50);
 			continue;
 		}
 		size_t part_size = unit->data_size - 2;
