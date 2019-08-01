@@ -33,6 +33,16 @@ class QAudioOutput;
 class QIODevice;
 class QKeyEvent;
 
+class ChiakiException : public std::exception
+{
+	private:
+		QString msg;
+
+	public:
+		explicit ChiakiException(const QString &msg) : msg(msg) {}
+		const char *what() const noexcept override { return msg.toLocal8Bit().constData(); }
+};
+
 class StreamSession : public QObject
 {
 	friend class StreamSessionPrivate;
@@ -59,6 +69,8 @@ class StreamSession : public QObject
 	public:
 		explicit StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent = nullptr);
 		~StreamSession();
+
+		void Stop();
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *GetGamepad()	{ return gamepad; }

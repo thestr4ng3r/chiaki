@@ -121,6 +121,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session)
 	return chiaki_thread_create(&session->session_thread, session_thread_func, session);
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session)
+{
+	// TODO
+	return CHIAKI_ERR_SUCCESS;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session)
 {
 	return chiaki_thread_join(&session->session_thread, NULL);
@@ -183,7 +189,7 @@ static void *session_thread_func(void *arg)
 		goto quit_ctrl;
 	}
 
-	CHIAKI_LOGI(&session->log, "Starting Senkusha");
+	//CHIAKI_LOGI(&session->log, "Starting Senkusha");
 
 	/* TODO err = chiaki_senkusha_run(session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -196,7 +202,7 @@ static void *session_thread_func(void *arg)
 	session->mtu = 1454;
 	session->rtt = 12;
 
-	CHIAKI_LOGI(&session->log, "Senkusha completed successfully");
+	//CHIAKI_LOGI(&session->log, "Senkusha completed successfully");
 
 	err = chiaki_random_bytes(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)

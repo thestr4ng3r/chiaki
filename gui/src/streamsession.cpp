@@ -60,20 +60,15 @@ StreamSession::StreamSession(const QString &host, const QString &registkey, cons
 	QByteArray morning_str = morning.toUtf8();
 	ChiakiErrorCode err = chiaki_base64_decode(morning_str.constData(), morning_str.length(), connect_info.morning, &morning_size);
 	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(connect_info.morning))
-	{
-		printf("morning invalid.\n");
-		throw std::exception(); // TODO: proper exception
-	}
+		throw ChiakiException("Morning invalid");
 
 	size_t did_size = sizeof(connect_info.did);
 	QByteArray did_str = did.toUtf8();
 	err = chiaki_base64_decode(did_str.constData(), did_str.length(), connect_info.did, &did_size);
 	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(connect_info.did))
-	{
-		printf("did invalid.\n");
-		throw std::exception(); // TODO: proper exception
-	}
+		throw ChiakiException("Did invalid");
 
+	// TODO: move audio init out of here and use values from audio header
 	QAudioFormat audio_format;
 	audio_format.setSampleRate(48000);
 	audio_format.setChannelCount(2);
@@ -92,10 +87,20 @@ StreamSession::StreamSession(const QString &host, const QString &registkey, cons
 
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
-	chiaki_session_init(&session, &connect_info);
+	err = chiaki_session_init(&session, &connect_info);
+	if(err != CHIAKI_ERR_SUCCESS)
+		throw ChiakiException("Chiaki Session Init failed");
+
 	chiaki_session_set_audio_frame_cb(&session, AudioFrameCb, this);
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
-	chiaki_session_start(&session);
+
+	err = chiaki_session_start(&session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_session_fini(&session);
+		throw ChiakiException("Chiaki Session Start failed");
+	}
+
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	connect(QGamepadManager::instance(), &QGamepadManager::connectedGamepadsChanged, this, &StreamSession::UpdateGamepads);
@@ -110,6 +115,10 @@ StreamSession::~StreamSession()
 #endif
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
+}
+
+void StreamSession::Stop()
+{
 }
 
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
