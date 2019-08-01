@@ -38,6 +38,8 @@ typedef struct chiaki_audio_receiver_t
 	ChiakiAudioHeader audio_header;
 	ChiakiSeqNum16 frame_index_prev;
 	bool frame_index_startup; // whether frame_index_prev has definitely not wrapped yet
+	int16_t *pcm_buf;
+	size_t pcm_buf_size;
 } ChiakiAudioReceiver;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);

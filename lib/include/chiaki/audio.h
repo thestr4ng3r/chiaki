@@ -19,6 +19,7 @@
 #define CHIAKI_AUDIO_H
 
 #include <stdint.h>
+#include <unistd.h>
 
 #include "common.h"
 
@@ -39,6 +40,11 @@ typedef struct chiaki_audio_header_t
 
 CHIAKI_EXPORT void chiaki_audio_header_load(ChiakiAudioHeader *audio_header, const uint8_t *buf);
 CHIAKI_EXPORT void chiaki_audio_header_save(ChiakiAudioHeader *audio_header, uint8_t *buf);
+
+static inline size_t chiaki_audio_header_frame_buf_size(ChiakiAudioHeader *audio_header)
+{
+	return audio_header->frame_size * audio_header->channels * sizeof(int16_t);
+}
 
 #ifdef __cplusplus
 }

@@ -34,6 +34,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 	audio_receiver->frame_index_prev = 0;
 	audio_receiver->frame_index_startup = true;
 
+	audio_receiver->pcm_buf = NULL;
+	audio_receiver->pcm_buf_size = 0;
+
 	ChiakiErrorCode err = chiaki_mutex_init(&audio_receiver->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
@@ -46,6 +49,7 @@ CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receive
 {
 	opus_decoder_destroy(audio_receiver->opus_decoder);
 	chiaki_mutex_fini(&audio_receiver->mutex);
+	free(audio_receiver->pcm_buf);
 }
 
 
@@ -67,10 +71,31 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	audio_receiver->opus_decoder = opus_decoder_create(audio_header->rate, audio_header->channels, &error);
 
 	if(error != OPUS_OK)
+	{
 		CHIAKI_LOGE(audio_receiver->log, "Audio Receiver failed to initialize opus decoder: %s", opus_strerror(error));
-	else
-		CHIAKI_LOGI(audio_receiver->log, "Audio Receiver initialized opus decoder with the settings above");
+		goto beach;
+	}
 
+	CHIAKI_LOGI(audio_receiver->log, "Audio Receiver initialized opus decoder with the settings above");
+
+	size_t pcm_buf_size_required = chiaki_audio_header_frame_buf_size(audio_header);
+	int16_t *pcm_buf_old = audio_receiver->pcm_buf;
+	if(!audio_receiver->pcm_buf || audio_receiver->pcm_buf_size != pcm_buf_size_required)
+		audio_receiver->pcm_buf = realloc(audio_receiver->pcm_buf, pcm_buf_size_required);
+
+	if(!audio_receiver->pcm_buf)
+	{
+		free(pcm_buf_old);
+		CHIAKI_LOGE(audio_receiver->log, "Audio Receiver failed to alloc pcm buffer");
+		opus_decoder_destroy(audio_receiver->opus_decoder);
+		audio_receiver->opus_decoder = NULL;
+		audio_receiver->pcm_buf_size = 0;
+		goto beach;
+	}
+
+	audio_receiver->pcm_buf_size = pcm_buf_size_required;
+
+beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
 }
 
@@ -145,18 +170,11 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 
 	audio_receiver->frame_index_prev = frame_index;
 
-	// TODO: don't malloc
-	opus_int16 *pcm = malloc(audio_receiver->audio_header.frame_size * audio_receiver->audio_header.channels * sizeof(opus_int16));
-
-	int r = opus_decode(audio_receiver->opus_decoder, buf, (opus_int32)buf_size, pcm, audio_receiver->audio_header.frame_size, 0);
+	int r = opus_decode(audio_receiver->opus_decoder, buf, (opus_int32)buf_size, audio_receiver->pcm_buf, audio_receiver->audio_header.frame_size, 0);
 	if(r < 1)
 		CHIAKI_LOGE(audio_receiver->log, "Decoding audio frame with opus failed: %s", opus_strerror(r));
 	else
-	{
-		audio_receiver->session->audio_frame_cb(pcm, (size_t)r, audio_receiver->session->audio_frame_cb_user);
-	}
-
-	free(pcm);
+		audio_receiver->session->audio_frame_cb(audio_receiver->pcm_buf, (size_t)r, audio_receiver->session->audio_frame_cb_user);
 
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
