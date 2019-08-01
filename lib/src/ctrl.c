@@ -62,9 +62,10 @@ static void *ctrl_thread_func(void *user)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-		chiaki_mutex_lock(&ctrl->session->ctrl_cond_mutex);
-		chiaki_cond_signal(&ctrl->session->ctrl_cond);
-		chiaki_mutex_unlock(&ctrl->session->ctrl_cond_mutex);
+		chiaki_mutex_lock(&ctrl->session->state_mutex);
+		ctrl->session->ctrl_failed = true;
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
+		chiaki_cond_signal(&ctrl->session->state_cond);
 		return NULL;
 	}
 
@@ -216,10 +217,10 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
-	chiaki_mutex_lock(&ctrl->session->ctrl_cond_mutex);
-	chiaki_cond_signal(&ctrl->session->ctrl_cond);
-	chiaki_mutex_unlock(&ctrl->session->ctrl_cond_mutex);
+	chiaki_mutex_unlock(&ctrl->session->state_mutex);
+	chiaki_cond_signal(&ctrl->session->state_cond);
 
 	CHIAKI_LOGI(&ctrl->session->log, "Received valid Session Id: %s", ctrl->session->session_id);
 }

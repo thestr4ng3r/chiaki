@@ -41,6 +41,8 @@
 #define RP_APPLICATION_REASON_IN_USE	0x80108b10
 #define RP_APPLICATION_REASON_CRASH		0x80108b15
 
+#define SESSION_ID_TIMEOUT_MS			10000
+
 
 static void *session_thread_func(void *arg);
 
@@ -53,19 +55,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 
-	ChiakiErrorCode err = chiaki_cond_init(&session->ctrl_cond);
+	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 
-	err = chiaki_mutex_init(&session->ctrl_cond_mutex, false);
+	err = chiaki_mutex_init(&session->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_ctrl_cond;
+		goto error_state_cond;
+
+	session->should_stop = false;
 
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection init failed");
-		goto error_ctrl_cond_mutex;
+		goto error_state_mutex;
 	}
 
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
@@ -96,10 +100,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
 
 	return CHIAKI_ERR_SUCCESS;
-error_ctrl_cond_mutex:
-	chiaki_mutex_fini(&session->ctrl_cond_mutex);
-error_ctrl_cond:
-	chiaki_cond_fini(&session->ctrl_cond);
+error_state_mutex:
+	chiaki_mutex_fini(&session->state_mutex);
+error_state_cond:
+	chiaki_cond_fini(&session->state_cond);
 error:
 	return err;
 }
@@ -109,8 +113,8 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	if(!session)
 		return;
 	chiaki_stream_connection_fini(&session->stream_connection);
-	chiaki_cond_fini(&session->ctrl_cond);
-	chiaki_mutex_fini(&session->ctrl_cond_mutex);
+	chiaki_cond_fini(&session->state_cond);
+	chiaki_mutex_fini(&session->state_mutex);
 	free(session->connect_info.regist_key);
 	free(session->connect_info.ostype);
 	freeaddrinfo(session->connect_info.host_addrinfos);
@@ -154,16 +158,39 @@ static void session_send_event(ChiakiSession *session, ChiakiEvent *event)
 
 static bool session_thread_request_session(ChiakiSession *session);
 
+static bool session_check_state_pred(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		|| session->ctrl_failed
+		|| session->ctrl_session_id_received;
+}
+
 static void *session_thread_func(void *arg)
 {
 	ChiakiSession *session = arg;
 	bool success;
 
+	chiaki_mutex_lock(&session->state_mutex);
+
+#define QUIT(quit_label) do { \
+	chiaki_mutex_lock(&session->state_mutex); \
+	goto quit_label; } while(0)
+
+#define CHECK_STOP(quit_label) do { \
+	if(session->should_stop) \
+	{ \
+		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED; \
+		QUIT(quit_label); \
+	} } while(0)
+
+	CHECK_STOP(quit);
+
 	CHIAKI_LOGI(&session->log, "Starting session request");
 
 	success = session_thread_request_session(session);
 	if(!success)
-		goto quit;
+		QUIT(quit);
 
 	CHIAKI_LOGI(&session->log, "Session request successful");
 
@@ -173,20 +200,21 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(&session->log, "Starting ctrl");
 
-	chiaki_mutex_lock(&session->ctrl_cond_mutex);
 	session->ctrl_session_id_received = false;
 
 	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto quit;
+		QUIT(quit);
 
-	chiaki_cond_wait(&session->ctrl_cond, &session->ctrl_cond_mutex);
-	chiaki_mutex_unlock(&session->ctrl_cond_mutex);
+	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_ID_TIMEOUT_MS, session_check_state_pred, session);
+	CHECK_STOP(quit_ctrl);
 
 	if(!session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGE(&session->log, "Ctrl has failed, shutting down");
-		goto quit_ctrl;
+		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
+			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+		QUIT(quit_ctrl);
 	}
 
 	//CHIAKI_LOGI(&session->log, "Starting Senkusha");
@@ -208,35 +236,35 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to generate handshake key");
-		goto quit_ctrl;
+		QUIT(quit_ctrl);
 	}
 
 	err = chiaki_ecdh_init(&session->ecdh);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to initialize ECDH");
-		goto quit_ctrl;
+		QUIT(quit_ctrl);
 	}
 
 	session->audio_receiver = chiaki_audio_receiver_new(session);
 	if(!session->audio_receiver)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to initialize Audio Receiver");
-		goto quit_ctrl;
+		QUIT(quit_ctrl);
 	}
 
 	session->video_receiver = chiaki_video_receiver_new(session);
 	if(!session->video_receiver)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to initialize Video Receiver");
-		goto quit_audio_receiver;
+		QUIT(quit_audio_receiver);
 	}
 
 	err = chiaki_stream_connection_run(&session->stream_connection);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection run failed");
-		goto quit_stream_connection;
+		QUIT(quit_stream_connection);
 	}
 
 	CHIAKI_LOGI(&session->log, "StreamConnection completed successfully");
@@ -253,6 +281,7 @@ quit_audio_receiver:
 	session->audio_receiver = NULL;
 
 quit_ctrl:
+	// TODO: stop ctrl
 	chiaki_ctrl_join(&session->ctrl);
 	CHIAKI_LOGI(&session->log, "Ctrl stopped");
 
@@ -262,6 +291,8 @@ quit:
 	quit_event.quit.reason = session->quit_reason;
 	session_send_event(session, &quit_event);
 	return NULL;
+
+#undef CHECK_STOP
 }
 
 

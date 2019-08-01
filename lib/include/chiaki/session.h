@@ -56,6 +56,7 @@ typedef struct chiaki_connect_info_t
 
 typedef enum {
 	CHIAKI_QUIT_REASON_NONE,
+	CHIAKI_QUIT_REASON_STOPPED,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE,
@@ -129,10 +130,13 @@ typedef struct chiaki_session_t
 
 	ChiakiThread session_thread;
 
-	ChiakiCtrl ctrl;
-	ChiakiCond ctrl_cond;
-	ChiakiMutex ctrl_cond_mutex;
+	ChiakiCond state_cond;
+	ChiakiMutex state_mutex;
+	bool should_stop;
+	bool ctrl_failed;
 	bool ctrl_session_id_received;
+
+	ChiakiCtrl ctrl;
 
 	ChiakiLog log;
 
