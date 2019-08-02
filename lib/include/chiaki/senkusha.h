@@ -24,10 +24,33 @@
 extern "C" {
 #endif
 
-struct chiaki_session_t;
+typedef struct chiaki_session_t ChiakiSession;
 
+typedef struct senkusha_t
+{
+	ChiakiSession *session;
+	ChiakiLog *log;
+	ChiakiTakion takion;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(struct chiaki_session_t *session);
+	int state;
+	bool state_finished;
+	bool state_failed;
+	bool should_stop;
+
+	/**
+	 * signaled on change of state_finished or should_stop
+	 */
+	ChiakiCond state_cond;
+
+	/**
+	 * protects state, state_finished, state_failed and should_stop
+	 */
+	ChiakiMutex state_mutex;
+} ChiakiSenkusha;
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, ChiakiSession *session);
+CHIAKI_EXPORT void chiaki_senkusha_fini(ChiakiSenkusha *senkusha);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha);
 
 #ifdef __cplusplus
 }

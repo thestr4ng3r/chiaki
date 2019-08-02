@@ -113,7 +113,7 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 }
 
 
-bool state_finished_cond_check(void *user)
+static bool state_finished_cond_check(void *user)
 {
 	ChiakiStreamConnection *stream_connection = user;
 	return stream_connection->state_finished || stream_connection->should_stop;
@@ -150,11 +150,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection connect failed");
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		return err;
 	}
 
+	// TODO: timeout?
 	err = chiaki_cond_wait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, state_finished_cond_check, stream_connection);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+	// TODO: check stop
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed");
@@ -180,6 +183,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout");
+
+		// TODO: check canceled and don't report error
 
 		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it");
 		err = CHIAKI_ERR_UNKNOWN;

@@ -166,6 +166,8 @@ static bool session_check_state_pred(void *user)
 		|| session->ctrl_session_id_received;
 }
 
+//#define ENABLE_SENKUSHA
+
 static void *session_thread_func(void *arg)
 {
 	ChiakiSession *session = arg;
@@ -217,20 +219,29 @@ static void *session_thread_func(void *arg)
 		QUIT(quit_ctrl);
 	}
 
-	//CHIAKI_LOGI(&session->log, "Starting Senkusha");
+#ifdef ENABLE_SENKUSHA
+	CHIAKI_LOGI(&session->log, "Starting Senkusha");
 
-	/* TODO err = chiaki_senkusha_run(session);
+	ChiakiSenkusha senkusha;
+	err = chiaki_senkusha_init(&senkusha, session);
+	if(err != CHIAKI_ERR_SUCCESS)
+		QUIT(quit_ctrl);
+
+	err = chiaki_senkusha_run(&senkusha);
+	chiaki_senkusha_fini(&senkusha);
+
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Senkusha failed");
-		goto quit_ctrl;
-	}*/
+		QUIT(quit_ctrl);
+	}
+
+	CHIAKI_LOGI(&session->log, "Senkusha completed successfully");
+#endif
 
 	// TODO: Senkusha should set that
 	session->mtu = 1454;
 	session->rtt = 12;
-
-	//CHIAKI_LOGI(&session->log, "Senkusha completed successfully");
 
 	err = chiaki_random_bytes(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
