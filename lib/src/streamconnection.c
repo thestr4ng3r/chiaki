@@ -88,6 +88,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
 	stream_connection->should_stop = false;
+	stream_connection->remote_disconnected = false;
+	stream_connection->remote_disconnect_reason = NULL;
 
 	return CHIAKI_ERR_SUCCESS;
 
@@ -101,6 +103,8 @@ error:
 
 CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_connection)
 {
+	free(stream_connection->remote_disconnect_reason);
+
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_remote);
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
@@ -116,7 +120,7 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 static bool state_finished_cond_check(void *user)
 {
 	ChiakiStreamConnection *stream_connection = user;
-	return stream_connection->state_finished || stream_connection->should_stop;
+	return stream_connection->state_finished || stream_connection->should_stop || stream_connection->remote_disconnected;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection)
@@ -145,7 +149,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 #define CHECK_STOP(quit_label) do { \
 	if(stream_connection->should_stop) \
 	{ \
-		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED; \
 		goto quit_label; \
 	} } while(0)
 
@@ -259,7 +262,15 @@ disconnect:
 	stream_connection_send_disconnect(stream_connection);
 
 	if(stream_connection->should_stop)
+	{
 		CHIAKI_LOGI(stream_connection->log, "StreamConnection was requested to stop");
+		err = CHIAKI_ERR_CANCELED;
+	}
+	else if(stream_connection->remote_disconnected)
+	{
+		CHIAKI_LOGI(stream_connection->log, "StreamConnection closing after Remote disconnected");
+		err = CHIAKI_ERR_DISCONNECTED;
+	}
 
 close_takion:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
@@ -329,6 +340,36 @@ static void stream_connection_takion_data(ChiakiStreamConnection *stream_connect
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 }
 
+static void stream_connection_takion_data_handle_disconnect(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	char reason[256];
+	ChiakiPBDecodeBuf decode_buf;
+	decode_buf.size = 0;
+	decode_buf.max_size = sizeof(reason) - 1;
+	decode_buf.buf = (uint8_t *)reason;
+	msg.disconnect_payload.reason.arg = &decode_buf;
+	msg.disconnect_payload.reason.funcs.decode = chiaki_pb_decode_buf;
+
+	pb_istream_t stream = pb_istream_from_buffer(buf, buf_size);
+	bool r = pb_decode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!r)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to decode data protobuf");
+		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_ERROR, buf, buf_size);
+		return;
+	}
+
+	reason[decode_buf.size] = '\0';
+	CHIAKI_LOGI(stream_connection->log, "Remote disconnected from StreamConnection with reason \"%s\"", reason);
+
+	stream_connection->remote_disconnected = true;
+	free(stream_connection->remote_disconnect_reason);
+	stream_connection->remote_disconnect_reason = strdup(reason);
+	chiaki_cond_signal(&stream_connection->state_cond);
+}
 
 static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
@@ -344,8 +385,11 @@ static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_co
 		return;
 	}
 
-	//CHIAKI_LOGD(stream_connection->log, "StreamConnection received data");
-	//chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	CHIAKI_LOGV(stream_connection->log, "StreamConnection received data");
+	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
+
+	if(msg.type == tkproto_TakionMessage_PayloadType_DISCONNECT)
+		stream_connection_takion_data_handle_disconnect(stream_connection, buf, buf_size);
 }
 
 static ChiakiErrorCode stream_connection_init_crypt(ChiakiStreamConnection *stream_connection)
@@ -397,6 +441,12 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_BANG || !msg.has_bang_payload)
 	{
+		if(msg.type == tkproto_TakionMessage_PayloadType_DISCONNECT)
+		{
+			stream_connection_takion_data_handle_disconnect(stream_connection, buf, buf_size);
+			return;
+		}
+
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected bang payload but received something else");
 		return;
 	}
@@ -531,6 +581,12 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 
 	if(msg.type != tkproto_TakionMessage_PayloadType_STREAMINFO || !msg.has_stream_info_payload)
 	{
+		if(msg.type == tkproto_TakionMessage_PayloadType_DISCONNECT)
+		{
+			stream_connection_takion_data_handle_disconnect(stream_connection, buf, buf_size);
+			return;
+		}
+
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else");
 		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
 		return;
@@ -709,6 +765,8 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection disconnect protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
+
+	CHIAKI_LOGI(stream_connection->log, "StreamConnection sending Disconnect");
 
 	buf_size = stream.bytes_written;
 	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size);

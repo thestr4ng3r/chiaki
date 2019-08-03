@@ -83,10 +83,13 @@ void StreamWindow::FramesAvailable()
 	}
 }
 
-void StreamWindow::SessionQuit(ChiakiQuitReason reason)
+void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
 {
 	if(reason == CHIAKI_QUIT_REASON_STOPPED)
 		return;
-	QMessageBox::critical(this, tr("Session has quit"), tr("Chiaki Session has quit:") + "\n" + chiaki_quit_reason_string(reason));
+	QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
+	if(!reason_str.isEmpty())
+		m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
+	QMessageBox::critical(this, tr("Session has quit"), m);
 	close();
 }

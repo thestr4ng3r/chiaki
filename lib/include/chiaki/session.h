@@ -86,7 +86,8 @@ typedef enum {
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH,
 	CHIAKI_QUIT_REASON_CTRL_UNKNOWN,
 	CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED,
-	CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN
+	CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN,
+	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED
 } ChiakiQuitReason;
 
 CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason);
@@ -94,6 +95,7 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason);
 typedef struct chiaki_quit_event_t
 {
 	ChiakiQuitReason reason;
+	const char *reason_str;
 } ChiakiQuitEvent;
 
 typedef struct chiaki_audio_stream_info_event_t
@@ -145,6 +147,7 @@ typedef struct chiaki_session_t
 	ChiakiECDH ecdh;
 
 	ChiakiQuitReason quit_reason;
+	char *quit_reason_str; // additional reason string from remote
 
 	ChiakiEventCallback event_cb;
 	void *event_cb_user;

@@ -103,6 +103,8 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 			return "Connection Refused in Ctrl";
 		case CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN:
 			return "Unknown Error in Stream Connection";
+		case CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED:
+			return "Remote has disconnected from Stream Connection";
 		case CHIAKI_QUIT_REASON_NONE:
 		default:
 			return "Unknown";
@@ -186,6 +188,7 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 {
 	if(!session)
 		return;
+	free(session->quit_reason_str);
 	chiaki_stream_connection_fini(&session->stream_connection);
 	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
@@ -357,7 +360,13 @@ static void *session_thread_func(void *arg)
 	chiaki_mutex_unlock(&session->state_mutex);
 	err = chiaki_stream_connection_run(&session->stream_connection);
 	chiaki_mutex_lock(&session->state_mutex);
-	if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_CANCELED)
+	if(err == CHIAKI_ERR_DISCONNECTED)
+	{
+		CHIAKI_LOGE(&session->log, "Remote disconnected from StreamConnection");
+		session->quit_reason = CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED;
+		session->quit_reason_str = strdup(session->stream_connection.remote_disconnect_reason);
+	}
+	else if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_CANCELED)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection run failed");
 		session->quit_reason = CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN;
@@ -388,6 +397,7 @@ quit:
 	CHIAKI_LOGI(&session->log, "Session has quit");
 	quit_event.type = CHIAKI_EVENT_QUIT;
 	quit_event.quit.reason = session->quit_reason;
+	quit_event.quit.reason_str = session->quit_reason_str;
 	session_send_event(session, &quit_event);
 	return NULL;
 

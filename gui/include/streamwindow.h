@@ -46,7 +46,7 @@ class StreamWindow: public QMainWindow
 
 	private slots:
 		void FramesAvailable();
-		void SessionQuit(ChiakiQuitReason reason);
+		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 };
 
 #endif // CHIAKI_GUI_STREAMWINDOW_H

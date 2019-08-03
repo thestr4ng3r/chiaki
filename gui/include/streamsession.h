@@ -94,7 +94,7 @@ class StreamSession : public QObject
 
 	signals:
 		void CurrentImageUpdated();
-		void SessionQuit(ChiakiQuitReason reason);
+		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 
 	private slots:
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD

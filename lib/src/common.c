@@ -32,6 +32,8 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 			return "Memory error";
 		case CHIAKI_ERR_NETWORK:
 			return "Network error";
+		case CHIAKI_ERR_DISCONNECTED:
+			return "Disconnected";
 		case CHIAKI_ERR_INVALID_DATA:
 			return "Invalid data";
 		case CHIAKI_ERR_BUF_TOO_SMALL:
