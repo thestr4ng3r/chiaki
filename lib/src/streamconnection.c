@@ -142,6 +142,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = chiaki_mutex_lock(&stream_connection->state_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
 
+#define CHECK_STOP(quit_label) do { \
+	if(stream_connection->should_stop) \
+	{ \
+		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED; \
+		goto quit_label; \
+	} } while(0)
+
 	stream_connection->state = STATE_TAKION_CONNECT;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
@@ -154,10 +161,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		return err;
 	}
 
-	// TODO: timeout?
-	err = chiaki_cond_wait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, state_finished_cond_check, stream_connection);
+	err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
-	// TODO: check stop
+	CHECK_STOP(close_takion);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed");
@@ -178,13 +184,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 
 	err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+	CHECK_STOP(disconnect);
 
 	if(!stream_connection->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
 			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout");
-
-		// TODO: check canceled and don't report error
 
 		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it");
 		err = CHIAKI_ERR_UNKNOWN;
@@ -198,6 +203,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state_failed = false;
 	err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+	CHECK_STOP(disconnect);
 
 	if(!stream_connection->state_finished)
 	{
@@ -255,9 +261,9 @@ disconnect:
 	if(stream_connection->should_stop)
 		CHIAKI_LOGI(stream_connection->log, "StreamConnection was requested to stop");
 
+close_takion:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
-close_takion:
 	chiaki_takion_close(&stream_connection->takion);
 	CHIAKI_LOGI(&session->log, "StreamConnection closed takion");
 

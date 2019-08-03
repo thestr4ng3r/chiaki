@@ -142,6 +142,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session)
 	chiaki_stop_pipe_stop(&session->stop_pipe);
 	chiaki_cond_signal(&session->state_cond);
 
+	chiaki_stream_connection_stop(&session->stream_connection);
+
 	chiaki_mutex_unlock(&session->state_mutex);
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -285,19 +287,14 @@ static void *session_thread_func(void *arg)
 		QUIT(quit_audio_receiver);
 	}
 
+	chiaki_mutex_unlock(&session->state_mutex);
 	err = chiaki_stream_connection_run(&session->stream_connection);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
+	chiaki_mutex_lock(&session->state_mutex);
+	if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_CANCELED)
 		CHIAKI_LOGE(&session->log, "StreamConnection run failed");
-		QUIT(quit_stream_connection);
-	}
+	else
+		CHIAKI_LOGI(&session->log, "StreamConnection completed successfully");
 
-	CHIAKI_LOGI(&session->log, "StreamConnection completed successfully");
-
-quit_stream_connection:
-	chiaki_stream_connection_fini(&session->stream_connection);
-
-quit_video_receiver:
 	chiaki_video_receiver_free(session->video_receiver);
 	session->video_receiver = NULL;
 
@@ -318,6 +315,7 @@ quit:
 	return NULL;
 
 #undef CHECK_STOP
+#undef QUIT
 }
 
 
