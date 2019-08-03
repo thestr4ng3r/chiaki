@@ -347,7 +347,7 @@ static void *session_thread_func(void *arg)
 	if(!session->audio_receiver)
 	{
 		CHIAKI_LOGE(&session->log, "Session failed to initialize Audio Receiver");
-		QUIT(quit_ctrl);
+		QUIT(quit_ecdh);
 	}
 
 	session->video_receiver = chiaki_video_receiver_new(session);
@@ -385,6 +385,9 @@ static void *session_thread_func(void *arg)
 quit_audio_receiver:
 	chiaki_audio_receiver_free(session->audio_receiver);
 	session->audio_receiver = NULL;
+
+quit_ecdh:
+	chiaki_ecdh_fini(&session->ecdh);
 
 quit_ctrl:
 	chiaki_ctrl_stop(&session->ctrl);

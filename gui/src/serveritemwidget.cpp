@@ -29,6 +29,7 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QWidget(parent)
 	auto label = new QLabel("Server", this);
 	layout->addWidget(label);
 
+	this->selected = true;
 	SetSelected(false);
 
 	setFixedSize(200, 200);

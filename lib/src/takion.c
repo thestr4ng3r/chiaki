@@ -667,7 +667,10 @@ static void *takion_thread_func(void *user)
 			break;
 		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, UINT64_MAX);
 		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			free(buf);
 			break;
+		}
 		uint8_t *resized_buf = realloc(buf, received_size);
 		if(!resized_buf)
 		{
@@ -853,6 +856,7 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 
 		if(entry->payload_size < 9)
 		{
+			free(entry->packet_buf);
 			free(entry);
 			continue;
 		}
@@ -874,6 +878,9 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 			event.data.buf_size = (size_t)(entry->payload_size - 9);
 			takion->cb(&event, takion->cb_user);
 		}
+
+		free(entry->packet_buf);
+		free(entry);
 	}
 }
 
