@@ -141,6 +141,8 @@ static void *ctrl_thread_func(void *user)
 		ctrl->recv_buf_size += received;
 	}
 
+	close(ctrl->sock);
+
 	return NULL;
 }
 

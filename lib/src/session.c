@@ -193,7 +193,7 @@ static void *session_thread_func(void *arg)
 	chiaki_mutex_lock(&session->state_mutex);
 
 #define QUIT(quit_label) do { \
-	chiaki_mutex_lock(&session->state_mutex); \
+	chiaki_mutex_unlock(&session->state_mutex); \
 	goto quit_label; } while(0)
 
 #define CHECK_STOP(quit_label) do { \
@@ -309,6 +309,8 @@ quit_ctrl:
 
 	ChiakiEvent quit_event;
 quit:
+
+	CHIAKI_LOGI(&session->log, "Session has quit");
 	quit_event.type = CHIAKI_EVENT_QUIT;
 	quit_event.quit.reason = session->quit_reason;
 	session_send_event(session, &quit_event);
