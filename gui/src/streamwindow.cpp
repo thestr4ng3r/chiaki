@@ -19,10 +19,10 @@
 #include <streamsession.h>
 
 #include <QLabel>
+#include <QMessageBox>
 
-StreamWindow::StreamWindow(StreamSession *session, QWidget *parent)
-	: QMainWindow(parent),
-	session(session)
+StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
+	: QMainWindow(parent)
 {
 	imageLabel = new QLabel(this);
 	setCentralWidget(imageLabel);
@@ -30,6 +30,8 @@ StreamWindow::StreamWindow(StreamSession *session, QWidget *parent)
 	imageLabel->setBackgroundRole(QPalette::Base);
 	imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	imageLabel->setScaledContents(true);
+
+	session = new StreamSession(connect_info, this);
 
 	connect(session->GetVideoDecoder(), &VideoDecoder::FramesAvailable, this, &StreamWindow::FramesAvailable);
 	FramesAvailable();

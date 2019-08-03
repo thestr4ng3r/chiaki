@@ -17,7 +17,7 @@
 #include <QCommandLineParser>
 
 
-int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did);
+int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QApplication &app);
 
 int main(int argc, char *argv[])
@@ -60,14 +60,16 @@ int main(int argc, char *argv[])
 
 	if(args[0] == "stream")
 	{
-		QString registkey = parser.value(regist_key_option);
-		QString ostype = parser.value(ostype_option);
-		QString auth = parser.value(auth_option);
-		QString morning = parser.value(morning_option);
-		QString did = parser.value(did_option);
-		if(registkey.isEmpty() || ostype.isEmpty() || auth.isEmpty() || morning.isEmpty() || did.isEmpty())
+		StreamSessionConnectInfo connect_info;
+		connect_info.host = host;
+		connect_info.registkey = parser.value(regist_key_option);
+		connect_info.ostype = parser.value(ostype_option);
+		connect_info.auth = parser.value(auth_option);
+		connect_info.morning = parser.value(morning_option);
+		connect_info.did = parser.value(did_option);
+		if(connect_info.registkey.isEmpty() || connect_info.ostype.isEmpty() || connect_info.auth.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
 			parser.showHelp(1);
-		return RunStream(app, host, registkey, ostype, auth, morning, did);
+		return RunStream(app, connect_info);
 	}
 	else if(args[0] == "discover")
 	{
@@ -88,11 +90,9 @@ int RunMain(QApplication &app)
 
 
 
-int RunStream(QApplication &app, const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did)
+int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
 {
-	StreamSession stream_session(host, registkey, ostype, auth, morning, did);
-
-	StreamWindow window(&stream_session);
+	StreamWindow window(connect_info);
 	window.resize(640, 360);
 	window.show();
 

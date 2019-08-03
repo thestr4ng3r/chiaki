@@ -34,6 +34,22 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 			return "Network error";
 		case CHIAKI_ERR_INVALID_DATA:
 			return "Invalid data";
+		case CHIAKI_ERR_BUF_TOO_SMALL:
+			return "Buffer too small";
+		case CHIAKI_ERR_MUTEX_LOCKED:
+			return "Mutex is locked";
+		case CHIAKI_ERR_CANCELED:
+			return "Canceled";
+		case CHIAKI_ERR_TIMEOUT:
+			return "Timeout";
+		case CHIAKI_ERR_INVALID_RESPONSE:
+			return "Invalid Response";
+		case CHIAKI_ERR_INVALID_MAC:
+			return "Invalid MAC";
+		case CHIAKI_ERR_UNINITIALIZED:
+			return "Uninitialized";
+		case CHIAKI_ERR_FEC_FAILED:
+			return "FEC failed";
 		default:
 			return "Unknown";
 	}

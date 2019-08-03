@@ -20,15 +20,16 @@
 
 #include <QMainWindow>
 
+#include "streamsession.h"
+
 class QLabel;
-class StreamSession;
 
 class StreamWindow: public QMainWindow
 {
 	Q_OBJECT
 
 	public:
-		explicit StreamWindow(StreamSession *session, QWidget *parent = nullptr);
+		explicit StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent = nullptr);
 		~StreamWindow();
 
 	private:

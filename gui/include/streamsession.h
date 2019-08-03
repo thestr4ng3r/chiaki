@@ -43,6 +43,16 @@ class ChiakiException : public std::exception
 		const char *what() const noexcept override { return msg.toLocal8Bit().constData(); }
 };
 
+struct StreamSessionConnectInfo
+{
+	QString host;
+	QString registkey;
+	QString ostype;
+	QString auth;
+	QString morning;
+	QString did;
+};
+
 class StreamSession : public QObject
 {
 	friend class StreamSessionPrivate;
@@ -67,7 +77,7 @@ class StreamSession : public QObject
 		void PushVideoSample(uint8_t *buf, size_t buf_size);
 
 	public:
-		explicit StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent = nullptr);
+		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
 		~StreamSession();
 
 		void Stop();

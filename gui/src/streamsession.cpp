@@ -33,39 +33,39 @@
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 
-StreamSession::StreamSession(const QString &host, const QString &registkey, const QString &ostype, const QString &auth, const QString &morning, const QString &did, QObject *parent)
+StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent)
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	,gamepad(nullptr)
 #endif
 {
-	QByteArray host_str = host.toUtf8();
-	QByteArray registkey_str = registkey.toUtf8();
-	QByteArray ostype_str = ostype.toUtf8();
+	QByteArray host_str = connect_info.host.toUtf8();
+	QByteArray registkey_str = connect_info.registkey.toUtf8();
+	QByteArray ostype_str = connect_info.ostype.toUtf8();
 
-	ChiakiConnectInfo connect_info;
-	connect_info.host = host_str.constData();
-	connect_info.regist_key = registkey_str.constData();
-	connect_info.ostype = ostype_str.constData();
+	ChiakiConnectInfo chiaki_connect_info;
+	chiaki_connect_info.host = host_str.constData();
+	chiaki_connect_info.regist_key = registkey_str.constData();
+	chiaki_connect_info.ostype = ostype_str.constData();
 
-	QByteArray auth_str = auth.toUtf8();
+	QByteArray auth_str = connect_info.auth.toUtf8();
 	size_t auth_len = auth_str.length();
-	if(auth_len > sizeof(connect_info.auth))
-		auth_len = sizeof(connect_info.auth);
-	memcpy(connect_info.auth, auth_str.constData(), auth_len);
-	if(auth_len < sizeof(connect_info.auth))
-		memset(connect_info.auth + auth_len, 0, sizeof(connect_info.auth) - auth_len);
+	if(auth_len > sizeof(chiaki_connect_info.auth))
+		auth_len = sizeof(chiaki_connect_info.auth);
+	memcpy(chiaki_connect_info.auth, auth_str.constData(), auth_len);
+	if(auth_len < sizeof(chiaki_connect_info.auth))
+		memset(chiaki_connect_info.auth + auth_len, 0, sizeof(chiaki_connect_info.auth) - auth_len);
 
-	size_t morning_size = sizeof(connect_info.morning);
-	QByteArray morning_str = morning.toUtf8();
-	ChiakiErrorCode err = chiaki_base64_decode(morning_str.constData(), morning_str.length(), connect_info.morning, &morning_size);
-	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(connect_info.morning))
+	size_t morning_size = sizeof(chiaki_connect_info.morning);
+	QByteArray morning_str = connect_info.morning.toUtf8();
+	ChiakiErrorCode err = chiaki_base64_decode(morning_str.constData(), morning_str.length(), chiaki_connect_info.morning, &morning_size);
+	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(chiaki_connect_info.morning))
 		throw ChiakiException("Morning invalid");
 
-	size_t did_size = sizeof(connect_info.did);
-	QByteArray did_str = did.toUtf8();
-	err = chiaki_base64_decode(did_str.constData(), did_str.length(), connect_info.did, &did_size);
-	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(connect_info.did))
+	size_t did_size = sizeof(chiaki_connect_info.did);
+	QByteArray did_str = connect_info.did.toUtf8();
+	err = chiaki_base64_decode(did_str.constData(), did_str.length(), chiaki_connect_info.did, &did_size);
+	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(chiaki_connect_info.did))
 		throw ChiakiException("Did invalid");
 
 	// TODO: move audio init out of here and use values from audio header
@@ -87,9 +87,9 @@ StreamSession::StreamSession(const QString &host, const QString &registkey, cons
 
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
-	err = chiaki_session_init(&session, &connect_info);
+	err = chiaki_session_init(&session, &chiaki_connect_info);
 	if(err != CHIAKI_ERR_SUCCESS)
-		throw ChiakiException("Chiaki Session Init failed");
+		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 
 	chiaki_session_set_audio_frame_cb(&session, AudioFrameCb, this);
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
