@@ -20,6 +20,7 @@
 
 #include "common.h"
 #include "thread.h"
+#include "stoppipe.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -32,6 +33,7 @@ typedef struct chiaki_ctrl_t
 {
 	struct chiaki_session_t *session;
 	ChiakiThread thread;
+	ChiakiStopPipe stop_pipe;
 	int sock;
 	uint8_t recv_buf[512];
 	size_t recv_buf_size;
@@ -39,6 +41,7 @@ typedef struct chiaki_ctrl_t
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
+CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
 
 #ifdef __cplusplus

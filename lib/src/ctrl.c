@@ -30,6 +30,8 @@
 
 #define SESSION_CTRL_PORT 9295
 
+#define CTRL_EXPECT_TIMEOUT 5000
+
 typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33,
 	CTRL_MESSAGE_TYPE_HEARTBEAT_REQ = 0xfe,
@@ -42,17 +44,37 @@ static void *ctrl_thread_func(void *user);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
 	ctrl->session = session;
+	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->stop_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 	return chiaki_thread_create(&ctrl->thread, ctrl_thread_func, ctrl);
+}
+
+CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl)
+{
+	chiaki_stop_pipe_stop(&ctrl->stop_pipe);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl)
 {
-	return chiaki_thread_join(&ctrl->thread, NULL);
+	ChiakiErrorCode err = chiaki_thread_join(&ctrl->thread, NULL);
+	chiaki_stop_pipe_fini(&ctrl->stop_pipe);
+	return err;
 }
 
 
 static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl);
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size);
+
+static void ctrl_failed(ChiakiCtrl *ctrl, ChiakiQuitReason reason)
+{
+	ChiakiErrorCode mutex_err = chiaki_mutex_lock(&ctrl->session->state_mutex);
+	assert(mutex_err == CHIAKI_ERR_SUCCESS);
+	ctrl->session->quit_reason = reason;
+	ctrl->session->ctrl_failed = true;
+	chiaki_mutex_unlock(&ctrl->session->state_mutex);
+	chiaki_cond_signal(&ctrl->session->state_cond);
+}
 
 static void *ctrl_thread_func(void *user)
 {
@@ -61,11 +83,7 @@ static void *ctrl_thread_func(void *user)
 	ChiakiErrorCode err = ctrl_connect(ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-		chiaki_mutex_lock(&ctrl->session->state_mutex);
-		ctrl->session->ctrl_failed = true;
-		chiaki_mutex_unlock(&ctrl->session->state_mutex);
-		chiaki_cond_signal(&ctrl->session->state_cond);
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 		return NULL;
 	}
 
@@ -100,7 +118,15 @@ static void *ctrl_thread_func(void *user)
 
 		if(overflow)
 		{
-			chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			break;
+		}
+
+		err = chiaki_stop_pipe_select_single(&ctrl->stop_pipe, ctrl->sock, UINT64_MAX);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			if(err == CHIAKI_ERR_CANCELED)
+				CHIAKI_LOGI(&ctrl->session->log, "Ctrl requested to stop");
 			break;
 		}
 
@@ -108,7 +134,7 @@ static void *ctrl_thread_func(void *user)
 		if(received <= 0)
 		{
 			if(received < 0)
-				chiaki_session_set_quit_reason(ctrl->session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+				ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 			break;
 		}
 
@@ -288,7 +314,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(sock < 0)
 	{
 		CHIAKI_LOGE(&session->log, "Session ctrl socket creation failed.");
-		chiaki_session_set_quit_reason(session, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 		return CHIAKI_ERR_NETWORK;
 	}
 
@@ -298,10 +324,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	{
 		int errsv = errno;
 		CHIAKI_LOGE(&session->log, "Ctrl connect failed: %s", strerror(errsv));
-		if(errsv == ECONNREFUSED)
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
-		else
-			session->quit_reason = CHIAKI_QUIT_REASON_NONE;
+		ctrl_failed(ctrl, errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 		close(sock);
 		return CHIAKI_ERR_NETWORK;
 	}
@@ -371,10 +394,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	size_t header_size;
 	size_t received_size;
-	err = chiaki_recv_http_header(sock, buf, sizeof(buf), &header_size, &received_size, NULL, UINT64_MAX); // TODO: stop pipe!
+	err = chiaki_recv_http_header(sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->stop_pipe, CTRL_EXPECT_TIMEOUT);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Failed to receive ctrl request response");
+		if(err != CHIAKI_ERR_CANCELED)
+			CHIAKI_LOGE(&session->log, "Failed to receive ctrl request response");
 		goto error;
 	}
 

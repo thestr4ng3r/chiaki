@@ -68,6 +68,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 		goto error_state_mutex;
 
 	session->should_stop = false;
+	session->ctrl_session_id_received = false;
 
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -212,11 +213,10 @@ static void *session_thread_func(void *arg)
 
 	chiaki_rpcrypt_init(&session->rpcrypt, session->nonce, session->connect_info.morning);
 
-	usleep(5000);
+	// PS4 doesn't always react right away, sleep a bit
+	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10, session_check_state_pred, session);
 
 	CHIAKI_LOGI(&session->log, "Starting ctrl");
-
-	session->ctrl_session_id_received = false;
 
 	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -306,7 +306,7 @@ quit_audio_receiver:
 	session->audio_receiver = NULL;
 
 quit_ctrl:
-	// TODO: stop ctrl
+	chiaki_ctrl_stop(&session->ctrl);
 	chiaki_ctrl_join(&session->ctrl);
 	CHIAKI_LOGI(&session->log, "Ctrl stopped");
 

@@ -174,13 +174,6 @@ static inline void chiaki_session_set_video_sample_cb(ChiakiSession *session, Ch
 	session->video_sample_cb_user = user;
 }
 
-static inline void chiaki_session_set_quit_reason(ChiakiSession *session, ChiakiQuitReason reason)
-{
-	if(session->quit_reason != CHIAKI_QUIT_REASON_NONE)
-		return;
-	session->quit_reason = reason;
-}
-
 #ifdef __cplusplus
 }
 #endif
