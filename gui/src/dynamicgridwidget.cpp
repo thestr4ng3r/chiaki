@@ -77,7 +77,11 @@ unsigned int DynamicGridWidget::CalculateColumns()
 void DynamicGridWidget::UpdateLayout()
 {
 	while(layout->count() > 0)
-		layout->removeItem(layout->itemAt(0));
+	{
+		auto item = layout->itemAt(0);
+		layout->removeItem(item);
+		delete item;
+	}
 
 	columns = CalculateColumns();
 	if(columns == 0)
