@@ -56,6 +56,10 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 	session->HandleKeyboardEvent(event);
 }
 
+void StreamWindow::closeEvent(QCloseEvent *event)
+{
+	session->Stop();
+}
 
 void StreamWindow::FramesAvailable()
 {

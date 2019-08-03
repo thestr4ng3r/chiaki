@@ -119,6 +119,7 @@ StreamSession::~StreamSession()
 
 void StreamSession::Stop()
 {
+	chiaki_session_stop(&session);
 }
 
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)

@@ -41,6 +41,7 @@ class StreamWindow: public QMainWindow
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
+		void closeEvent(QCloseEvent *event) override;
 
 	private slots:
 		void FramesAvailable();
