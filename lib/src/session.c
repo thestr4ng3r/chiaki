@@ -41,7 +41,7 @@
 #define RP_APPLICATION_REASON_IN_USE	0x80108b10
 #define RP_APPLICATION_REASON_CRASH		0x80108b15
 
-#define SESSION_ID_TIMEOUT_MS			10000
+#define SESSION_EXPECT_TIMEOUT_MS		5000
 
 
 static void *session_thread_func(void *arg);
@@ -63,13 +63,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_state_cond;
 
+	err = chiaki_stop_pipe_init(&session->stop_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_state_mutex;
+
 	session->should_stop = false;
 
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "StreamConnection init failed");
-		goto error_state_mutex;
+		goto error_stop_pipe;
 	}
 
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
@@ -100,6 +104,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
 
 	return CHIAKI_ERR_SUCCESS;
+error_stop_pipe:
+	chiaki_stop_pipe_fini(&session->stop_pipe);
 error_state_mutex:
 	chiaki_mutex_fini(&session->state_mutex);
 error_state_cond:
@@ -113,6 +119,7 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	if(!session)
 		return;
 	chiaki_stream_connection_fini(&session->stream_connection);
+	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
 	chiaki_mutex_fini(&session->state_mutex);
 	free(session->connect_info.regist_key);
@@ -127,7 +134,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session)
 {
-	// TODO
+	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	session->should_stop = true;
+	chiaki_stop_pipe_stop(&session->stop_pipe);
+	chiaki_cond_signal(&session->state_cond);
+
+	chiaki_mutex_unlock(&session->state_mutex);
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -208,7 +222,7 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_ID_TIMEOUT_MS, session_check_state_pred, session);
+	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred, session);
 	CHECK_STOP(quit_ctrl);
 
 	if(!session->ctrl_session_id_received)
@@ -440,12 +454,22 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 	size_t header_size;
 	size_t received_size;
-	ChiakiErrorCode err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size);
+	chiaki_mutex_unlock(&session->state_mutex);
+	ChiakiErrorCode err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size, &session->stop_pipe, SESSION_EXPECT_TIMEOUT_MS);
+	ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->state_mutex);
+	assert(mutex_err == CHIAKI_ERR_SUCCESS);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Failed to receive session request response");
+		if(err == CHIAKI_ERR_CANCELED)
+		{
+			session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
+		}
+		else
+		{
+			CHIAKI_LOGE(&session->log, "Failed to receive session request response");
+			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
+		}
 		close(session_sock);
-		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
 

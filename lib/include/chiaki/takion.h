@@ -149,7 +149,6 @@ typedef struct chiaki_takion_t
 	int sock;
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;
-	struct timeval recv_timeout;
 	uint32_t tag_local;
 	uint32_t tag_remote;
 

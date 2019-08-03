@@ -50,7 +50,7 @@ CHIAKI_EXPORT void chiaki_stop_pipe_stop(ChiakiStopPipe *stop_pipe)
 	write(stop_pipe->fds[1], "\x00", 1);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, int fd, struct timeval *timeout)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, int fd, uint64_t timeout_ms)
 {
 	fd_set fds;
 	FD_ZERO(&fds);
@@ -61,6 +61,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 	if(stop_pipe->fds[0] > nfds)
 		nfds = stop_pipe->fds[0];
 	nfds++;
+
+	struct timeval timeout_s;
+	struct timeval *timeout = NULL;
+	if(timeout_ms != UINT64_MAX)
+	{
+		timeout_s.tv_sec = timeout_ms / 1000;
+		timeout_s.tv_usec = (timeout_ms % 1000) * 1000;
+		timeout = &timeout_s;
+	}
+
 	int r = select(nfds, &fds, NULL, NULL, timeout);
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;

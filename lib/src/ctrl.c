@@ -371,7 +371,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	size_t header_size;
 	size_t received_size;
-	err = chiaki_recv_http_header(sock, buf, sizeof(buf), &header_size, &received_size);
+	err = chiaki_recv_http_header(sock, buf, sizeof(buf), &header_size, &received_size, NULL, UINT64_MAX); // TODO: stop pipe!
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&session->log, "Failed to receive ctrl request response");

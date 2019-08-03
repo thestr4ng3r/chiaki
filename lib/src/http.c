@@ -132,7 +132,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_http_response_parse(ChiakiHttpResponse *res
 	return chiaki_http_header_parse(&response->headers, buf, buf_size);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_t buf_size, size_t *header_size, size_t *received_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_t buf_size, size_t *header_size, size_t *received_size, ChiakiStopPipe *stop_pipe, uint64_t timeout_ms)
 {
 	// 0 = ""
 	// 1 = "\r"
@@ -146,6 +146,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 	*received_size = 0;
 	while(true)
 	{
+		if(stop_pipe)
+		{
+			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, timeout_ms);
+			if(err != CHIAKI_ERR_SUCCESS)
+				return err;
+		}
+
 		ssize_t received = recv(sock, buf, buf_size, 0);
 		if(received <= 0)
 			return CHIAKI_ERR_NETWORK;

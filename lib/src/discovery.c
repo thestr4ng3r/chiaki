@@ -148,7 +148,7 @@ static void *discovery_thread_func(void *user)
 
 	while(1)
 	{
-		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&thread->stop_pipe, discovery->socket, NULL);
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&thread->stop_pipe, discovery->socket, UINT64_MAX);
 		if(err == CHIAKI_ERR_CANCELED)
 			break;
 		if(err != CHIAKI_ERR_SUCCESS)

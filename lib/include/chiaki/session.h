@@ -30,6 +30,7 @@
 #include "audioreceiver.h"
 #include "videoreceiver.h"
 #include "controller.h"
+#include "stoppipe.h"
 
 #include <stdint.h>
 #include <netdb.h>
@@ -132,6 +133,7 @@ typedef struct chiaki_session_t
 
 	ChiakiCond state_cond;
 	ChiakiMutex state_mutex;
+	ChiakiStopPipe stop_pipe;
 	bool should_stop;
 	bool ctrl_failed;
 	bool ctrl_session_id_received;

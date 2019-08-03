@@ -42,6 +42,7 @@
 
 #define TAKION_PACKET_BASE_TYPE_MASK 0xf
 
+#define TAKION_EXPECT_TIMEOUT_MS 5000
 
 /**
  * Base type of Takion packets. Lower nibble of the first byte in datagrams.
@@ -165,7 +166,7 @@ static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, 
 static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t chunk_type, uint8_t chunk_flags, size_t payload_data_size);
 static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMessagePayloadInit *payload);
 static ChiakiErrorCode takion_send_message_cookie(ChiakiTakion *takion, uint8_t *cookie);
-static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, struct timeval *timeout);
+static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, uint64_t timeout_ms);
 static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, TakionMessagePayloadInitAck *payload);
 static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion);
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size);
@@ -191,8 +192,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(ret != CHIAKI_ERR_SUCCESS)
 		goto error_gkcrypt_local_mutex;
 	takion->tag_remote = 0;
-	takion->recv_timeout.tv_sec = 2;
-	takion->recv_timeout.tv_usec = 0;
 
 	takion->enable_crypt = info->enable_crypt;
 	takion->postponed_packets = NULL;
@@ -666,7 +665,7 @@ static void *takion_thread_func(void *user)
 		uint8_t *buf = malloc(received_size); // TODO: no malloc?
 		if(!buf)
 			break;
-		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, NULL);
+		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, UINT64_MAX);
 		if(err != CHIAKI_ERR_SUCCESS)
 			break;
 		uint8_t *resized_buf = realloc(buf, received_size);
@@ -697,9 +696,9 @@ beach:
 }
 
 
-static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, struct timeval *timeout)
+static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, uint64_t timeout_ms)
 {
-	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, timeout);
+	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, timeout_ms);
 	if(err == CHIAKI_ERR_TIMEOUT || err == CHIAKI_ERR_CANCELED)
 		return err;
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -1019,7 +1018,7 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 {
 	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE + 0x10 + TAKION_COOKIE_SIZE];
 	size_t received_size = sizeof(message);
-	ChiakiErrorCode err = takion_recv(takion, message, &received_size, &takion->recv_timeout);
+	ChiakiErrorCode err = takion_recv(takion, message, &received_size, TAKION_EXPECT_TIMEOUT_MS);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
@@ -1067,7 +1066,7 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 {
 	uint8_t message[1 + TAKION_MESSAGE_HEADER_SIZE];
 	size_t received_size = sizeof(message);
-	ChiakiErrorCode err = takion_recv(takion, message, &received_size, &takion->recv_timeout);
+	ChiakiErrorCode err = takion_recv(takion, message, &received_size, TAKION_EXPECT_TIMEOUT_MS);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
