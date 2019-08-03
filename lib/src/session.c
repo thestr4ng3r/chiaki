@@ -43,6 +43,46 @@
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
+CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps)
+{
+	switch(resolution)
+	{
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			profile->width = 640;
+			profile->height = 360;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+			profile->width = 960;
+			profile->height = 540;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+			profile->width = 1280;
+			profile->height = 720;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
+			profile->width = 1920;
+			profile->height = 1080;
+			break;
+		default:
+			profile->width = 0;
+			profile->height = 0;
+			break;
+	}
+
+	switch(fps)
+	{
+		case CHIAKI_VIDEO_FPS_PRESET_30:
+			profile->max_fps = 30;
+			break;
+		case CHIAKI_VIDEO_FPS_PRESET_60:
+			profile->max_fps = 60;
+			break;
+		default:
+			profile->max_fps = 0;
+			break;
+	}
+}
+
 CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 {
 	switch(reason)
@@ -128,6 +168,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	memcpy(session->connect_info.auth, connect_info->auth, sizeof(session->connect_info.auth));
 	memcpy(session->connect_info.morning, connect_info->morning, sizeof(session->connect_info.morning));
 	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
+
+	session->connect_info.video_profile = connect_info->video_profile;
 
 	return CHIAKI_ERR_SUCCESS;
 error_stop_pipe:
@@ -328,6 +370,8 @@ static void *session_thread_func(void *arg)
 
 	chiaki_video_receiver_free(session->video_receiver);
 	session->video_receiver = NULL;
+
+	chiaki_mutex_unlock(&session->state_mutex);
 
 quit_audio_receiver:
 	chiaki_audio_receiver_free(session->audio_receiver);

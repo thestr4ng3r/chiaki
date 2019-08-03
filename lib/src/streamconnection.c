@@ -532,6 +532,7 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 	if(msg.type != tkproto_TakionMessage_PayloadType_STREAMINFO || !msg.has_stream_info_payload)
 	{
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else");
+		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
 		return;
 	}
 
@@ -582,6 +583,10 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	launch_spec.mtu = session->mtu;
 	launch_spec.rtt = session->rtt;
 	launch_spec.handshake_key = session->handshake_key;
+
+	launch_spec.width = session->connect_info.video_profile.width;
+	launch_spec.height = session->connect_info.video_profile.height;
+	launch_spec.max_fps = session->connect_info.video_profile.max_fps;
 
 	union
 	{

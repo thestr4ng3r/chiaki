@@ -48,6 +48,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.host = host_str.constData();
 	chiaki_connect_info.regist_key = registkey_str.constData();
 	chiaki_connect_info.ostype = ostype_str.constData();
+	chiaki_connect_info.video_profile = connect_info.video_profile;
 
 	QByteArray auth_str = connect_info.auth.toUtf8();
 	size_t auth_len = auth_str.length();

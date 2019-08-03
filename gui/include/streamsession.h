@@ -51,6 +51,7 @@ struct StreamSessionConnectInfo
 	QString auth;
 	QString morning;
 	QString did;
+	ChiakiConnectVideoProfile video_profile;
 };
 
 class StreamSession : public QObject

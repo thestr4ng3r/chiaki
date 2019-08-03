@@ -35,6 +35,9 @@ CHIAKI_EXPORT void chiaki_log_cb_print(ChiakiLogLevel level, const char *msg, vo
 	const char *color = NULL;
 	switch(level)
 	{
+		case CHIAKI_LOG_VERBOSE:
+			c = 'V';
+			break;
 		case CHIAKI_LOG_DEBUG:
 			c = 'D';
 			color = "34";
@@ -110,6 +113,9 @@ static const char hex_char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9
 
 CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
+	if(log && !(log->level_mask & level))
+		return;
+
 	chiaki_log(log, level, "offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef");
 
 	size_t offset = 0;
@@ -161,6 +167,9 @@ CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, cons
 
 CHIAKI_EXPORT void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
+	if(log && !(log->level_mask & level))
+		return;
+
 	char *str = malloc(buf_size * 2 + 1);
 	if(!str)
 		return;

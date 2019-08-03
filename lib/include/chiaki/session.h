@@ -44,6 +44,27 @@ extern "C" {
 #define CHIAKI_SESSION_ID_SIZE_MAX 80
 #define CHIAKI_HANDSHAKE_KEY_SIZE 0x10
 
+typedef struct chiaki_connect_video_profile_t
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned int max_fps;
+} ChiakiConnectVideoProfile;
+
+typedef enum {
+	CHIAKI_VIDEO_RESOLUTION_PRESET_360p,
+	CHIAKI_VIDEO_RESOLUTION_PRESET_540p,
+	CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
+	CHIAKI_VIDEO_RESOLUTION_PRESET_1080p
+} ChiakiVideoResolutionPreset;
+
+typedef enum {
+	CHIAKI_VIDEO_FPS_PRESET_30,
+	CHIAKI_VIDEO_FPS_PRESET_60
+} ChiakiVideoFPSPreset;
+
+CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps);
+
 typedef struct chiaki_connect_info_t
 {
 	const char *host; // null terminated
@@ -52,6 +73,7 @@ typedef struct chiaki_connect_info_t
 	char auth[0x10]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
 	uint8_t did[CHIAKI_RP_DID_SIZE];
+	ChiakiConnectVideoProfile video_profile;
 } ChiakiConnectInfo;
 
 
@@ -111,6 +133,7 @@ typedef struct chiaki_session_t
 		char auth[CHIAKI_KEY_BYTES];
 		uint8_t morning[CHIAKI_KEY_BYTES];
 		uint8_t did[CHIAKI_RP_DID_SIZE];
+		ChiakiConnectVideoProfile video_profile;
 	} connect_info;
 
 	uint8_t nonce[CHIAKI_KEY_BYTES];

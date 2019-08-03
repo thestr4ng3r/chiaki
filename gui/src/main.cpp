@@ -69,6 +69,11 @@ int main(int argc, char *argv[])
 		connect_info.auth = parser.value(auth_option);
 		connect_info.morning = parser.value(morning_option);
 		connect_info.did = parser.value(did_option);
+
+		chiaki_connect_video_profile_preset(&connect_info.video_profile,
+				CHIAKI_VIDEO_RESOLUTION_PRESET_540p,
+				CHIAKI_VIDEO_FPS_PRESET_30);
+
 		if(connect_info.registkey.isEmpty() || connect_info.ostype.isEmpty() || connect_info.auth.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
 			parser.showHelp(1);
 		return RunStream(app, connect_info);
@@ -95,7 +100,7 @@ int RunMain(QApplication &app)
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
 {
 	StreamWindow window(connect_info);
-	window.resize(640, 360);
+	window.resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	window.show();
 
 	app.setQuitOnLastWindowClosed(true);

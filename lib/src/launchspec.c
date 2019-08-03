@@ -28,10 +28,10 @@ static const char launchspec_fmt[] =
 			"{"
 				"\"resolution\":"
 				"{"
-					"\"width\":640,"
-					"\"height\":360"
+					"\"width\":%u,"
+					"\"height\":%u"
 				"},"
-				"\"maxFps\":30,"
+				"\"maxFps\":%u,"
 				"\"score\":10"
 			"}"
 		"],"
@@ -83,7 +83,9 @@ CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLau
 	if(err != CHIAKI_ERR_SUCCESS)
 		return -1;
 
-	int written = snprintf(buf, buf_size, launchspec_fmt, launch_spec->mtu, launch_spec->rtt, handshake_key_b64);
+	int written = snprintf(buf, buf_size, launchspec_fmt,
+			launch_spec->width, launch_spec->height, launch_spec->max_fps,
+			launch_spec->mtu, launch_spec->rtt, handshake_key_b64);
 	if(written < 0 || written >= buf_size)
 		return -1;
 	return written;
