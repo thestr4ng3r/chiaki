@@ -75,11 +75,13 @@ class StreamSession : public QObject
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushVideoSample(uint8_t *buf, size_t buf_size);
+		void Event(ChiakiEvent *event);
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
 		~StreamSession();
 
+		void Start();
 		void Stop();
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
@@ -91,6 +93,7 @@ class StreamSession : public QObject
 
 	signals:
 		void CurrentImageUpdated();
+		void SessionQuit(ChiakiQuitReason reason);
 
 	private slots:
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
@@ -98,5 +101,7 @@ class StreamSession : public QObject
 #endif
 		void SendFeedbackState();
 };
+
+Q_DECLARE_METATYPE(ChiakiQuitReason)
 
 #endif // CHIAKI_STREAMSESSION_H

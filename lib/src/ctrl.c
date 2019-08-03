@@ -326,7 +326,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	{
 		int errsv = errno;
 		CHIAKI_LOGE(&session->log, "Ctrl connect failed: %s", strerror(errsv));
-		ctrl_failed(ctrl, errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		ctrl_failed(ctrl, errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 		close(sock);
 		return CHIAKI_ERR_NETWORK;
 	}

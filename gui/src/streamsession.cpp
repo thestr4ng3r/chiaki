@@ -32,6 +32,7 @@
 
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
+static void EventCb(ChiakiEvent *event, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent)
@@ -93,14 +94,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	chiaki_session_set_audio_frame_cb(&session, AudioFrameCb, this);
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
-
-	err = chiaki_session_start(&session);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		chiaki_session_fini(&session);
-		throw ChiakiException("Chiaki Session Start failed");
-	}
-
+	chiaki_session_set_event_cb(&session, EventCb, this);
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	connect(QGamepadManager::instance(), &QGamepadManager::connectedGamepadsChanged, this, &StreamSession::UpdateGamepads);
@@ -115,6 +109,16 @@ StreamSession::~StreamSession()
 #endif
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
+}
+
+void StreamSession::Start()
+{
+	ChiakiErrorCode err = chiaki_session_start(&session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_session_fini(&session);
+		throw ChiakiException("Chiaki Session Start failed");
+	}
 }
 
 void StreamSession::Stop()
@@ -247,11 +251,22 @@ void StreamSession::PushVideoSample(uint8_t *buf, size_t buf_size)
 	video_decoder.PutFrame(buf, buf_size);
 }
 
+void StreamSession::Event(ChiakiEvent *event)
+{
+	switch(event->type)
+	{
+		case CHIAKI_EVENT_QUIT:
+			emit SessionQuit(event->quit.reason);
+			break;
+	}
+}
+
 class StreamSessionPrivate
 {
 	public:
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count) { session->PushAudioFrame(buf, samples_count); }
 		static void PushVideoSample(StreamSession *session, uint8_t *buf, size_t buf_size) { session->PushVideoSample(buf, buf_size); }
+		static void Event(StreamSession *session, ChiakiEvent *event) { session->Event(event); }
 };
 
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
@@ -264,4 +279,10 @@ static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushVideoSample(session, buf, buf_size);
+}
+
+static void EventCb(ChiakiEvent *event, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::Event(session, event);
 }

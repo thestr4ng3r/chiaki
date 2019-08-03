@@ -22,6 +22,8 @@ int RunMain(QApplication &app);
 
 int main(int argc, char *argv[])
 {
+	qRegisterMetaType<ChiakiQuitReason>();
+
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("Chiaki");
 

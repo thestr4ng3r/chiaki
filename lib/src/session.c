@@ -43,6 +43,31 @@
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
+CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
+{
+	switch(reason)
+	{
+		case CHIAKI_QUIT_REASON_STOPPED:
+			return "Stopped";
+		case CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN:
+			return "Unknown Session Request Error";
+		case CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED:
+			return "Connection Refused in Session Request";
+		case CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE:
+			return "Remote Play on Console is already in use";
+		case CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH:
+			return "Remote Play on Console has crashed";
+		case CHIAKI_QUIT_REASON_CTRL_UNKNOWN:
+			return "Unknown Ctrl Error";
+		case CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED:
+			return "Connection Refused in Ctrl";
+		case CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN:
+			return "Unknown Error in Stream Connection";
+		case CHIAKI_QUIT_REASON_NONE:
+		default:
+			return "Unknown";
+	}
+}
 
 static void *session_thread_func(void *arg);
 
@@ -291,9 +316,15 @@ static void *session_thread_func(void *arg)
 	err = chiaki_stream_connection_run(&session->stream_connection);
 	chiaki_mutex_lock(&session->state_mutex);
 	if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_CANCELED)
+	{
 		CHIAKI_LOGE(&session->log, "StreamConnection run failed");
+		session->quit_reason = CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN;
+	}
 	else
+	{
 		CHIAKI_LOGI(&session->log, "StreamConnection completed successfully");
+		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
+	}
 
 	chiaki_video_receiver_free(session->video_receiver);
 	session->video_receiver = NULL;

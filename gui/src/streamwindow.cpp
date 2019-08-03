@@ -33,10 +33,14 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 
 	session = new StreamSession(connect_info, this);
 
+	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
+
 	connect(session->GetVideoDecoder(), &VideoDecoder::FramesAvailable, this, &StreamWindow::FramesAvailable);
 	FramesAvailable();
 
 	grabKeyboard();
+
+	session->Start();
 }
 
 StreamWindow::~StreamWindow()
@@ -58,7 +62,7 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 	session->HandleKeyboardEvent(event);
 }
 
-void StreamWindow::closeEvent(QCloseEvent *event)
+void StreamWindow::closeEvent(QCloseEvent *)
 {
 	session->Stop();
 }
@@ -77,4 +81,12 @@ void StreamWindow::FramesAvailable()
 	{
 		SetImage(prev);
 	}
+}
+
+void StreamWindow::SessionQuit(ChiakiQuitReason reason)
+{
+	if(reason == CHIAKI_QUIT_REASON_STOPPED)
+		return;
+	QMessageBox::critical(this, tr("Session has quit"), tr("Chiaki Session has quit:") + "\n" + chiaki_quit_reason_string(reason));
+	close();
 }
