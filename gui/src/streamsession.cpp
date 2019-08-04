@@ -249,7 +249,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 
 void StreamSession::PushVideoSample(uint8_t *buf, size_t buf_size)
 {
-	video_decoder.PutFrame(buf, buf_size);
+	video_decoder.PushFrame(buf, buf_size);
 }
 
 void StreamSession::Event(ChiakiEvent *event)

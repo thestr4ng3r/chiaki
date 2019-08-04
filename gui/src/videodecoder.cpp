@@ -39,7 +39,7 @@ VideoDecoder::~VideoDecoder()
 	// TODO: free codec?
 }
 
-void VideoDecoder::PutFrame(uint8_t *buf, size_t buf_size)
+void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 {
 	{
 		QMutexLocker locker(&mutex);
@@ -54,48 +54,36 @@ void VideoDecoder::PutFrame(uint8_t *buf, size_t buf_size)
 	emit FramesAvailable();
 }
 
-QImage VideoDecoder::PullFrame()
+AVFrame *VideoDecoder::PullFrame()
 {
 	QMutexLocker locker(&mutex);
 
-	AVFrame *frame = av_frame_alloc(); // TODO: handle !frame
-	int r = avcodec_receive_frame(codec_context, frame);
-
-	if(r != 0)
+	// always try to pull as much as possible and return only the very last frame
+	AVFrame *frame_last = nullptr;
+	AVFrame *frame = nullptr;
+	while(true)
 	{
-		if(r != AVERROR(EAGAIN))
-			printf("decoding with ffmpeg failed!!\n");
-		av_frame_free(&frame);
-		return QImage();
-	}
-
-	switch(frame->format)
-	{
-		case AV_PIX_FMT_YUV420P:
-			break;
-		default:
-			printf("unknown format %d\n", frame->format);
-			av_frame_free(&frame);
-			return QImage();
-	}
-
-
-	QImage image(frame->width, frame->height, QImage::Format_RGB32);
-	for(int y=0; y<frame->height; y++)
-	{
-		for(int x=0; x<frame->width; x++)
+		AVFrame *next_frame;
+		if(frame_last)
 		{
-			int Y = frame->data[0][y * frame->linesize[0] + x] - 16;
-			int U = frame->data[1][(y/2) * frame->linesize[1] + (x/2)] - 128;
-			int V = frame->data[2][(y/2) * frame->linesize[2] + (x/2)] - 128;
-			int r = qBound(0, (298 * Y + 409 * V + 128) >> 8, 255);
-			int g = qBound(0, (298 * Y - 100 * U - 208 * V + 128) >> 8, 255);
-			int b = qBound(0, (298 * Y + 516 * U + 128) >> 8, 255);
-			image.setPixel(x, y, qRgb(r, g, b));
+			av_frame_unref(frame_last);
+			next_frame = frame_last;
+		}
+		else
+		{
+			next_frame = av_frame_alloc();
+			if(!next_frame)
+				return frame;
+		}
+		frame_last = frame;
+		frame = next_frame;
+		int r = avcodec_receive_frame(codec_context, frame);
+		if(r != 0)
+		{
+			if(r != AVERROR(EAGAIN))
+				printf("decoding with ffmpeg failed!!\n"); // TODO: log somewhere else
+			av_frame_free(&frame);
+			return frame_last;
 		}
 	}
-
-	av_frame_free(&frame);
-
-	return image;
 }

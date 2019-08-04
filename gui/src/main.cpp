@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
 		connect_info.did = parser.value(did_option);
 
 		chiaki_connect_video_profile_preset(&connect_info.video_profile,
-				CHIAKI_VIDEO_RESOLUTION_PRESET_360p,
-				CHIAKI_VIDEO_FPS_PRESET_30);
+				CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
+				CHIAKI_VIDEO_FPS_PRESET_60);
 
 		if(connect_info.registkey.isEmpty() || connect_info.ostype.isEmpty() || connect_info.auth.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
 			parser.showHelp(1);

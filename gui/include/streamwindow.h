@@ -23,6 +23,7 @@
 #include "streamsession.h"
 
 class QLabel;
+class AVOpenGLWidget;
 
 class StreamWindow: public QMainWindow
 {
@@ -30,14 +31,12 @@ class StreamWindow: public QMainWindow
 
 	public:
 		explicit StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent = nullptr);
-		~StreamWindow();
+		~StreamWindow() override;
 
 	private:
 		StreamSession *session;
 
-		QLabel *imageLabel;
-
-		void SetImage(const QImage &image);
+		AVOpenGLWidget *av_widget;
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
@@ -45,7 +44,6 @@ class StreamWindow: public QMainWindow
 		void closeEvent(QCloseEvent *event) override;
 
 	private slots:
-		void FramesAvailable();
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 };
 

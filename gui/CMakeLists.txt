@@ -5,7 +5,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	find_package(Qt5 REQUIRED COMPONENTS Gamepad)
 endif()
@@ -29,12 +29,14 @@ add_executable(chiaki
 		include/discoverymanager.h
 		src/discoverymanager.cpp
 		include/streamsession.h
-		src/streamsession.cpp)
+		src/streamsession.cpp
+		include/avopenglwidget.h
+		src/avopenglwidget.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
 target_link_libraries(chiaki FFMPEG::avcodec)
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	target_link_libraries(chiaki Qt5::Gamepad)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_GAMEPAD)

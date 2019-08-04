@@ -15,38 +15,40 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_VIDEODECODER_H
-#define CHIAKI_VIDEODECODER_H
+#ifndef CHIAKI_AVOPENGLWIDGET_H
+#define CHIAKI_AVOPENGLWIDGET_H
 
-#include <QMutex>
-#include <QObject>
+#include <QOpenGLWidget>
 
 extern "C"
 {
 #include <libavcodec/avcodec.h>
 }
 
-#include <cstdint>
+class VideoDecoder;
 
-class VideoDecoder: public QObject
+class AVOpenGLWidget: public QOpenGLWidget
 {
 	Q_OBJECT
 
-	public:
-		VideoDecoder();
-		~VideoDecoder();
-
-		void PushFrame(uint8_t *buf, size_t buf_size);
-		AVFrame *PullFrame();
-
-	signals:
-		void FramesAvailable();
-
 	private:
-		QMutex mutex;
+		VideoDecoder *decoder;
 
-		AVCodec *codec;
-		AVCodecContext *codec_context;
+		GLuint program;
+		GLuint vbo;
+		GLuint vao;
+		GLuint tex[3];
+		unsigned int frame_width, frame_height;
+
+		void UpdateTextures(AVFrame *frame);
+
+	public:
+		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);
+
+	protected:
+		void initializeGL() override;
+		void resizeGL(int w, int h) override;
+		void paintGL() override;
 };
 
-#endif // CHIAKI_VIDEODECODER_H
+#endif // CHIAKI_AVOPENGLWIDGET_H

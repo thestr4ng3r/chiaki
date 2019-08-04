@@ -17,6 +17,7 @@
 
 #include <streamwindow.h>
 #include <streamsession.h>
+#include <avopenglwidget.h>
 
 #include <QLabel>
 #include <QMessageBox>
@@ -24,19 +25,12 @@
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
 {
-	imageLabel = new QLabel(this);
-	setCentralWidget(imageLabel);
-
-	imageLabel->setBackgroundRole(QPalette::Base);
-	imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-	imageLabel->setScaledContents(true);
-
 	session = new StreamSession(connect_info, this);
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 
-	connect(session->GetVideoDecoder(), &VideoDecoder::FramesAvailable, this, &StreamWindow::FramesAvailable);
-	FramesAvailable();
+	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+	setCentralWidget(av_widget);
 
 	grabKeyboard();
 
@@ -45,11 +39,8 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 
 StreamWindow::~StreamWindow()
 {
-}
-
-void StreamWindow::SetImage(const QImage &image)
-{
-	imageLabel->setPixmap(QPixmap::fromImage(image));
+	// make sure av_widget is always deleted before the session
+	delete av_widget;
 }
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
@@ -65,22 +56,6 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 void StreamWindow::closeEvent(QCloseEvent *)
 {
 	session->Stop();
-}
-
-void StreamWindow::FramesAvailable()
-{
-	QImage prev;
-	QImage image;
-	do
-	{
-		prev = image;
-		image = session->GetVideoDecoder()->PullFrame();
-	} while(!image.isNull());
-
-	if(!prev.isNull())
-	{
-		SetImage(prev);
-	}
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
