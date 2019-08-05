@@ -52,7 +52,9 @@ class AVOpenGLWidget: public QOpenGLWidget
 		AVOpenGLFrame frames[2];
 		int frame_fg;
 		QMutex frames_mutex;
+		QOpenGLContext *frame_uploader_context;
 		AVOpenGLFrameUploader *frame_uploader;
+		QThread *frame_uploader_thread;
 
 	public:
 		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);

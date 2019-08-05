@@ -22,6 +22,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLDebugLogger>
+#include <QThread>
 
 //#define DEBUG_OPENGL
 
@@ -85,12 +86,18 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 #endif
 	setFormat(format);
 
+	frame_uploader_context = nullptr;
 	frame_uploader = nullptr;
+	frame_uploader_thread = nullptr;
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
 {
+	frame_uploader_thread->quit();
+	frame_uploader_thread->wait();
+	delete frame_uploader_thread;
 	delete frame_uploader;
+	delete frame_uploader_context;
 }
 
 void AVOpenGLWidget::SwapFrames()
@@ -127,7 +134,7 @@ bool AVOpenGLFrame::Update(AVFrame *frame)
 		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, frame->data[i]);
 	}
 
-	f->glFinish(); // TODO: fence
+	f->glFinish();
 
 	return true;
 }
@@ -210,8 +217,22 @@ void AVOpenGLWidget::initializeGL()
 	f->glEnable(GL_CULL_FACE);
 	f->glClearColor(0.0, 0.0, 0.0, 1.0);
 
-	frame_uploader = new AVOpenGLFrameUploader(decoder, this);
+	frame_uploader_context = new QOpenGLContext(nullptr);
+	frame_uploader_context->setFormat(context()->format());
+	frame_uploader_context->setShareContext(context());
+	if(!frame_uploader_context->create())
+	{
+		printf("Failed to create upload context!\n"); // TODO: log to somewhere else
+		return;
+	}
+
+	frame_uploader = new AVOpenGLFrameUploader(decoder, this, frame_uploader_context, context()->surface());
 	frame_fg = 0;
+
+	frame_uploader_thread = new QThread(this);
+	frame_uploader_context->moveToThread(frame_uploader_thread);
+	frame_uploader->moveToThread(frame_uploader_thread);
+	frame_uploader_thread->start();
 }
 
 void AVOpenGLWidget::resizeGL(int w, int h)
@@ -258,5 +279,5 @@ void AVOpenGLWidget::paintGL()
 
 	f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	f->glFinish(); // TODO: fence
+	f->glFinish();
 }

@@ -22,17 +22,21 @@
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 
-AVOpenGLFrameUploader::AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget)
+AVOpenGLFrameUploader::AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface)
 	: QObject(nullptr),
 	decoder(decoder),
-	widget(widget)
+	widget(widget),
+	context(context),
+	surface(surface)
 {
-
 	connect(decoder, SIGNAL(FramesAvailable()), this, SLOT(UpdateFrame()));
 }
 
 void AVOpenGLFrameUploader::UpdateFrame()
 {
+	if(QOpenGLContext::currentContext() != context)
+		context->makeCurrent(surface);
+
 	AVFrame *next_frame = decoder->PullFrame();
 	if(!next_frame)
 		return;

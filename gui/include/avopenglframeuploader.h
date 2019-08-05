@@ -23,6 +23,7 @@
 
 class AVOpenGLWidget;
 class VideoDecoder;
+class QSurface;
 
 class AVOpenGLFrameUploader: public QObject
 {
@@ -31,12 +32,14 @@ class AVOpenGLFrameUploader: public QObject
 	private:
 		VideoDecoder *decoder;
 		AVOpenGLWidget *widget;
+		QOpenGLContext *context;
+		QSurface *surface;
 
 	private slots:
 		void UpdateFrame();
 
 	public:
-		AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget);
+		AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface);
 };
 
 #endif // CHIAKI_AVOPENGLFRAMEUPLOADER_H
