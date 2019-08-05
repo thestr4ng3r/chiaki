@@ -19,6 +19,7 @@
 #define CHIAKI_AVOPENGLWIDGET_H
 
 #include <QOpenGLWidget>
+#include <QMutex>
 
 extern "C"
 {
@@ -26,6 +27,16 @@ extern "C"
 }
 
 class VideoDecoder;
+class AVOpenGLFrameUploader;
+
+struct AVOpenGLFrame
+{
+	GLuint tex[3];
+	unsigned int width;
+	unsigned int height;
+
+	bool Update(AVFrame *frame);
+};
 
 class AVOpenGLWidget: public QOpenGLWidget
 {
@@ -37,13 +48,18 @@ class AVOpenGLWidget: public QOpenGLWidget
 		GLuint program;
 		GLuint vbo;
 		GLuint vao;
-		GLuint tex[3];
-		unsigned int frame_width, frame_height;
 
-		void UpdateTextures(AVFrame *frame);
+		AVOpenGLFrame frames[2];
+		int frame_fg;
+		QMutex frames_mutex;
+		AVOpenGLFrameUploader *frame_uploader;
 
 	public:
 		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);
+		~AVOpenGLWidget() override;
+
+		void SwapFrames();
+		AVOpenGLFrame *GetBackgroundFrame()	{ return &frames[1 - frame_fg]; }
 
 	protected:
 		void initializeGL() override;

@@ -31,7 +31,9 @@ add_executable(chiaki
 		include/streamsession.h
 		src/streamsession.cpp
 		include/avopenglwidget.h
-		src/avopenglwidget.cpp)
+		src/avopenglwidget.cpp
+		include/avopenglframeuploader.h
+		src/avopenglframeuploader.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)

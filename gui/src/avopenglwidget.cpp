@@ -17,6 +17,7 @@
 
 #include <avopenglwidget.h>
 #include <videodecoder.h>
+#include <avopenglframeuploader.h>
 
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
@@ -84,10 +85,51 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 #endif
 	setFormat(format);
 
-	frame_width = 0;
-	frame_height = 0;
+	frame_uploader = nullptr;
+}
 
-	connect(decoder, SIGNAL(FramesAvailable()), this, SLOT(update()));
+AVOpenGLWidget::~AVOpenGLWidget()
+{
+	delete frame_uploader;
+}
+
+void AVOpenGLWidget::SwapFrames()
+{
+	QMutexLocker lock(&frames_mutex);
+	frame_fg = 1 - frame_fg;
+	QMetaObject::invokeMethod(this, "update");
+}
+
+bool AVOpenGLFrame::Update(AVFrame *frame)
+{
+	auto f = QOpenGLContext::currentContext()->functions();
+
+	if(frame->format != AV_PIX_FMT_YUV420P)
+	{
+		// TODO: log to somewhere else
+		printf("Invalid Format\n");
+		return false;
+	}
+
+	width = frame->width;
+	height = frame->height;
+
+	for(int i=0; i<3; i++)
+	{
+		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
+		int width = frame->width;
+		int height = frame->height;
+		if(i > 0)
+		{
+			width /= 2;
+			height /= 2;
+		}
+		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, frame->data[i]);
+	}
+
+	f->glFinish(); // TODO: fence
+
+	return true;
 }
 
 void AVOpenGLWidget::initializeGL()
@@ -131,16 +173,21 @@ void AVOpenGLWidget::initializeGL()
 		return;
 	}
 
-	f->glGenTextures(3, tex);
-	uint8_t uv_default = 127;
-	for(int i=0; i<3; i++)
+	for(int i=0; i<2; i++)
 	{
-		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
-		f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, i > 0 ? &uv_default : nullptr);
+		f->glGenTextures(3, frames[i].tex);
+		uint8_t uv_default = 127;
+		for(int j=0; j<3; j++)
+		{
+			f->glBindTexture(GL_TEXTURE_2D, frames[i].tex[j]);
+			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, j > 0 ? &uv_default : nullptr);
+		}
+		frames[i].width = 0;
+		frames[i].height = 0;
 	}
 
 	f->glUseProgram(program);
@@ -162,38 +209,13 @@ void AVOpenGLWidget::initializeGL()
 	f->glCullFace(GL_BACK);
 	f->glEnable(GL_CULL_FACE);
 	f->glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	frame_uploader = new AVOpenGLFrameUploader(decoder, this);
+	frame_fg = 0;
 }
 
 void AVOpenGLWidget::resizeGL(int w, int h)
 {
-}
-
-void AVOpenGLWidget::UpdateTextures(AVFrame *frame)
-{
-	auto f = QOpenGLContext::currentContext()->functions();
-
-	if(frame->format != AV_PIX_FMT_YUV420P)
-	{
-		// TODO: log to somewhere else
-		printf("Invalid Format\n");
-		return;
-	}
-
-	frame_width = frame->width;
-	frame_height = frame->height;
-
-	for(int i=0; i<3; i++)
-	{
-		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
-		int width = frame->width;
-		int height = frame->height;
-		if(i > 0)
-		{
-			width /= 2;
-			height /= 2;
-		}
-		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, frame->data[i]);
-	}
 }
 
 void AVOpenGLWidget::paintGL()
@@ -202,22 +224,18 @@ void AVOpenGLWidget::paintGL()
 
 	f->glClear(GL_COLOR_BUFFER_BIT);
 
-	AVFrame *next_frame = decoder->PullFrame();
-	if(next_frame)
-	{
-		UpdateTextures(next_frame);
-		av_frame_free(&next_frame);
-	}
+	QMutexLocker lock(&frames_mutex);
+	AVOpenGLFrame *frame = &frames[frame_fg];
 
 	GLsizei vp_width, vp_height;
-	if(!frame_width || !frame_height)
+	if(!frame->width || !frame->height)
 	{
 		vp_width = width();
 		vp_height = height();
 	}
 	else
 	{
-		float aspect = (float)frame_width / (float)frame_height;
+		float aspect = (float)frame->width / (float)frame->height;
 		if(aspect < (float)width() / (float)height())
 		{
 			vp_height = height();
@@ -235,8 +253,10 @@ void AVOpenGLWidget::paintGL()
 	for(int i=0; i<3; i++)
 	{
 		f->glActiveTexture(GL_TEXTURE0 + i);
-		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
+		f->glBindTexture(GL_TEXTURE_2D, frame->tex[i]);
 	}
 
 	f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	f->glFinish(); // TODO: fence
 }
