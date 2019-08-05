@@ -17,6 +17,8 @@
 
 #include <chiaki/common.h>
 
+#include <stdlib.h>
+
 
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 {
@@ -55,4 +57,9 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 		default:
 			return "Unknown";
 	}
+}
+
+void *chiaki_aligned_alloc(size_t alignment, size_t size)
+{
+	return aligned_alloc(alignment, size);
 }

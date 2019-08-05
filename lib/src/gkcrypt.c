@@ -28,35 +28,91 @@
 #include "utils.h"
 
 
+#define KEY_BUF_CHUNK_SIZE 0x1000
+
+
 static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret);
 
+static void *gkcrypt_thread_func(void *user);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, ChiakiLog *log, size_t key_buf_blocks, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, ChiakiLog *log, size_t key_buf_chunks, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
 {
 	gkcrypt->log = log;
-	gkcrypt->key_buf_size = key_buf_blocks * CHIAKI_GKCRYPT_BLOCK_SIZE;
-	gkcrypt->key_buf = malloc(gkcrypt->key_buf_size);
-	if(!gkcrypt->key_buf)
-		return CHIAKI_ERR_MEMORY;
+	gkcrypt->index = index;
 
-	ChiakiErrorCode err = gkcrypt_gen_key_iv(gkcrypt, index, handshake_key, ecdh_secret);
+	gkcrypt->key_buf_size = key_buf_chunks * KEY_BUF_CHUNK_SIZE;
+	gkcrypt->key_buf_populated = 0;
+	gkcrypt->key_buf_key_pos_min = 0;
+	gkcrypt->key_buf_start_offset = 0;
+	gkcrypt->last_key_pos = 0;
+	gkcrypt->key_buf_thread_stop = false;
+
+	ChiakiErrorCode err;
+	if(gkcrypt->key_buf_size)
+	{
+		gkcrypt->key_buf = chiaki_aligned_alloc(KEY_BUF_CHUNK_SIZE, gkcrypt->key_buf_size);
+		if(!gkcrypt->key_buf)
+		{
+			err = CHIAKI_ERR_MEMORY;
+			goto error;
+		}
+
+		err = chiaki_mutex_init(&gkcrypt->key_buf_mutex, false);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error_key_buf;
+
+		err = chiaki_cond_init(&gkcrypt->key_buf_cond);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error_key_buf_mutex;
+	}
+	else
+	{
+		gkcrypt->key_buf = NULL;
+	}
+
+	err = gkcrypt_gen_key_iv(gkcrypt, index, handshake_key, ecdh_secret);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(gkcrypt->log, "GKCrypt failed to generate key and IV");
-		free(gkcrypt->key_buf);
-		return CHIAKI_ERR_UNKNOWN;
+		goto error_key_buf_cond;
 	}
 
 	chiaki_gkcrypt_gen_gmac_key(0, gkcrypt->key_base, gkcrypt->iv, gkcrypt->key_gmac_base);
 	gkcrypt->key_gmac_index_current = 0;
 	memcpy(gkcrypt->key_gmac_current, gkcrypt->key_gmac_base, sizeof(gkcrypt->key_gmac_current));
 
+	if(gkcrypt->key_buf)
+	{
+		err = chiaki_thread_create(&gkcrypt->key_buf_thread, gkcrypt_thread_func, gkcrypt);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error_key_buf_cond;
+	}
+
 	return CHIAKI_ERR_SUCCESS;
+
+error_key_buf_cond:
+	if(gkcrypt->key_buf)
+		chiaki_cond_fini(&gkcrypt->key_buf_cond);
+error_key_buf_mutex:
+	if(gkcrypt->key_buf)
+		chiaki_mutex_fini(&gkcrypt->key_buf_mutex);
+error_key_buf:
+	free(gkcrypt->key_buf);
+error:
+	return err;
 }
 
 CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt)
 {
-	free(gkcrypt->key_buf);
+	if(gkcrypt->key_buf)
+	{
+		chiaki_mutex_lock(&gkcrypt->key_buf_mutex);
+		gkcrypt->key_buf_thread_stop = true;
+		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
+		chiaki_cond_signal(&gkcrypt->key_buf_cond);
+		chiaki_thread_join(&gkcrypt->key_buf_thread, NULL);
+		free(gkcrypt->key_buf);
+	}
 }
 
 
@@ -162,6 +218,53 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 	return CHIAKI_ERR_SUCCESS;
 }
 
+static bool gkcrypt_key_buf_should_generate(ChiakiGKCrypt *gkcrypt)
+{
+	return gkcrypt->last_key_pos > gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated / 2;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+{
+	if(!gkcrypt->key_buf)
+		return chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf, buf_size);
+
+	chiaki_mutex_lock(&gkcrypt->key_buf_mutex);
+
+	if(key_pos + buf_size > gkcrypt->last_key_pos)
+		gkcrypt->last_key_pos = key_pos + buf_size;
+	bool signal = gkcrypt_key_buf_should_generate(gkcrypt);
+
+	ChiakiErrorCode err;
+	if(key_pos < gkcrypt->key_buf_key_pos_min
+		|| key_pos + buf_size >= gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated)
+	{
+		CHIAKI_LOGW(gkcrypt->log, "Requested key stream for key pos %#llx on GKCrypt %d, but it's not in the buffer", (int)key_pos, gkcrypt->index);
+		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
+		err = chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf, buf_size);
+	}
+	else
+	{
+		size_t offset_in_buf = key_pos - gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_start_offset;
+		offset_in_buf %= gkcrypt->key_buf_size;
+		size_t end = offset_in_buf + buf_size;
+		if(end > gkcrypt->key_buf_size)
+		{
+			size_t excess = end - gkcrypt->key_buf_size;
+			memcpy(buf, gkcrypt->key_buf + offset_in_buf, buf_size - excess);
+			memcpy(buf + (buf_size - excess), gkcrypt->key_buf, excess);
+		}
+		else
+			memcpy(buf, gkcrypt->key_buf + offset_in_buf, buf_size);
+		err = CHIAKI_ERR_SUCCESS;
+		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
+	}
+
+	if(signal)
+		chiaki_cond_signal(&gkcrypt->key_buf_cond);
+
+	return err;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
 {
 	size_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
@@ -171,7 +274,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, siz
 	if(!key_stream)
 		return CHIAKI_ERR_MEMORY;
 
-	ChiakiErrorCode err = chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos - padding_pre, key_stream, full_size);
+	ChiakiErrorCode err = chiaki_gkcrypt_get_key_stream(gkcrypt, key_pos - padding_pre, key_stream, full_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		free(key_stream);
@@ -253,4 +356,90 @@ fail_cipher:
 	EVP_CIPHER_CTX_free(ctx);
 fail:
 	return ret;
+}
+
+static bool key_buf_mutex_pred(void *user)
+{
+	ChiakiGKCrypt *gkcrypt = user;
+	if(gkcrypt->key_buf_thread_stop)
+		return true;
+
+	if(gkcrypt->key_buf_populated < gkcrypt->key_buf_size)
+		return true;
+
+	if(gkcrypt_key_buf_should_generate(gkcrypt))
+		return true;
+
+	return false;
+}
+
+static ChiakiErrorCode gkcrypt_generate_next_chunk(ChiakiGKCrypt *gkcrypt)
+{
+	assert(gkcrypt->key_buf_populated + KEY_BUF_CHUNK_SIZE <= gkcrypt->key_buf_size);
+	size_t buf_offset = (gkcrypt->key_buf_start_offset + gkcrypt->key_buf_populated) % gkcrypt->key_buf_size;
+	size_t key_pos = gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated;
+	uint8_t *buf_start = gkcrypt->key_buf + buf_offset;
+
+	chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
+
+	ChiakiErrorCode err = chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf_start, KEY_BUF_CHUNK_SIZE);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(gkcrypt->log, "GKCrypt failed to generate key stream chunk");
+
+	chiaki_mutex_lock(&gkcrypt->key_buf_mutex);
+
+	if(err == CHIAKI_ERR_SUCCESS)
+		gkcrypt->key_buf_populated += KEY_BUF_CHUNK_SIZE;
+
+	return err;
+}
+
+static void *gkcrypt_thread_func(void *user)
+{
+	ChiakiGKCrypt *gkcrypt = user;
+
+	CHIAKI_LOGV(gkcrypt->log, "GKCrypt %d thread starting", (int)gkcrypt->index);
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&gkcrypt->key_buf_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	while(1)
+	{
+		err = chiaki_cond_wait_pred(&gkcrypt->key_buf_cond, &gkcrypt->key_buf_mutex, key_buf_mutex_pred, gkcrypt);
+		if(gkcrypt->key_buf_thread_stop || err != CHIAKI_ERR_SUCCESS)
+			break;
+
+		CHIAKI_LOGV(gkcrypt->log, "GKCrypt %d key buf size %#llx, start offset: %#llx, populated: %#llx, min key pos: %#llx, last key pos: %#llx, generating next chunk",
+					(int)gkcrypt->index,
+					(unsigned long long)gkcrypt->key_buf_size,
+					(unsigned long long)gkcrypt->key_buf_start_offset,
+					(unsigned long long)gkcrypt->key_buf_populated,
+					(unsigned long long)gkcrypt->key_buf_key_pos_min,
+					(unsigned long long)gkcrypt->last_key_pos);
+
+		if(gkcrypt->last_key_pos > gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated)
+		{
+			// skip ahead if the last key pos is already beyond our buffer
+			size_t key_pos = (gkcrypt->last_key_pos / KEY_BUF_CHUNK_SIZE) * KEY_BUF_CHUNK_SIZE;
+			CHIAKI_LOGW(gkcrypt->log, "Already requested a higher key pos than in the buffer, skipping ahead from min %#llx to %#llx",
+						(unsigned long long)gkcrypt->key_buf_key_pos_min,
+						(unsigned long long)key_pos);
+			gkcrypt->key_buf_key_pos_min = key_pos;
+			gkcrypt->key_buf_start_offset = 0;
+			gkcrypt->key_buf_populated = 0;
+		}
+		else if(gkcrypt->key_buf_populated == gkcrypt->key_buf_size)
+		{
+			gkcrypt->key_buf_start_offset = (gkcrypt->key_buf_start_offset + KEY_BUF_CHUNK_SIZE) % gkcrypt->key_buf_size;
+			gkcrypt->key_buf_key_pos_min += KEY_BUF_CHUNK_SIZE;
+			gkcrypt->key_buf_populated -= KEY_BUF_CHUNK_SIZE;
+		}
+
+		err = gkcrypt_generate_next_chunk(gkcrypt);
+		if(err != CHIAKI_ERR_SUCCESS)
+			break;
+	}
+
+	chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
+	return NULL;
 }

@@ -396,13 +396,13 @@ static ChiakiErrorCode stream_connection_init_crypt(ChiakiStreamConnection *stre
 {
 	ChiakiSession *session = stream_connection->session;
 
-	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 2, session->handshake_key, stream_connection->ecdh_secret);
+	stream_connection->gkcrypt_local = chiaki_gkcrypt_new(stream_connection->log, CHIAKI_GKCRYPT_KEY_BUF_BLOCKS_DEFAULT, 2, session->handshake_key, stream_connection->ecdh_secret);
 	if(!stream_connection->gkcrypt_local)
 	{
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize local GKCrypt with index 2");
 		return CHIAKI_ERR_UNKNOWN;
 	}
-	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(stream_connection->log, 0 /* TODO */, 3, session->handshake_key, stream_connection->ecdh_secret);
+	stream_connection->gkcrypt_remote = chiaki_gkcrypt_new(stream_connection->log, CHIAKI_GKCRYPT_KEY_BUF_BLOCKS_DEFAULT, 3, session->handshake_key, stream_connection->ecdh_secret);
 	if(!stream_connection->gkcrypt_remote)
 	{
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to initialize remote GKCrypt with index 3");

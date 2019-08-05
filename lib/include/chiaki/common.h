@@ -18,6 +18,8 @@
 #ifndef CHIAKI_COMMON_H
 #define CHIAKI_COMMON_H
 
+#include <unistd.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +50,8 @@ typedef enum
 } ChiakiErrorCode;
 
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
+
+void *chiaki_aligned_alloc(size_t alignment, size_t size);
 
 #ifdef __cplusplus
 }
