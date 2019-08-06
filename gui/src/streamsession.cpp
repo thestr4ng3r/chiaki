@@ -172,7 +172,7 @@ void StreamSession::UpdateGamepads()
 	{
 		if(gamepad)
 		{
-			qDebug() << "gamepad" << gamepad->deviceId() << "disconnected";
+			CHIAKI_LOGI(log.GetChiakiLog(), "Gamepad %d disconnected", gamepad->deviceId());
 			delete gamepad;
 			gamepad = nullptr;
 		}
@@ -180,7 +180,7 @@ void StreamSession::UpdateGamepads()
 		if(!connected_pads.isEmpty())
 		{
 			gamepad = new QGamepad(connected_pads[0], this);
-			qDebug() << "gamepad" << connected_pads[0] << "connected: " << gamepad->name();
+			CHIAKI_LOGI(log.GetChiakiLog(), "Gamepad %d connected: \"%s\"", connected_pads[0], gamepad->name().toLocal8Bit().constData());
 			connect(gamepad, &QGamepad::buttonAChanged, this, &StreamSession::SendFeedbackState);
 			connect(gamepad, &QGamepad::buttonBChanged, this, &StreamSession::SendFeedbackState);
 			connect(gamepad, &QGamepad::buttonXChanged, this, &StreamSession::SendFeedbackState);
