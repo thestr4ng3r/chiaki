@@ -26,7 +26,6 @@
 
 #include <QKeyEvent>
 #include <QAudioOutput>
-#include <QDebug>
 
 #include <cstring>
 

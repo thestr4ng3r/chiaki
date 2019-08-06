@@ -21,7 +21,9 @@
 #include <chiaki/log.h>
 
 #include <QString>
+#include <QMutex>
 
+class QFile;
 class StreamSession;
 
 class SessionLog
@@ -30,15 +32,19 @@ class SessionLog
 
 	private:
 		StreamSession *session;
-		ChiakiLog chiaki_log;
+		ChiakiLog log;
+		QFile *file;
+		QMutex file_mutex;
 
 		void Log(ChiakiLogLevel level, const char *msg);
 
 	public:
 		SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename);
+		~SessionLog();
 
-		ChiakiLog *GetChiakiLog()	{ return &chiaki_log; }
-
+		ChiakiLog *GetChiakiLog()	{ return &log; }
 };
+
+QString CreateLogFilename();
 
 #endif //CHIAKI_SESSIONLOG_H
