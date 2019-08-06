@@ -48,7 +48,7 @@ static ChiakiErrorCode senkusha_send_disconnect(ChiakiSenkusha *senkusha);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, ChiakiSession *session)
 {
 	senkusha->session = session;
-	senkusha->log = &session->log;
+	senkusha->log = session->log;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&senkusha->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -129,7 +129,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha connect failed");
+		CHIAKI_LOGE(session->log, "Senkusha connect failed");
 		QUIT(quit);
 	}
 
@@ -138,17 +138,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	if(!senkusha->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Senkusha connect timeout");
+			CHIAKI_LOGE(session->log, "Senkusha connect timeout");
 
 		if(senkusha->should_stop)
 			err = CHIAKI_ERR_CANCELED;
 		else
-			CHIAKI_LOGE(&session->log, "Senkusha Takion connect failed");
+			CHIAKI_LOGE(session->log, "Senkusha Takion connect failed");
 
 		QUIT(quit_takion);
 	}
 
-	CHIAKI_LOGI(&session->log, "Senkusha sending big");
+	CHIAKI_LOGI(session->log, "Senkusha sending big");
 
 	senkusha->state = STATE_EXPECT_BANG;
 	senkusha->state_finished = false;
@@ -156,7 +156,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	err = senkusha_send_big(senkusha);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha failed to send big");
+		CHIAKI_LOGE(session->log, "Senkusha failed to send big");
 		QUIT(quit_takion);
 	}
 
@@ -166,21 +166,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	if(!senkusha->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "Senkusha bang receive timeout");
+			CHIAKI_LOGE(session->log, "Senkusha bang receive timeout");
 
 		if(senkusha->should_stop)
 			err = CHIAKI_ERR_CANCELED;
 		else
-			CHIAKI_LOGE(&session->log, "Senkusha didn't receive bang");
+			CHIAKI_LOGE(session->log, "Senkusha didn't receive bang");
 
 		QUIT(quit_takion);
 	}
 
-	CHIAKI_LOGI(&session->log, "Senkusha successfully received bang");
+	CHIAKI_LOGI(session->log, "Senkusha successfully received bang");
 
 	// TODO: Do the actual tests
 
-	CHIAKI_LOGI(&session->log, "Senkusha is disconnecting");
+	CHIAKI_LOGI(session->log, "Senkusha is disconnecting");
 
 	senkusha_send_disconnect(senkusha);
 	chiaki_mutex_unlock(&senkusha->state_mutex);
@@ -188,7 +188,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	err = CHIAKI_ERR_SUCCESS;
 quit_takion:
 	chiaki_takion_close(&senkusha->takion);
-	CHIAKI_LOGI(&session->log, "Senkusha closed takion");
+	CHIAKI_LOGI(session->log, "Senkusha closed takion");
 quit:
 	return err;
 }

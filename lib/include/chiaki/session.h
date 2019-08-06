@@ -171,7 +171,7 @@ typedef struct chiaki_session_t
 
 	ChiakiCtrl ctrl;
 
-	ChiakiLog log;
+	ChiakiLog *log;
 
 	ChiakiStreamConnection stream_connection;
 	ChiakiAudioReceiver *audio_receiver;
@@ -180,7 +180,7 @@ typedef struct chiaki_session_t
 	ChiakiControllerState controller_state;
 } ChiakiSession;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log);
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);

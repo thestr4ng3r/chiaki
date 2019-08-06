@@ -67,4 +67,4 @@ CHIAKI_EXPORT void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, 
 }
 #endif
 
-#endif // CHIAKI_LOG_H
+#endif //CHIAKI_LOG_H

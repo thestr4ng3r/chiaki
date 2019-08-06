@@ -31,6 +31,8 @@ add_executable(chiaki
 		src/discoverymanager.cpp
 		include/streamsession.h
 		src/streamsession.cpp
+		include/sessionlog.h
+		src/sessionlog.cpp
 		include/avopenglwidget.h
 		src/avopenglwidget.cpp
 		include/avopenglframeuploader.h

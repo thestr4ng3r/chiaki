@@ -66,7 +66,7 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnection *stream_connection, ChiakiSession *session)
 {
 	stream_connection->session = session;
-	stream_connection->log = &session->log;
+	stream_connection->log = session->log;
 
 	stream_connection->ecdh_secret = NULL;
 	stream_connection->gkcrypt_remote = NULL;
@@ -159,7 +159,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection connect failed");
+		CHIAKI_LOGE(session->log, "StreamConnection connect failed");
 		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		return err;
 	}
@@ -169,11 +169,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	CHECK_STOP(close_takion);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection Takion connect failed");
+		CHIAKI_LOGE(session->log, "StreamConnection Takion connect failed");
 		goto close_takion;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection sending big");
+	CHIAKI_LOGI(session->log, "StreamConnection sending big");
 
 	stream_connection->state = STATE_EXPECT_BANG;
 	stream_connection->state_finished = false;
@@ -181,7 +181,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = stream_connection_send_big(stream_connection);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection failed to send big");
+		CHIAKI_LOGE(session->log, "StreamConnection failed to send big");
 		goto disconnect;
 	}
 
@@ -192,14 +192,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "StreamConnection bang receive timeout");
+			CHIAKI_LOGE(session->log, "StreamConnection bang receive timeout");
 
-		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive bang or failed to handle it");
+		CHIAKI_LOGE(session->log, "StreamConnection didn't receive bang or failed to handle it");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection successfully received bang");
+	CHIAKI_LOGI(session->log, "StreamConnection successfully received bang");
 
 	stream_connection->state = STATE_EXPECT_STREAMINFO;
 	stream_connection->state_finished = false;
@@ -211,14 +211,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->state_finished)
 	{
 		if(err == CHIAKI_ERR_TIMEOUT)
-			CHIAKI_LOGE(&session->log, "StreamConnection streaminfo receive timeout");
+			CHIAKI_LOGE(session->log, "StreamConnection streaminfo receive timeout");
 
-		CHIAKI_LOGE(&session->log, "StreamConnection didn't receive streaminfo");
+		CHIAKI_LOGE(session->log, "StreamConnection didn't receive streaminfo");
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
 
-	CHIAKI_LOGI(&session->log, "StreamConnection successfully received streaminfo");
+	CHIAKI_LOGI(session->log, "StreamConnection successfully received streaminfo");
 
 	err = chiaki_mutex_lock(&stream_connection->feedback_sender_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -258,7 +258,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	err = CHIAKI_ERR_SUCCESS;
 
 disconnect:
-	CHIAKI_LOGI(&session->log, "StreamConnection is disconnecting");
+	CHIAKI_LOGI(session->log, "StreamConnection is disconnecting");
 	stream_connection_send_disconnect(stream_connection);
 
 	if(stream_connection->should_stop)
@@ -276,7 +276,7 @@ close_takion:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 	chiaki_takion_close(&stream_connection->takion);
-	CHIAKI_LOGI(&session->log, "StreamConnection closed takion");
+	CHIAKI_LOGI(session->log, "StreamConnection closed takion");
 
 	return err;
 }
@@ -535,7 +535,7 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 
 	if(!header_buf.buf)
 	{
-		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to decode video header");
+		CHIAKI_LOGE(ctx->stream_connection->session->log, "Failed to decode video header");
 		return true;
 	}
 
@@ -543,14 +543,14 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 	if(!header_buf_padded)
 	{
 		free(header_buf.buf);
-		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to realloc video header with padding");
+		CHIAKI_LOGE(ctx->stream_connection->session->log, "Failed to realloc video header with padding");
 		return true;
 	}
 	memset(header_buf_padded + header_buf.size, 0, CHIAKI_VIDEO_BUFFER_PADDING_SIZE);
 
 	if(ctx->video_profiles_count >= CHIAKI_VIDEO_PROFILES_MAX)
 	{
-		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Received more resolutions than the maximum");
+		CHIAKI_LOGE(ctx->stream_connection->session->log, "Received more resolutions than the maximum");
 		return true;
 	}
 

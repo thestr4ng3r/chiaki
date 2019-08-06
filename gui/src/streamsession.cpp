@@ -35,7 +35,8 @@ static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 static void EventCb(ChiakiEvent *event, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
-	: QObject(parent)
+	: QObject(parent),
+	log(this, connect_info.log_level_mask, connect_info.log_file)
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	,gamepad(nullptr)
 #endif
@@ -89,7 +90,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
-	err = chiaki_session_init(&session, &chiaki_connect_info);
+	err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 

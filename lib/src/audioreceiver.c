@@ -27,7 +27,7 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, ChiakiSession *session)
 {
 	audio_receiver->session = session;
-	audio_receiver->log = &session->log;
+	audio_receiver->log = session->log;
 	audio_receiver->opus_decoder = NULL;
 	memset(&audio_receiver->audio_header, 0, sizeof(audio_receiver->audio_header));
 

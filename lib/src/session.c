@@ -114,11 +114,11 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 static void *session_thread_func(void *arg);
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log)
 {
 	memset(session, 0, sizeof(ChiakiSession));
 
-	chiaki_log_init(&session->log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, NULL, NULL);
+	session->log = log;
 
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 
@@ -140,7 +140,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection init failed");
+		CHIAKI_LOGE(session->log, "StreamConnection init failed");
 		goto error_stop_pipe;
 	}
 
@@ -279,20 +279,20 @@ static void *session_thread_func(void *arg)
 
 	CHECK_STOP(quit);
 
-	CHIAKI_LOGI(&session->log, "Starting session request");
+	CHIAKI_LOGI(session->log, "Starting session request");
 
 	success = session_thread_request_session(session);
 	if(!success)
 		QUIT(quit);
 
-	CHIAKI_LOGI(&session->log, "Session request successful");
+	CHIAKI_LOGI(session->log, "Session request successful");
 
 	chiaki_rpcrypt_init(&session->rpcrypt, session->nonce, session->connect_info.morning);
 
 	// PS4 doesn't always react right away, sleep a bit
 	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10, session_check_state_pred, session);
 
-	CHIAKI_LOGI(&session->log, "Starting ctrl");
+	CHIAKI_LOGI(session->log, "Starting ctrl");
 
 	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -303,14 +303,14 @@ static void *session_thread_func(void *arg)
 
 	if(!session->ctrl_session_id_received)
 	{
-		CHIAKI_LOGE(&session->log, "Ctrl has failed, shutting down");
+		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
 			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
 		QUIT(quit_ctrl);
 	}
 
 #ifdef ENABLE_SENKUSHA
-	CHIAKI_LOGI(&session->log, "Starting Senkusha");
+	CHIAKI_LOGI(session->log, "Starting Senkusha");
 
 	ChiakiSenkusha senkusha;
 	err = chiaki_senkusha_init(&senkusha, session);
@@ -322,11 +322,11 @@ static void *session_thread_func(void *arg)
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Senkusha failed");
+		CHIAKI_LOGE(session->log, "Senkusha failed");
 		QUIT(quit_ctrl);
 	}
 
-	CHIAKI_LOGI(&session->log, "Senkusha completed successfully");
+	CHIAKI_LOGI(session->log, "Senkusha completed successfully");
 #endif
 
 	// TODO: Senkusha should set that
@@ -336,28 +336,28 @@ static void *session_thread_func(void *arg)
 	err = chiaki_random_bytes(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Session failed to generate handshake key");
+		CHIAKI_LOGE(session->log, "Session failed to generate handshake key");
 		QUIT(quit_ctrl);
 	}
 
 	err = chiaki_ecdh_init(&session->ecdh);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Session failed to initialize ECDH");
+		CHIAKI_LOGE(session->log, "Session failed to initialize ECDH");
 		QUIT(quit_ctrl);
 	}
 
 	session->audio_receiver = chiaki_audio_receiver_new(session);
 	if(!session->audio_receiver)
 	{
-		CHIAKI_LOGE(&session->log, "Session failed to initialize Audio Receiver");
+		CHIAKI_LOGE(session->log, "Session failed to initialize Audio Receiver");
 		QUIT(quit_ecdh);
 	}
 
 	session->video_receiver = chiaki_video_receiver_new(session);
 	if(!session->video_receiver)
 	{
-		CHIAKI_LOGE(&session->log, "Session failed to initialize Video Receiver");
+		CHIAKI_LOGE(session->log, "Session failed to initialize Video Receiver");
 		QUIT(quit_audio_receiver);
 	}
 
@@ -366,18 +366,18 @@ static void *session_thread_func(void *arg)
 	chiaki_mutex_lock(&session->state_mutex);
 	if(err == CHIAKI_ERR_DISCONNECTED)
 	{
-		CHIAKI_LOGE(&session->log, "Remote disconnected from StreamConnection");
+		CHIAKI_LOGE(session->log, "Remote disconnected from StreamConnection");
 		session->quit_reason = CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED;
 		session->quit_reason_str = strdup(session->stream_connection.remote_disconnect_reason);
 	}
 	else if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_CANCELED)
 	{
-		CHIAKI_LOGE(&session->log, "StreamConnection run failed");
+		CHIAKI_LOGE(session->log, "StreamConnection run failed");
 		session->quit_reason = CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN;
 	}
 	else
 	{
-		CHIAKI_LOGI(&session->log, "StreamConnection completed successfully");
+		CHIAKI_LOGI(session->log, "StreamConnection completed successfully");
 		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
 	}
 
@@ -396,12 +396,12 @@ quit_ecdh:
 quit_ctrl:
 	chiaki_ctrl_stop(&session->ctrl);
 	chiaki_ctrl_join(&session->ctrl);
-	CHIAKI_LOGI(&session->log, "Ctrl stopped");
+	CHIAKI_LOGI(session->log, "Ctrl stopped");
 
 	ChiakiEvent quit_event;
 quit:
 
-	CHIAKI_LOGI(&session->log, "Session has quit");
+	CHIAKI_LOGI(session->log, "Session has quit");
 	quit_event.type = CHIAKI_EVENT_QUIT;
 	quit_event.quit.reason = session->quit_reason;
 	quit_event.quit.reason_str = session->quit_reason_str;
@@ -477,7 +477,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 			continue;
 		}
 
-		CHIAKI_LOGI(&session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
+		CHIAKI_LOGI(session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
 
 		session_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if(session_sock < 0)
@@ -486,7 +486,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 		if(r < 0)
 		{
 			int errsv = errno;
-			CHIAKI_LOGE(&session->log, "Session request connect failed: %s", strerror(errsv));
+			CHIAKI_LOGE(session->log, "Session request connect failed: %s", strerror(errsv));
 			if(errsv == ECONNREFUSED)
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
 			else
@@ -505,13 +505,13 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 	if(session_sock < 0)
 	{
-		CHIAKI_LOGE(&session->log, "Session request connect failed eventually.");
+		CHIAKI_LOGE(session->log, "Session request connect failed eventually.");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
 
-	CHIAKI_LOGI(&session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
+	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
 
 	static const char session_request_fmt[] =
 			"GET /sce/rp/session HTTP/1.1\r\n"
@@ -533,12 +533,12 @@ static bool session_thread_request_session(ChiakiSession *session)
 		return false;
 	}
 
-	CHIAKI_LOGI(&session->log, "Sending session request");
+	CHIAKI_LOGI(session->log, "Sending session request");
 
 	ssize_t sent = send(session_sock, buf, (size_t)request_len, 0);
 	if(sent < 0)
 	{
-		CHIAKI_LOGE(&session->log, "Failed to send session request");
+		CHIAKI_LOGE(session->log, "Failed to send session request");
 		close(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
@@ -558,7 +558,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 		}
 		else
 		{
-			CHIAKI_LOGE(&session->log, "Failed to receive session request response");
+			CHIAKI_LOGE(session->log, "Failed to receive session request response");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
 		close(session_sock);
@@ -569,7 +569,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 	err = chiaki_http_response_parse(&http_response, buf, header_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&session->log, "Failed to parse session request response");
+		CHIAKI_LOGE(session->log, "Failed to parse session request response");
 		close(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
@@ -584,7 +584,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 		err = chiaki_base64_decode(response.nonce, strlen(response.nonce), session->nonce, &nonce_len);
 		if(err != CHIAKI_ERR_SUCCESS || nonce_len != CHIAKI_KEY_BYTES)
 		{
-			CHIAKI_LOGE(&session->log, "Nonce invalid");
+			CHIAKI_LOGE(session->log, "Nonce invalid");
 			response.success = false;
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
@@ -594,11 +594,11 @@ static bool session_thread_request_session(ChiakiSession *session)
 		switch(response.error_code)
 		{
 			case RP_APPLICATION_REASON_IN_USE:
-				CHIAKI_LOGE(&session->log, "Remote is already in use");
+				CHIAKI_LOGE(session->log, "Remote is already in use");
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE;
 				break;
 			case RP_APPLICATION_REASON_CRASH:
-				CHIAKI_LOGE(&session->log, "Remote seems to have crashed");
+				CHIAKI_LOGE(session->log, "Remote seems to have crashed");
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH;
 				break;
 			default:

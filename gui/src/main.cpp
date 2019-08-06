@@ -63,6 +63,9 @@ int main(int argc, char *argv[])
 	if(args[0] == "stream")
 	{
 		StreamSessionConnectInfo connect_info;
+
+		connect_info.log_level_mask = CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE;
+
 		connect_info.host = host;
 		connect_info.registkey = parser.value(regist_key_option);
 		connect_info.ostype = parser.value(ostype_option);

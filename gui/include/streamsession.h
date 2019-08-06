@@ -20,6 +20,7 @@
 
 #include "videodecoder.h"
 #include "exception.h"
+#include "sessionlog.h"
 
 #include <QObject>
 #include <QImage>
@@ -42,6 +43,8 @@ class ChiakiException: public Exception
 
 struct StreamSessionConnectInfo
 {
+	uint32_t log_level_mask;
+	QString log_file;
 	QString host;
 	QString registkey;
 	QString ostype;
@@ -58,6 +61,7 @@ class StreamSession : public QObject
 	Q_OBJECT
 
 	private:
+		SessionLog log;
 		ChiakiSession session;
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD

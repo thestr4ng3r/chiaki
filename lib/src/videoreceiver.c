@@ -25,7 +25,7 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session)
 {
 	video_receiver->session = session;
-	video_receiver->log = &session->log;
+	video_receiver->log = session->log;
 	memset(video_receiver->profiles, 0, sizeof(video_receiver->profiles));
 	video_receiver->profiles_count = 0;
 	video_receiver->profile_cur = -1;
