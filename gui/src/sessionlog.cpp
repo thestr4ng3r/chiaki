@@ -64,10 +64,14 @@ void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 
 	if(file)
 	{
+		static const QString date_format = "yyyy-MM-dd HH:mm:ss:zzzzzz";
+		QString str = QString("[%1] [%2] %3\n").arg(
+				QDateTime::currentDateTime().toString(date_format),
+				QString(chiaki_log_level_char(level)),
+				msg);
+
 		QMutexLocker lock(&file_mutex);
-		// TODO: add timestamp and level
-		file->write(msg);
-		file->write("\n");
+		file->write(str.toLocal8Bit());
 	}
 }
 
@@ -85,12 +89,12 @@ static void LogCb(ChiakiLogLevel level, const char *msg, void *user)
 
 #define KEEP_LOG_FILES_COUNT 5
 
-static const QString date_format = "yyyy-MM-dd_HH-mm-ss-zzzz";
-static const QString session_log_wildcard = "chiaki_session_*.log";
-static const QRegularExpression session_log_regex("chiaki_session_(.*).log");
-
 QString CreateLogFilename()
 {
+	static const QString date_format = "yyyy-MM-dd_HH-mm-ss-zzzzzz";
+	static const QString session_log_wildcard = "chiaki_session_*.log";
+	static const QRegularExpression session_log_regex("chiaki_session_(.*).log");
+
 	auto base_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 	if(base_dir.isEmpty())
 		return QString();

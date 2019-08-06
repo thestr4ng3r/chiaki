@@ -37,6 +37,8 @@ typedef enum {
 
 #define CHIAKI_LOG_ALL ((1 << 5) - 1)
 
+CHIAKI_EXPORT char chiaki_log_level_char(ChiakiLogLevel level);
+
 typedef void (*ChiakiLogCb)(ChiakiLogLevel level, const char *msg, void *user);
 
 typedef struct chiaki_log_t

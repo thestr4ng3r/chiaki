@@ -20,6 +20,25 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+CHIAKI_EXPORT char chiaki_log_level_char(ChiakiLogLevel level)
+{
+	switch(level)
+	{
+		case CHIAKI_LOG_VERBOSE:
+			return 'V';
+		case CHIAKI_LOG_DEBUG:
+			return 'D';
+		case CHIAKI_LOG_INFO:
+			return 'I';
+		case CHIAKI_LOG_WARNING:
+			return 'W';
+		case CHIAKI_LOG_ERROR:
+			return 'E';
+		default:
+			return '?';
+	}
+}
+
 CHIAKI_EXPORT void chiaki_log_init(ChiakiLog *log, uint32_t level_mask, ChiakiLogCb cb, void *user)
 {
 	log->level_mask = level_mask;
@@ -31,30 +50,20 @@ CHIAKI_EXPORT void chiaki_log_cb_print(ChiakiLogLevel level, const char *msg, vo
 {
 	(void)user;
 
-	char c;
+	char c = chiaki_log_level_char(level);
 	const char *color = NULL;
 	switch(level)
 	{
-		case CHIAKI_LOG_VERBOSE:
-			c = 'V';
-			break;
 		case CHIAKI_LOG_DEBUG:
-			c = 'D';
 			color = "34";
 			break;
-		case CHIAKI_LOG_INFO:
-			c = 'I';
-			break;
 		case CHIAKI_LOG_WARNING:
-			c = 'W';
 			color = "33";
 			break;
 		case CHIAKI_LOG_ERROR:
-			c = 'E';
 			color = "31";
 			break;
 		default:
-			c = '?';
 			break;
 	}
 
