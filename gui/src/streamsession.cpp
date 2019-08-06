@@ -29,6 +29,7 @@
 
 #include <cstring>
 
+static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 static void EventCb(ChiakiEvent *event, void *user);
@@ -39,7 +40,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	gamepad(nullptr),
 #endif
-	video_decoder(log.GetChiakiLog())
+	video_decoder(log.GetChiakiLog()),
+	audio_output(nullptr),
+	audio_io(nullptr)
 {
 	QByteArray host_str = connect_info.host.toUtf8();
 	QByteArray registkey_str = connect_info.registkey.toUtf8();
@@ -71,30 +74,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(chiaki_connect_info.did))
 		throw ChiakiException("Did invalid");
 
-	// TODO: move audio init out of here and use values from audio header
-	QAudioFormat audio_format;
-	audio_format.setSampleRate(48000);
-	audio_format.setChannelCount(2);
-	audio_format.setSampleSize(16);
-	audio_format.setCodec("audio/pcm");
-	audio_format.setSampleType(QAudioFormat::SignedInt);
-
-	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
-	if(!audio_device_info.isFormatSupported(audio_format))
-	{
-		printf("audio output format not supported\n");
-	}
-
-	audio_output = new QAudioOutput(audio_format, this);
-	audio_io = audio_output->start();
-
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
 	err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 
-	chiaki_session_set_audio_frame_cb(&session, AudioFrameCb, this);
+	chiaki_session_set_audio_cb(&session, AudioSettingsCb, AudioFrameCb, this);
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
 	chiaki_session_set_event_cb(&session, EventCb, this);
 
@@ -106,11 +92,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 StreamSession::~StreamSession()
 {
+	chiaki_session_join(&session);
+	chiaki_session_fini(&session);
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	delete gamepad;
 #endif
-	chiaki_session_join(&session);
-	chiaki_session_fini(&session);
 }
 
 void StreamSession::Start()
@@ -243,8 +229,40 @@ void StreamSession::SendFeedbackState()
 	chiaki_session_set_controller_state(&session, &state);
 }
 
+void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
+{
+	delete audio_output;
+	audio_output = nullptr;
+	audio_io = nullptr;
+
+	QAudioFormat audio_format;
+	audio_format.setSampleRate(rate);
+	audio_format.setChannelCount(channels);
+	audio_format.setSampleSize(16);
+	audio_format.setCodec("audio/pcm");
+	audio_format.setSampleType(QAudioFormat::SignedInt);
+
+	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
+	if(!audio_device_info.isFormatSupported(audio_format))
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by Audio Device %s",
+					channels, rate,
+					audio_device_info.deviceName().toLocal8Bit().constData());
+		return;
+	}
+
+	audio_output = new QAudioOutput(audio_format, this);
+	audio_io = audio_output->start();
+
+	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz",
+				audio_device_info.deviceName().toLocal8Bit().constData(),
+				channels, rate);
+}
+
 void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 {
+	if(!audio_io)
+		return;
 	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
 }
 
@@ -266,10 +284,21 @@ void StreamSession::Event(ChiakiEvent *event)
 class StreamSessionPrivate
 {
 	public:
-		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count) { session->PushAudioFrame(buf, samples_count); }
-		static void PushVideoSample(StreamSession *session, uint8_t *buf, size_t buf_size) { session->PushVideoSample(buf, buf_size); }
-		static void Event(StreamSession *session, ChiakiEvent *event) { session->Event(event); }
+		static void InitAudio(StreamSession *session, uint32_t channels, uint32_t rate)
+		{
+			QMetaObject::invokeMethod(session, "InitAudio", Qt::ConnectionType::BlockingQueuedConnection, Q_ARG(unsigned int, channels), Q_ARG(unsigned int, rate));
+		}
+
+		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
+		static void PushVideoSample(StreamSession *session, uint8_t *buf, size_t buf_size)		{ session->PushVideoSample(buf, buf_size); }
+		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 };
+
+static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::InitAudio(session, channels, rate);
+}
 
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 {

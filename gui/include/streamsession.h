@@ -79,6 +79,9 @@ class StreamSession : public QObject
 		void PushVideoSample(uint8_t *buf, size_t buf_size);
 		void Event(ChiakiEvent *event);
 
+	private slots:
+		void InitAudio(unsigned int channels, unsigned int rate);
+
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
 		~StreamSession();

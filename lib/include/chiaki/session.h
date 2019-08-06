@@ -118,6 +118,7 @@ typedef struct chiaki_event_t
 } ChiakiEvent;
 
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
+typedef void (*ChiakiAudioSettingsCallback)(uint32_t channels, uint32_t rate, void *user);
 typedef void (*ChiakiAudioFrameCallback)(int16_t *buf, size_t samples_count, void *user);
 
 /**
@@ -155,8 +156,9 @@ typedef struct chiaki_session_t
 
 	ChiakiEventCallback event_cb;
 	void *event_cb_user;
+	ChiakiAudioSettingsCallback audio_settings_cb;
 	ChiakiAudioFrameCallback audio_frame_cb;
-	void *audio_frame_cb_user;
+	void *audio_cb_user;
 	ChiakiVideoSampleCallback  video_sample_cb;
 	void *video_sample_cb_user;
 
@@ -193,10 +195,11 @@ static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEve
 	session->event_cb_user = user;
 }
 
-static inline void chiaki_session_set_audio_frame_cb(ChiakiSession *session, ChiakiAudioFrameCallback cb, void *user)
+static inline void chiaki_session_set_audio_cb(ChiakiSession *session, ChiakiAudioSettingsCallback settings_cb, ChiakiAudioFrameCallback frame_cb, void *user)
 {
-	session->audio_frame_cb = cb;
-	session->audio_frame_cb_user = user;
+	session->audio_settings_cb = settings_cb;
+	session->audio_frame_cb = frame_cb;
+	session->audio_cb_user = user;
 }
 
 static inline void chiaki_session_set_video_sample_cb(ChiakiSession *session, ChiakiVideoSampleCallback cb, void *user)

@@ -95,6 +95,9 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 
 	audio_receiver->pcm_buf_size = pcm_buf_size_required;
 
+	if(audio_receiver->session->audio_settings_cb)
+		audio_receiver->session->audio_settings_cb(audio_header->channels, audio_header->rate, audio_receiver->session->audio_cb_user);
+
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
 }
@@ -174,7 +177,7 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 	if(r < 1)
 		CHIAKI_LOGE(audio_receiver->log, "Decoding audio frame with opus failed: %s", opus_strerror(r));
 	else
-		audio_receiver->session->audio_frame_cb(audio_receiver->pcm_buf, (size_t)r, audio_receiver->session->audio_frame_cb_user);
+		audio_receiver->session->audio_frame_cb(audio_receiver->pcm_buf, (size_t)r, audio_receiver->session->audio_cb_user);
 
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
