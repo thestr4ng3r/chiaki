@@ -239,6 +239,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_sock;
 	}
 
+	chiaki_thread_set_name(&takion->thread, "Chiaki Takion");
+
 	return CHIAKI_ERR_SUCCESS;
 
 error_sock:

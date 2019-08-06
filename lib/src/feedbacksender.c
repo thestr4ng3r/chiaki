@@ -51,6 +51,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_init(ChiakiFeedbackSender *
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_cond;
 
+	chiaki_thread_set_name(&feedback_sender->thread, "Chiaki Feedback Sender");
+
 	return CHIAKI_ERR_SUCCESS;
 error_cond:
 	chiaki_cond_fini(&feedback_sender->state_cond);

@@ -230,6 +230,7 @@ void AVOpenGLWidget::initializeGL()
 	frame_fg = 0;
 
 	frame_uploader_thread = new QThread(this);
+	frame_uploader_thread->setObjectName("Frame Uploader");
 	frame_uploader_context->moveToThread(frame_uploader_thread);
 	frame_uploader->moveToThread(frame_uploader_thread);
 	frame_uploader_thread->start();

@@ -59,6 +59,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionCo
 		return err;
 	}
 
+	chiaki_thread_set_name(&control->thread, "Chiaki Congestion Control");
+
 	return CHIAKI_ERR_SUCCESS;
 }
 

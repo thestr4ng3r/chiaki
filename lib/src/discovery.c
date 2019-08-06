@@ -128,6 +128,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThrea
 		return err;
 	}
 
+	chiaki_thread_set_name(&thread->thread, "Chiaki Discovery");
+
 	return CHIAKI_ERR_SUCCESS;
 }
 

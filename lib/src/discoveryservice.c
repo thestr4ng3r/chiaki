@@ -45,6 +45,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryServi
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_stop_cond;
 
+	chiaki_thread_set_name(&service->thread, "Chiaki Discovery Service");
+
 	return CHIAKI_ERR_SUCCESS;
 error_stop_cond:
 	chiaki_bool_pred_cond_fini(&service->stop_cond);

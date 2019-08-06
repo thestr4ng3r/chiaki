@@ -68,6 +68,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_init(ChiakiTakionSendBuf
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_cond;
 
+	chiaki_thread_set_name(&send_buffer->thread, "Chiaki Takion Send Buffer");
+
 	return CHIAKI_ERR_SUCCESS;
 error_cond:
 	chiaki_cond_fini(&send_buffer->cond);

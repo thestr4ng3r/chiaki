@@ -15,12 +15,15 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <chiaki/thread.h>
 #include <chiaki/time.h>
 
 #include <stdio.h>
 #include <errno.h>
 
+#include <pthread.h>
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg)
 {
@@ -38,6 +41,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **re
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const char *name)
+{
+#ifdef __GLIBC__
+	int r = pthread_setname_np(thread->thread, name);
+	if(r != 0)
+		return CHIAKI_ERR_THREAD;
+#else
+	(void)thread; (void)name;
+#endif
+	return CHIAKI_ERR_SUCCESS;
+}
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec)

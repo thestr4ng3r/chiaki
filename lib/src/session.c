@@ -200,7 +200,11 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session)
 {
-	return chiaki_thread_create(&session->session_thread, session_thread_func, session);
+	ChiakiErrorCode err = chiaki_thread_create(&session->session_thread, session_thread_func, session);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	chiaki_thread_set_name(&session->session_thread, "Chiaki Session");
+	return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session)

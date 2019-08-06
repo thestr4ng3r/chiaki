@@ -86,6 +86,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_init(ChiakiGKCrypt *gkcrypt, Chiaki
 		err = chiaki_thread_create(&gkcrypt->key_buf_thread, gkcrypt_thread_func, gkcrypt);
 		if(err != CHIAKI_ERR_SUCCESS)
 			goto error_key_buf_cond;
+
+		chiaki_thread_set_name(&gkcrypt->key_buf_thread, "Chiaki GKCrypt");
 	}
 
 	return CHIAKI_ERR_SUCCESS;

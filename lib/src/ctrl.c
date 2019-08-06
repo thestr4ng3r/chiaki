@@ -47,7 +47,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	return chiaki_thread_create(&ctrl->thread, ctrl_thread_func, ctrl);
+	err = chiaki_thread_create(&ctrl->thread, ctrl_thread_func, ctrl);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_stop_pipe_fini(&ctrl->stop_pipe);
+		return err;
+	}
+	chiaki_thread_set_name(&ctrl->thread, "Chiaki Ctrl");
+	return err;
 }
 
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl)
