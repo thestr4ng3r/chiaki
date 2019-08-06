@@ -41,7 +41,7 @@ void AVOpenGLFrameUploader::UpdateFrame()
 	if(!next_frame)
 		return;
 
-	bool success = widget->GetBackgroundFrame()->Update(next_frame);
+	bool success = widget->GetBackgroundFrame()->Update(next_frame, decoder->GetChiakiLog());
 	av_frame_free(&next_frame);
 
 	if(success)

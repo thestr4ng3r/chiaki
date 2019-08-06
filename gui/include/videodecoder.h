@@ -20,6 +20,8 @@
 
 #include "exception.h"
 
+#include <chiaki/log.h>
+
 #include <QMutex>
 #include <QObject>
 
@@ -41,16 +43,19 @@ class VideoDecoder: public QObject
 	Q_OBJECT
 
 	public:
-		VideoDecoder();
+		VideoDecoder(ChiakiLog *log);
 		~VideoDecoder();
 
 		void PushFrame(uint8_t *buf, size_t buf_size);
 		AVFrame *PullFrame();
 
+		ChiakiLog *GetChiakiLog()	{ return log; }
+
 	signals:
 		void FramesAvailable();
 
 	private:
+		ChiakiLog *log;
 		QMutex mutex;
 
 		AVCodec *codec;

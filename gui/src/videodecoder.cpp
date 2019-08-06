@@ -21,7 +21,7 @@
 
 #include <QImage>
 
-VideoDecoder::VideoDecoder()
+VideoDecoder::VideoDecoder(ChiakiLog *log) : log(log)
 {
 	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 	if(!codec)
@@ -60,25 +60,27 @@ send_packet:
 		{
 			if(r == AVERROR(EAGAIN))
 			{
-				printf("avcodec internal buffer is full, removing frames\n"); // TODO: log to somewhere else
+				CHIAKI_LOGE(log, "AVCodec internal buffer is full removing frames before pushing");
 				AVFrame *frame = av_frame_alloc();
 				if(!frame)
 				{
-					printf("failed to alloc frame\n");
+					CHIAKI_LOGE(log, "Failed to alloc AVFrame");
 					return;
 				}
 				r = avcodec_receive_frame(codec_context, frame);
 				av_frame_free(&frame);
 				if(r != 0)
 				{
-					printf("failed to pull packet\n");
+					CHIAKI_LOGE(log, "Failed to pull frame");
 					return;
 				}
 				goto send_packet;
 			}
 			else
 			{
-				printf("failed to push frame\n");
+				char errbuf[128];
+				av_make_error_string(errbuf, sizeof(errbuf), r);
+				CHIAKI_LOGE(log, "Failed to push frame: %s", errbuf);
 				return;
 			}
 		}
@@ -116,7 +118,7 @@ AVFrame *VideoDecoder::PullFrame()
 		if(r != 0)
 		{
 			if(r != AVERROR(EAGAIN))
-				printf("decoding with ffmpeg failed!!\n"); // TODO: log somewhere else
+				CHIAKI_LOGE(log, "Decoding with FFMPEG failed");
 			av_frame_free(&frame);
 			return frame_last;
 		}

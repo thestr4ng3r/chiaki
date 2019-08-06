@@ -21,6 +21,8 @@
 #include <QOpenGLWidget>
 #include <QMutex>
 
+#include <chiaki/log.h>
+
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -35,7 +37,7 @@ struct AVOpenGLFrame
 	unsigned int width;
 	unsigned int height;
 
-	bool Update(AVFrame *frame);
+	bool Update(AVFrame *frame, ChiakiLog *log);
 };
 
 class AVOpenGLWidget: public QOpenGLWidget
@@ -65,7 +67,6 @@ class AVOpenGLWidget: public QOpenGLWidget
 
 	protected:
 		void initializeGL() override;
-		void resizeGL(int w, int h) override;
 		void paintGL() override;
 };
 

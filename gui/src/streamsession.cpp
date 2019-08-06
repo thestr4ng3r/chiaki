@@ -36,10 +36,11 @@ static void EventCb(ChiakiEvent *event, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
-	log(this, connect_info.log_level_mask, connect_info.log_file)
+	log(this, connect_info.log_level_mask, connect_info.log_file),
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	,gamepad(nullptr)
+	gamepad(nullptr),
 #endif
+	video_decoder(log.GetChiakiLog())
 {
 	QByteArray host_str = connect_info.host.toUtf8();
 	QByteArray registkey_str = connect_info.registkey.toUtf8();

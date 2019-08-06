@@ -107,14 +107,13 @@ void AVOpenGLWidget::SwapFrames()
 	QMetaObject::invokeMethod(this, "update");
 }
 
-bool AVOpenGLFrame::Update(AVFrame *frame)
+bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 {
 	auto f = QOpenGLContext::currentContext()->functions();
 
 	if(frame->format != AV_PIX_FMT_YUV420P)
 	{
-		// TODO: log to somewhere else
-		printf("Invalid Format\n");
+		CHIAKI_LOGE(log, "AVOpenGLFrame got AVFrame with invalid format");
 		return false;
 	}
 
@@ -175,8 +174,7 @@ void AVOpenGLWidget::initializeGL()
 		std::vector<GLchar> info_log(info_log_size);
 		f->glGetProgramInfoLog(program, info_log_size, &info_log_size, info_log.data());
 		f->glDeleteProgram(program);
-		// TODO: log to somewhere else
-		printf("Failed to Link Shader Program:\n%s\n", info_log.data());
+		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to Link Shader Program:\n%s", info_log.data());
 		return;
 	}
 
@@ -222,7 +220,7 @@ void AVOpenGLWidget::initializeGL()
 	frame_uploader_context->setShareContext(context());
 	if(!frame_uploader_context->create())
 	{
-		printf("Failed to create upload context!\n"); // TODO: log to somewhere else
+		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to create upload OpenGL context");
 		return;
 	}
 
@@ -234,10 +232,6 @@ void AVOpenGLWidget::initializeGL()
 	frame_uploader_context->moveToThread(frame_uploader_thread);
 	frame_uploader->moveToThread(frame_uploader_thread);
 	frame_uploader_thread->start();
-}
-
-void AVOpenGLWidget::resizeGL(int w, int h)
-{
 }
 
 void AVOpenGLWidget::paintGL()
