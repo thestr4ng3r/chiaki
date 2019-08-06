@@ -33,6 +33,11 @@ typedef struct chiaki_video_profile_t
 	uint8_t *header;
 } ChiakiVideoProfile;
 
+/**
+ * Padding for FFMPEG
+ */
+#define CHIAKI_VIDEO_BUFFER_PADDING_SIZE 64
+
 #ifdef __cplusplus
 }
 #endif

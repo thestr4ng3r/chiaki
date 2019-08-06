@@ -17,6 +17,7 @@
 
 #include <chiaki/frameprocessor.h>
 #include <chiaki/fec.h>
+#include <chiaki/video.h>
 
 #include <jerasure.h>
 
@@ -117,7 +118,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 	if(frame_processor->frame_buf_size < frame_buf_size_required)
 	{
 		free(frame_processor->frame_buf);
-		frame_processor->frame_buf = malloc(frame_buf_size_required);
+		frame_processor->frame_buf = malloc(frame_buf_size_required + CHIAKI_VIDEO_BUFFER_PADDING_SIZE);
 		if(!frame_processor->frame_buf)
 		{
 			frame_processor->frame_buf_size = 0;
@@ -125,7 +126,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 		}
 		frame_processor->frame_buf_size = frame_buf_size_required;
 	}
-	memset(frame_processor->frame_buf, 0, frame_buf_size_required);
+	memset(frame_processor->frame_buf, 0, frame_buf_size_required + CHIAKI_VIDEO_BUFFER_PADDING_SIZE);
 
 	return CHIAKI_ERR_SUCCESS;
 }

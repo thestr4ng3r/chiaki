@@ -13,6 +13,7 @@ endif()
 find_package(FFMPEG REQUIRED COMPONENTS avcodec)
 
 add_executable(chiaki
+		include/exception.h
 		src/main.cpp
 		include/streamwindow.h
 		src/streamwindow.cpp

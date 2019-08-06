@@ -539,6 +539,15 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 		return true;
 	}
 
+	uint8_t *header_buf_padded = realloc(header_buf.buf, header_buf.size + CHIAKI_VIDEO_BUFFER_PADDING_SIZE);
+	if(!header_buf_padded)
+	{
+		free(header_buf.buf);
+		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Failed to realloc video header with padding");
+		return true;
+	}
+	memset(header_buf_padded + header_buf.size, 0, CHIAKI_VIDEO_BUFFER_PADDING_SIZE);
+
 	if(ctx->video_profiles_count >= CHIAKI_VIDEO_PROFILES_MAX)
 	{
 		CHIAKI_LOGE(&ctx->stream_connection->session->log, "Received more resolutions than the maximum");
@@ -549,7 +558,7 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 	profile->width = resolution.width;
 	profile->height = resolution.height;
 	profile->header_sz = header_buf.size;
-	profile->header = header_buf.buf;
+	profile->header = header_buf_padded;
 	return true;
 }
 

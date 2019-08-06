@@ -15,46 +15,21 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_VIDEODECODER_H
-#define CHIAKI_VIDEODECODER_H
+#ifndef CHIAKI_EXCEPTION_H
+#define CHIAKI_EXCEPTION_H
 
-#include "exception.h"
+#include <exception>
 
-#include <QMutex>
-#include <QObject>
+#include <QString>
 
-extern "C"
+class Exception : public std::exception
 {
-#include <libavcodec/avcodec.h>
-}
-
-#include <cstdint>
-
-class VideoDecoderException: public Exception
-{
-	public:
-		explicit VideoDecoderException(const QString &msg) : Exception(msg) {};
-};
-
-class VideoDecoder: public QObject
-{
-	Q_OBJECT
-
-	public:
-		VideoDecoder();
-		~VideoDecoder();
-
-		void PushFrame(uint8_t *buf, size_t buf_size);
-		AVFrame *PullFrame();
-
-	signals:
-		void FramesAvailable();
-
 	private:
-		QMutex mutex;
+		QString msg;
 
-		AVCodec *codec;
-		AVCodecContext *codec_context;
+	public:
+		explicit Exception(const QString &msg) : msg(msg) {}
+		const char *what() const noexcept override { return msg.toLocal8Bit().constData(); }
 };
 
-#endif // CHIAKI_VIDEODECODER_H
+#endif // CHIAKI_EXCEPTION_H

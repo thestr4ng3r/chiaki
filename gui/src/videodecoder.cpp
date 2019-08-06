@@ -23,20 +23,25 @@
 
 VideoDecoder::VideoDecoder()
 {
-	codec = avcodec_find_decoder(AV_CODEC_ID_H264); // TODO: handle !codec
-	codec_context = avcodec_alloc_context3(codec); // TODO: handle !codec_context
+	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+	if(!codec)
+		throw VideoDecoderException("H264 Codec not available");
 
-	if(codec->capabilities & AV_CODEC_CAP_TRUNCATED)
-		codec_context->flags |= AV_CODEC_FLAG_TRUNCATED;
+	codec_context = avcodec_alloc_context3(codec);
+	if(!codec_context)
+		throw VideoDecoderException("Failed to alloc codec context");
 
-	avcodec_open2(codec_context, codec, nullptr); // TODO: handle < 0
+	if(avcodec_open2(codec_context, codec, nullptr) < 0)
+	{
+		avcodec_free_context(&codec_context);
+		throw VideoDecoderException("Failed to open codec context");
+	}
 }
 
 VideoDecoder::~VideoDecoder()
 {
 	avcodec_close(codec_context);
-	avcodec_free_context(&codec_context); // TODO: does close by itself too?
-	// TODO: free codec?
+	avcodec_free_context(&codec_context);
 }
 
 void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
@@ -48,11 +53,41 @@ void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 		av_init_packet(&packet);
 		packet.data = buf;
 		packet.size = buf_size;
-		avcodec_send_packet(codec_context, &packet);
+		int r;
+send_packet:
+		r = avcodec_send_packet(codec_context, &packet);
+		if(r != 0)
+		{
+			if(r == AVERROR(EAGAIN))
+			{
+				printf("avcodec internal buffer is full, removing frames\n"); // TODO: log to somewhere else
+				AVFrame *frame = av_frame_alloc();
+				if(!frame)
+				{
+					printf("failed to alloc frame\n");
+					return;
+				}
+				r = avcodec_receive_frame(codec_context, frame);
+				av_frame_free(&frame);
+				if(r != 0)
+				{
+					printf("failed to pull packet\n");
+					return;
+				}
+				goto send_packet;
+			}
+			else
+			{
+				printf("failed to push frame\n");
+				return;
+			}
+		}
 	}
 
 	emit FramesAvailable();
 }
+
+#include <unistd.h>
 
 AVFrame *VideoDecoder::PullFrame()
 {

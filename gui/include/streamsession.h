@@ -19,6 +19,7 @@
 #define CHIAKI_STREAMSESSION_H
 
 #include "videodecoder.h"
+#include "exception.h"
 
 #include <QObject>
 #include <QImage>
@@ -33,14 +34,10 @@ class QAudioOutput;
 class QIODevice;
 class QKeyEvent;
 
-class ChiakiException : public std::exception
+class ChiakiException: public Exception
 {
-	private:
-		QString msg;
-
 	public:
-		explicit ChiakiException(const QString &msg) : msg(msg) {}
-		const char *what() const noexcept override { return msg.toLocal8Bit().constData(); }
+		explicit ChiakiException(const QString &msg) : Exception(msg) {};
 };
 
 struct StreamSessionConnectInfo

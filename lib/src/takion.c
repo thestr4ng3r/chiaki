@@ -808,8 +808,8 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 			break;
 		default:
 			CHIAKI_LOGW(takion->log, "Takion packet with unknown type %#x received", base_type);
+			chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, buf, buf_size);
 			free(buf);
-			//chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, buf, buf_size);
 			break;
 	}
 }
@@ -868,7 +868,10 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 			CHIAKI_LOGW(takion->log, "Takion received data with unexpected nonzero %#x at buf+6", zero_a);
 
 		if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF && data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_9)
+		{
 			CHIAKI_LOGW(takion->log, "Takion received data with unexpected data type %#x", data_type);
+			chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, entry->packet_buf, entry->packet_size);
+		}
 		else if(takion->cb)
 		{
 			ChiakiTakionEvent event = { 0 };

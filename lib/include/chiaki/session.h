@@ -119,6 +119,10 @@ typedef struct chiaki_event_t
 
 typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
 typedef void (*ChiakiAudioFrameCallback)(int16_t *buf, size_t samples_count, void *user);
+
+/**
+ * buf will always have an allocated padding of at least CHIAKI_VIDEO_BUFFER_PADDING_SIZE after buf_size
+ */
 typedef void (*ChiakiVideoSampleCallback)(uint8_t *buf, size_t buf_size, void *user);
 
 
