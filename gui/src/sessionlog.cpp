@@ -72,6 +72,7 @@ void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 
 		QMutexLocker lock(&file_mutex);
 		file->write(str.toLocal8Bit());
+		file->flush();
 	}
 }
 
