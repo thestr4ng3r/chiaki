@@ -35,7 +35,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryServi
 
 	ChiakiErrorCode err = chiaki_discovery_init(&service->discovery, log, service->options.send_addr->sa_family);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_servers;
+		goto error_send_addr;
 
 	err = chiaki_bool_pred_cond_init(&service->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)

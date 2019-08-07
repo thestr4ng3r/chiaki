@@ -16,6 +16,7 @@
  */
 
 #include <chiaki/discovery.h>
+#include <chiaki/http.h>
 #include <chiaki/log.h>
 
 #include <string.h>
@@ -36,6 +37,49 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 		default:
 			return -1;
 	}
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoverySrchResponse *response, char *buf, size_t buf_size)
+{
+	ChiakiHttpResponse http_response;
+	ChiakiErrorCode err = chiaki_http_response_parse(&http_response, buf, buf_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	memset(response, 0, sizeof(*response));
+
+	switch(http_response.code)
+	{
+		case 200:
+			response->state = CHIAKI_DISCOVERY_HOST_STATE_READY;
+			break;
+		case 620:
+			response->state = CHIAKI_DISCOVERY_HOST_STATE_STANDBY;
+			break;
+		default:
+			response->state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
+			break;
+	}
+
+	for(ChiakiHttpHeader *header = http_response.headers; header; header=header->next)
+	{
+		printf("%s: %s\n", header->key, header->value);
+		if(strcmp(header->key, "system-version") == 0)
+			response->system_version = header->value;
+		else if(strcmp(header->key, "device-discovery-protocol-version") == 0)
+			response->device_discovery_protocol_version = header->value;
+		else if(strcmp(header->key, "host-request-port") == 0)
+			response->host_request_port = (uint16_t)strtoul(header->value, NULL, 0);
+		else if(strcmp(header->key, "host-name") == 0)
+			response->host_name = header->value;
+		else if(strcmp(header->key, "host-type") == 0)
+			response->host_type = header->value;
+		else if(strcmp(header->key, "host-id") == 0)
+			response->host_id = header->value;
+	}
+
+	chiaki_http_response_fini(&http_response);
+	return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, ChiakiLog *log, sa_family_t family)
@@ -177,7 +221,13 @@ static void *discovery_thread_func(void *user)
 
 		buf[n] = '\00';
 
-		CHIAKI_LOGD(discovery->log, "Discovery received:\n%s", buf);
+		CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
+		chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
+
+		ChiakiDiscoverySrchResponse response;
+		err = chiaki_discovery_srch_response_parse(&response, buf, n);
+		if(err != CHIAKI_ERR_SUCCESS)
+			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");
 	}
 
 	return NULL;

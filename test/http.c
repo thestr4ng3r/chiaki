@@ -20,15 +20,25 @@
 #include <chiaki/http.h>
 #include <stdio.h>
 
-static const char *response =
+static char * const response_crlf =
 		"HTTP/1.1 200 OK\r\n"
 		"Content-type: text/html, text, plain\r\n"
-  		"Ultimate Ability: Gamer\r\n"
+		"Ultimate Ability: Gamer\r\n"
 		"\r\n";
+
+static char * const response_lf =
+		"HTTP/1.1 200 Ok\n"
+		"Content-type: text/html, text, plain\n"
+		"Ultimate Ability:Gamer\n";
 
 static void *test_http_response_parse_setup(const MunitParameter params[], void *user)
 {
-	return strdup(response);
+	const char *response = NULL;
+	if(strcmp(params[0].value, "crlf") == 0)
+		response = response_crlf;
+	else if(strcmp(params[0].value, "lf") == 0)
+		response = response_lf;
+	return response ? strdup(response) : NULL;
 }
 
 static void test_http_response_parse_teardown(void *fixture)
@@ -61,6 +71,15 @@ static MunitResult test_http_response_parse(const MunitParameter params[], void 
 	return MUNIT_OK;
 }
 
+static char *response_params[] = {
+		"crlf", "lf", NULL
+};
+
+static MunitParameterEnum params[] = {
+		{ "line ending", response_params },
+		{ NULL, NULL }
+};
+
 MunitTest tests_http[] = {
 	{
 		"/response_parse",
@@ -68,7 +87,7 @@ MunitTest tests_http[] = {
 		test_http_response_parse_setup,
 		test_http_response_parse_teardown,
 		MUNIT_TEST_OPTION_NONE,
-		NULL
+		params
 	},
 	{ NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
 };

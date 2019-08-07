@@ -44,6 +44,24 @@ typedef struct chiaki_discovery_packet_t
 	char *protocol_version;
 } ChiakiDiscoveryPacket;
 
+typedef enum chiaki_discovery_host_state_t
+{
+	CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN,
+	CHIAKI_DISCOVERY_HOST_STATE_READY,
+	CHIAKI_DISCOVERY_HOST_STATE_STANDBY
+} ChiakiDiscoveryHostState;
+
+typedef struct chiaki_discovery_srch_response_t
+{
+	ChiakiDiscoveryHostState state;
+	const char *system_version;
+	const char *device_discovery_protocol_version;
+	uint16_t host_request_port;
+	const char *host_name;
+	const char *host_type;
+	const char *host_id;
+} ChiakiDiscoverySrchResponse;
+
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
 
 typedef struct chiaki_discovery_t

@@ -30,6 +30,7 @@
 int RunDiscoveryCmd(const QString &host)
 {
 	ChiakiLog log;
+	chiaki_log_init(&log, CHIAKI_LOG_ALL, chiaki_log_cb_print, NULL);
 
 	ChiakiDiscovery discovery;
 	ChiakiErrorCode err = chiaki_discovery_init(&discovery, &log, AF_INET); // TODO: IPv6

@@ -53,9 +53,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_http_header_parse(ChiakiHttpHeader **header
 					FAIL(CHIAKI_ERR_INVALID_DATA);
 				*buf = '\0';
 				buf++;
-				if(buf == end || *buf != ' ')
+				if(buf == end)
 					FAIL(CHIAKI_ERR_INVALID_DATA);
-				buf++;
+				if(*buf == ' ')
+					buf++;
 				if(buf == end)
 					FAIL(CHIAKI_ERR_INVALID_DATA);
 				value_ptr = buf;
@@ -113,13 +114,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_http_response_parse(ChiakiHttpResponse *res
 	buf += http_version_size;
 	buf_size -= http_version_size;
 
-	char *line_end = memchr(buf, '\r', buf_size);
+	char *line_end = memchr(buf, '\n', buf_size);
 	if(!line_end)
 		return CHIAKI_ERR_INVALID_DATA;
-	size_t line_length = (line_end - buf) + 2;
-	if(buf_size <= line_length || line_end[1] != '\n')
+	size_t line_length = (line_end - buf) + 1;
+	if(buf_size <= line_length)
 		return CHIAKI_ERR_INVALID_DATA;
-	*line_end = '\0';
+	if(line_length > 1 && *(line_end - 1) == '\r')
+		*(line_end - 1) = '\0';
+	else
+		*line_end = '\0';
 
 	char *endptr;
 	response->code = (int)strtol(buf, &endptr, 10);
