@@ -33,6 +33,7 @@ class AVOpenGLFrameUploader;
 
 struct AVOpenGLFrame
 {
+	GLuint pbo[3];
 	GLuint tex[3];
 	unsigned int width;
 	unsigned int height;

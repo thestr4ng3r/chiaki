@@ -109,7 +109,7 @@ void AVOpenGLWidget::SwapFrames()
 
 bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 {
-	auto f = QOpenGLContext::currentContext()->functions();
+	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
 	if(frame->format != AV_PIX_FMT_YUV420P)
 	{
@@ -122,7 +122,6 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 
 	for(int i=0; i<3; i++)
 	{
-		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
 		int width = frame->width;
 		int height = frame->height;
 		if(i > 0)
@@ -130,8 +129,32 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 			width /= 2;
 			height /= 2;
 		}
-		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, frame->data[i]);
+
+		f->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo[i]);
+		f->glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height, nullptr, GL_STREAM_DRAW);
+
+		auto buf = reinterpret_cast<uint8_t *>(f->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, width * height, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+		if(!buf)
+		{
+			CHIAKI_LOGE(log, "AVOpenGLFrame failed to map PBO");
+			continue;
+		}
+
+		if(frame->linesize[i] == width)
+			memcpy(buf, frame->data[i], width * height);
+		else
+		{
+			for(int l=0; l<height; l++)
+				memcpy(buf + width * l, frame->data[i] + frame->linesize[i] * l, width);
+		}
+
+		f->glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+
+		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
+		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 	}
+
+	f->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	f->glFinish();
 
@@ -181,6 +204,7 @@ void AVOpenGLWidget::initializeGL()
 	for(int i=0; i<2; i++)
 	{
 		f->glGenTextures(3, frames[i].tex);
+		f->glGenBuffers(3, frames[i].pbo);
 		uint8_t uv_default = 127;
 		for(int j=0; j<3; j++)
 		{
