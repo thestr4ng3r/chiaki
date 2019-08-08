@@ -11,6 +11,7 @@ add_subdirectory(third-party)
 
 add_subdirectory(lib)
 add_subdirectory(gui)
+add_subdirectory(cli)
 
 if(CHIAKI_ENABLE_TESTS)
 	enable_testing()
