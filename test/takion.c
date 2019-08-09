@@ -161,7 +161,7 @@ static MunitResult test_takion_send_buffer(const MunitParameter params[], void *
 	{
 		ChiakiSeqNum32 ack_num = nums_expected[nums_count_cur - 1]
 				+ munit_rand_int_range(-1, 1) * munit_rand_int_range(1, 32);
-		chiaki_takion_send_buffer_ack(&send_buffer, ack_num);
+		chiaki_takion_send_buffer_ack(&send_buffer, ack_num, NULL, NULL); // TODO: test acked seqnums params
 		seqnums_ack(nums_expected, &nums_count_cur, ack_num);
 		bool correct = check_send_buffer_contents(&send_buffer, nums_expected, nums_count_cur);
 		munit_assert(correct);
