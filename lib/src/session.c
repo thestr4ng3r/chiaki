@@ -333,7 +333,7 @@ static void *session_thread_func(void *arg)
 	session->mtu = 1454;
 	session->rtt = 12;
 
-	err = chiaki_random_bytes(session->handshake_key, sizeof(session->handshake_key));
+	err = chiaki_random_bytes_crypt(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "Session failed to generate handshake key");

@@ -27,7 +27,12 @@
 extern "C" {
 #endif
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes(uint8_t *buf, size_t buf_size);
+/**
+ * Random for cryptography
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes_crypt(uint8_t *buf, size_t buf_size);
+
+CHIAKI_EXPORT uint32_t chiaki_random_32();
 
 #ifdef __cplusplus
 }

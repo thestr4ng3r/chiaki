@@ -51,7 +51,12 @@ typedef enum
 
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
 
-void *chiaki_aligned_alloc(size_t alignment, size_t size);
+CHIAKI_EXPORT void *chiaki_aligned_alloc(size_t alignment, size_t size);
+
+/**
+ * Perform initialization of global state needed for using the Chiaki lib
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init();
 
 #ifdef __cplusplus
 }

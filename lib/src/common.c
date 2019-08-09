@@ -16,9 +16,14 @@
  */
 
 #include <chiaki/common.h>
+#include <chiaki/random.h>
+#include <chiaki/fec.h>
+
+#include <galois.h>
 
 #include <stdlib.h>
-
+#include <time.h>
+#include <errno.h>
 
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 {
@@ -62,4 +67,17 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 void *chiaki_aligned_alloc(size_t alignment, size_t size)
 {
 	return aligned_alloc(alignment, size);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init()
+{
+	unsigned int seed;
+	chiaki_random_bytes_crypt((uint8_t *)&seed, sizeof(seed));
+	srand(seed); // doesn't necessarily need to be secure for crypto
+
+	int galois_r = galois_init_default_field(CHIAKI_FEC_WORDSIZE);
+	if(galois_r != 0)
+		return galois_r == ENOMEM ? CHIAKI_ERR_MEMORY : CHIAKI_ERR_UNKNOWN;
+
+	return CHIAKI_ERR_SUCCESS;
 }

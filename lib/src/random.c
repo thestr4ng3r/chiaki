@@ -19,10 +19,15 @@
 
 #include <openssl/rand.h>
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes(uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes_crypt(uint8_t *buf, size_t buf_size)
 {
 	int r = RAND_bytes(buf, (int)buf_size);
 	if(!r)
 		return CHIAKI_ERR_UNKNOWN;
 	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT uint32_t chiaki_random_32()
+{
+	return rand() % UINT32_MAX;
 }

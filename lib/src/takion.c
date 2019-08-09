@@ -17,6 +17,7 @@
 
 #include <chiaki/takion.h>
 #include <chiaki/congestioncontrol.h>
+#include <chiaki/random.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -186,7 +187,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->cb_user = info->cb_user;
 	takion->a_rwnd = TAKION_A_RWND;
 
-	takion->tag_local = 0x4823; // "random" tag TODO: use actual random tag
+	takion->tag_local = chiaki_random_32(); // 0x4823
 	takion->seq_num_local = takion->tag_local;
 	ret = chiaki_mutex_init(&takion->seq_num_local_mutex, false);
 	if(ret != CHIAKI_ERR_SUCCESS)

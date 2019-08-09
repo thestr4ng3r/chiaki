@@ -24,6 +24,13 @@ int main(int argc, char *argv[])
 {
 	qRegisterMetaType<ChiakiQuitReason>();
 
+	ChiakiErrorCode err = chiaki_lib_init();
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
+		return 1;
+	}
+
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("Chiaki");
 
