@@ -1138,7 +1138,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 
 	ChiakiTakionAVPacket packet;
-	ChiakiErrorCode err = chiaki_takion_av_packet_parse(&packet, base_type, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&packet, base_type, buf, buf_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
@@ -1155,10 +1155,10 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	}
 }
 
-#define AV_HEADER_SIZE_VIDEO 0x17
-#define AV_HEADER_SIZE_AUDIO 0x12
+#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO 0x17
+#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO 0x12
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
 	if(base_type != TAKION_PACKET_TYPE_VIDEO && base_type != TAKION_PACKET_TYPE_AUDIO)
@@ -1173,7 +1173,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 
 	uint8_t *av = buf+1;
 	size_t av_size = buf_size-1;
-	size_t av_header_size = packet->is_video ? AV_HEADER_SIZE_VIDEO : AV_HEADER_SIZE_AUDIO;
+	size_t av_header_size = packet->is_video ? CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO : CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO;
 	if(av_size < av_header_size + 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
@@ -1230,4 +1230,55 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket
 	packet->data_size = av_size;
 
 	return CHIAKI_ERR_SUCCESS;
+}
+
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE					0x11
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_VIDEO_ADD				0x3
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_NALU_INFO_STRUCTS_ADD	0x3
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet)
+{
+	size_t header_size = CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE;
+	if(packet->is_video)
+		header_size += CHIAKI_TAKION_V7_AV_HEADER_SIZE_VIDEO_ADD;
+	if(packet->uses_nalu_info_structs)
+		header_size += CHIAKI_TAKION_V7_AV_HEADER_SIZE_NALU_INFO_STRUCTS_ADD;
+	*header_size_out = header_size;
+
+	if(header_size > buf_size)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	buf[0] = packet->is_video ? TAKION_PACKET_TYPE_VIDEO : TAKION_PACKET_TYPE_AUDIO;
+	if(packet->uses_nalu_info_structs)
+		buf[0] |= 0x10;
+
+	*(uint16_t *)(buf + 1) = htons(packet->packet_index);
+	*(uint16_t *)(buf + 3) = htons(packet->frame_index);
+
+	*(uint32_t *)(buf + 5) = htonl(
+			(packet->units_in_frame_fec & 0x3ff)
+			| (((packet->units_in_frame_total - 1) & 0x7ff) << 0xa)
+			| ((packet->unit_index & 0xffff) << 0x15));
+
+	buf[9] = packet->codec & 0xff;
+
+	*(uint32_t *)(buf + 0xa) = 0; // unknown
+
+	*(uint32_t *)(buf + 0xe) = packet->key_pos;
+
+	uint8_t *cur = buf + 0x12;
+	if(packet->is_video)
+	{
+		*(uint16_t *)cur = htons(packet->word_at_0x18);
+		cur[3] = packet->adaptive_stream_index << 5;
+		cur += 3;
+	}
+
+	if(packet->uses_nalu_info_structs)
+	{
+		*(uint16_t *)cur = 0; // unknown
+		cur[3] = 0; // unknown
+	}
+
+	return CHIAKI_ERR_BUF_TOO_SMALL;
 }

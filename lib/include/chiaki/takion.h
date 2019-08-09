@@ -52,7 +52,7 @@ typedef struct chiaki_takion_av_packet_t
 	ChiakiSeqNum16 unit_index;
 	uint16_t units_in_frame_total; // source + units_in_frame_fec
 	uint16_t units_in_frame_fec;
-	uint32_t codec;
+	uint8_t codec;
 	uint16_t word_at_0x18;
 	uint8_t adaptive_stream_index;
 	uint8_t byte_at_0x2c;
@@ -224,7 +224,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_history(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, uint8_t *payload, size_t payload_size);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size);
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet);
 
 #ifdef __cplusplus
 }
