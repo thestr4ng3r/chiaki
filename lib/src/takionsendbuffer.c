@@ -144,11 +144,14 @@ beach:
 	return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuffer *send_buffer, ChiakiSeqNum32 seq_num)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuffer *send_buffer, ChiakiSeqNum32 seq_num, ChiakiSeqNum32 *acked_seq_nums, size_t *acked_seq_nums_count)
 {
 	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
+
+	if(acked_seq_nums_count)
+		*acked_seq_nums_count = 0;
 
 	size_t i;
 	size_t shift = 0; // amount to shift back
@@ -157,6 +160,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_buffer_ack(ChiakiTakionSendBuff
 	{
 		if(send_buffer->packets[i].seq_num == seq_num || chiaki_seq_num_32_lt(send_buffer->packets[i].seq_num, seq_num))
 		{
+			if(acked_seq_nums)
+				acked_seq_nums[(*acked_seq_nums_count)++] = send_buffer->packets[i].seq_num;
+
 			free(send_buffer->packets[i].buf);
 			if(shift_start == SIZE_MAX)
 			{

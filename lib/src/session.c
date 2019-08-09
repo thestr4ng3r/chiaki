@@ -257,7 +257,7 @@ static bool session_check_state_pred(void *user)
 		|| session->ctrl_session_id_received;
 }
 
-//#define ENABLE_SENKUSHA
+#define ENABLE_SENKUSHA
 
 static void *session_thread_func(void *arg)
 {

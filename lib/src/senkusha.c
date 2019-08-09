@@ -28,22 +28,30 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include <pb.h>
+#include <chiaki/takion.h>
 
 
 #define SENKUSHA_PORT 9297
 
 #define EXPECT_TIMEOUT_MS 5000
 
+#define SENKUSHA_PING_COUNT_DEFAULT 10
+
 typedef enum {
 	STATE_IDLE,
 	STATE_TAKION_CONNECT,
-	STATE_EXPECT_BANG
+	STATE_EXPECT_BANG,
+	STATE_EXPECT_DATA_ACK,
+	STATE_EXPECT_PONG,
 } SenkushaState;
 
+static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint32_t ping_count);
 static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user);
 static void senkusha_takion_data(ChiakiSenkusha *senkusha, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
+static void senkusha_takion_data_ack(ChiakiSenkusha *senkusha, ChiakiSeqNum32 seq_num);
 static ChiakiErrorCode senkusha_send_big(ChiakiSenkusha *senkusha);
 static ChiakiErrorCode senkusha_send_disconnect(ChiakiSenkusha *senkusha);
+static ChiakiErrorCode senkusha_send_echo_command(ChiakiSenkusha *senkusha, bool enable);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, ChiakiSession *session)
 {
@@ -178,7 +186,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 
 	CHIAKI_LOGI(session->log, "Senkusha successfully received bang");
 
-	// TODO: Do the actual tests
+	senkusha_run_ping_test(senkusha, SENKUSHA_PING_COUNT_DEFAULT);
 
 	CHIAKI_LOGI(session->log, "Senkusha is disconnecting");
 
@@ -191,6 +199,33 @@ quit_takion:
 	CHIAKI_LOGI(session->log, "Senkusha closed takion");
 quit:
 	return err;
+}
+
+static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint32_t ping_count)
+{
+	CHIAKI_LOGI(senkusha->log, "Senkusha Ping Test with count %u starting", (unsigned int)ping_count);
+
+	ChiakiErrorCode err = senkusha_send_echo_command(senkusha, true);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha Ping Test failed because sending echo command (true) failed");
+		return err;
+	}
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha enabled echo");
+
+	// TODO: do test
+
+	err = senkusha_send_echo_command(senkusha, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha Ping Test failed because sending echo command (false) failed");
+		return err;
+	}
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha disabled echo");
+
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user)
@@ -211,6 +246,9 @@ static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user)
 			break;
 		case CHIAKI_TAKION_EVENT_TYPE_DATA:
 			senkusha_takion_data(senkusha, event->data.data_type, event->data.buf, event->data.buf_size);
+			break;
+		case CHIAKI_TAKION_EVENT_TYPE_DATA_ACK:
+			senkusha_takion_data_ack(senkusha, event->data_ack.seq_num);
 			break;
 		default:
 			break;
@@ -249,6 +287,19 @@ static void senkusha_takion_data(ChiakiSenkusha *senkusha, ChiakiTakionMessageDa
 	chiaki_mutex_unlock(&senkusha->state_mutex);
 }
 
+static void senkusha_takion_data_ack(ChiakiSenkusha *senkusha, ChiakiSeqNum32 seq_num)
+{
+	chiaki_mutex_lock(&senkusha->state_mutex);
+	if(senkusha->state == STATE_EXPECT_DATA_ACK && senkusha->data_ack_seq_num_expected == seq_num)
+	{
+		senkusha->state_finished = true;
+		chiaki_mutex_unlock(&senkusha->state_mutex);
+		chiaki_cond_signal(&senkusha->state_cond);
+	}
+	else
+		chiaki_mutex_unlock(&senkusha->state_mutex);
+}
+
 static ChiakiErrorCode senkusha_send_big(ChiakiSenkusha *senkusha)
 {
 	tkproto_TakionMessage msg;
@@ -276,7 +327,7 @@ static ChiakiErrorCode senkusha_send_big(ChiakiSenkusha *senkusha)
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size, NULL);
 
 	return err;
 }
@@ -303,9 +354,57 @@ static ChiakiErrorCode senkusha_send_disconnect(ChiakiSenkusha *senkusha)
 	}
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size, NULL);
 
 	return err;
 }
 
+static ChiakiErrorCode senkusha_send_echo_command(ChiakiSenkusha *senkusha, bool enable)
+{
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
 
+	msg.type = tkproto_TakionMessage_PayloadType_SENKUSHA;
+	msg.has_senkusha_payload = true;
+	msg.senkusha_payload.command = tkproto_SenkushaPayload_Command_ECHO_COMMAND;
+	msg.senkusha_payload.has_echo_command = true;
+	msg.senkusha_payload.echo_command.state = enable;
+
+	uint8_t buf[0x10];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha echo command protobuf encoding failed");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	senkusha->state = STATE_EXPECT_DATA_ACK;
+	senkusha->state_finished = false;
+	senkusha->state_failed = false;
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&senkusha->takion, 1, 1, buf, buf_size, &senkusha->data_ack_seq_num_expected);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha failed to send echo command");
+		return err;
+	}
+
+	err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, senkusha);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+	if(!senkusha->state_finished)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+			CHIAKI_LOGE(senkusha->log, "Senkusha data ack for echo command receive timeout");
+
+		if(senkusha->should_stop)
+			err = CHIAKI_ERR_CANCELED;
+		else
+			CHIAKI_LOGE(senkusha->log, "Senkusha failed to receive data ack for echo command");
+	}
+
+	return err;
+}

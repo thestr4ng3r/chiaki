@@ -80,6 +80,7 @@ typedef enum {
 	CHIAKI_TAKION_EVENT_TYPE_CONNECTED,
 	CHIAKI_TAKION_EVENT_TYPE_DISCONNECT,
 	CHIAKI_TAKION_EVENT_TYPE_DATA,
+	CHIAKI_TAKION_EVENT_TYPE_DATA_ACK,
 	CHIAKI_TAKION_EVENT_TYPE_AV
 } ChiakiTakionEventType;
 
@@ -94,6 +95,11 @@ typedef struct chiaki_takion_event_t
 			uint8_t *buf;
 			size_t buf_size;
 		} data;
+
+		struct
+		{
+			ChiakiSeqNum32 seq_num;
+		} data_ack;
 
 		ChiakiTakionAVPacket *av;
 	};
@@ -198,8 +204,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 
 /**
  * Thread-safe while Takion is running.
+ *
+ * @param optional pointer to write the sequence number of the sent package to
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size, ChiakiSeqNum32 *seq_num);
 
 /**
  * Thread-safe while Takion is running.

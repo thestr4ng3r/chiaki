@@ -728,7 +728,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	}
 
 	buf_size = stream.bytes_written;
-	err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size);
+	err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
 
 	return err;
 }
@@ -751,7 +751,7 @@ static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnect
 	}
 
 	buf_size = stream.bytes_written;
-	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 9, buf, buf_size);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 9, buf, buf_size, NULL);
 }
 
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection)
@@ -778,7 +778,7 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 	CHIAKI_LOGI(stream_connection->log, "StreamConnection sending Disconnect");
 
 	buf_size = stream.bytes_written;
-	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
 
 	return err;
 }
@@ -810,7 +810,7 @@ static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, stream.bytes_written);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, stream.bytes_written, NULL);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode stream_connection_send_corrupt_frame(ChiakiStreamConnection *stream_connection, ChiakiSeqNum16 start, ChiakiSeqNum16 end)
@@ -832,5 +832,5 @@ CHIAKI_EXPORT ChiakiErrorCode stream_connection_send_corrupt_frame(ChiakiStreamC
 	}
 
 	CHIAKI_LOGD(stream_connection->log, "StreamConnection reporting corrupt frame(s) from %u to %u", (unsigned int)start, (unsigned int)end);
-	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 2, buf, stream.bytes_written);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 2, buf, stream.bytes_written, NULL);
 }

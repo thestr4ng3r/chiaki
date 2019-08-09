@@ -349,7 +349,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 	return chiaki_takion_send_raw(takion, buf, buf_size);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size, ChiakiSeqNum32 *seq_num)
 {
 	// TODO: can we make this more memory-efficient?
 	// TODO: split packet if necessary?
@@ -372,10 +372,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	err = chiaki_mutex_lock(&takion->seq_num_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	ChiakiSeqNum32 seq_num = takion->seq_num_local++;
+	ChiakiSeqNum32 seq_num_val = takion->seq_num_local++;
 	chiaki_mutex_unlock(&takion->seq_num_local_mutex);
 
-	*((uint32_t *)(msg_payload + 0)) = htonl(seq_num);
+	*((uint32_t *)(msg_payload + 0)) = htonl(seq_num_val);
 	*((uint16_t *)(msg_payload + 4)) = htons(channel);
 	*((uint16_t *)(msg_payload + 6)) = 0;
 	*(msg_payload + 8) = 0;
@@ -389,7 +389,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 		return err;
 	}
 
-	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num, packet_buf, packet_size);
+	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num_val, packet_buf, packet_size);
+
+	if(seq_num)
+		*seq_num = seq_num_val;
 
 	return err;
 }
@@ -606,6 +609,7 @@ static void *takion_thread_func(void *user)
 
 	chiaki_reorder_queue_set_drop_cb(&takion->data_queue, takion_data_drop, takion);
 
+	// The send buffer size MUST be consistent with the acked seqnums array size in takion_handle_packet_message_data_ack()
 	if(chiaki_takion_send_buffer_init(&takion->send_buffer, takion, TAKION_SEND_BUFFER_SIZE) != CHIAKI_ERR_SUCCESS)
 		goto error_reoder_queue;
 
@@ -939,8 +943,20 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 	if(dup_tsns_count != 0)
 		CHIAKI_LOGW(takion->log, "Takion received data ack with nonzero dup_tsns_count %#x", dup_tsns_count);
 
-	//CHIAKI_LOGD(takion->log, "Takion received data ack with seq_num = %#x, something = %#x, size_or_something = %#x, zero = %#x", seq_num, something, size_internal, zero);
-	chiaki_takion_send_buffer_ack(&takion->send_buffer, cumulative_seq_num);
+	CHIAKI_LOGV(takion->log, "Takion received data ack with cumulative_seq_num = %#x, a_rwnd = %#x, gap_ack_blocks_count = %#x, dup_tsns_count = %#x",
+			cumulative_seq_num, a_rwnd, gap_ack_blocks_count, dup_tsns_count);
+
+	ChiakiSeqNum32 acked_seq_nums[TAKION_SEND_BUFFER_SIZE];
+	size_t acked_seq_nums_count = 0;
+	chiaki_takion_send_buffer_ack(&takion->send_buffer, cumulative_seq_num, acked_seq_nums, &acked_seq_nums_count);
+
+	for(size_t i=0; i<acked_seq_nums_count; i++)
+	{
+		ChiakiTakionEvent event = { 0 };
+		event.type = CHIAKI_TAKION_EVENT_TYPE_DATA_ACK;
+		event.data_ack.seq_num = acked_seq_nums[i];
+		takion->cb(&event, takion->cb_user);
+	}
 }
 
 /**

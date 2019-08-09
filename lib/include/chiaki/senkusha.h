@@ -36,6 +36,7 @@ typedef struct senkusha_t
 	bool state_finished;
 	bool state_failed;
 	bool should_stop;
+	ChiakiSeqNum32 data_ack_seq_num_expected;
 
 	/**
 	 * signaled on change of state_finished or should_stop
