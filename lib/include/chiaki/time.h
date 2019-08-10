@@ -26,7 +26,9 @@
 extern "C" {
 #endif
 
-CHIAKI_EXPORT uint64_t chiaki_time_now_monotonic_ms();
+CHIAKI_EXPORT uint64_t chiaki_time_now_monotonic_us();
+
+static inline uint64_t chiaki_time_now_monotonic_ms() { return chiaki_time_now_monotonic_us() / 1000; }
 
 #ifdef __cplusplus
 }

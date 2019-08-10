@@ -37,6 +37,10 @@ typedef struct senkusha_t
 	bool state_failed;
 	bool should_stop;
 	ChiakiSeqNum32 data_ack_seq_num_expected;
+	uint64_t pong_time_us;
+	uint16_t ping_test_index;
+	uint16_t ping_index;
+	uint32_t ping_tag;
 
 	/**
 	 * signaled on change of state_finished or should_stop

@@ -19,9 +19,9 @@
 
 #include <time.h>
 
-CHIAKI_EXPORT uint64_t chiaki_time_now_monotonic_ms()
+CHIAKI_EXPORT uint64_t chiaki_time_now_monotonic_us()
 {
 	struct timespec time;
 	clock_gettime(CLOCK_MONOTONIC, &time);
-	return time.tv_sec * 1000 + time.tv_nsec / 1000000;
+	return time.tv_sec * 1000000 + time.tv_nsec / 1000;
 }
