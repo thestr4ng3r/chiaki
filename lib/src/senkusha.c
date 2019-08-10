@@ -125,6 +125,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	takion_info.enable_crypt = false;
+	takion_info.protocol_version = 7;
 
 	takion_info.cb = senkusha_takion_cb;
 	takion_info.cb_user = senkusha;

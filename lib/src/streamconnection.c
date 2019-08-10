@@ -139,6 +139,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	assert(err == CHIAKI_ERR_SUCCESS);
 
 	takion_info.enable_crypt = true;
+	takion_info.protocol_version = 9;
 
 	takion_info.cb = stream_connection_takion_cb;
 	takion_info.cb_user = stream_connection;

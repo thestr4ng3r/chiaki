@@ -177,6 +177,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	takion->log = info->log;
+
+	switch(info->protocol_version)
+	{
+		case 7:
+			takion->av_packet_parse = chiaki_takion_v7_av_packet_parse;
+			break;
+		case 9:
+			takion->av_packet_parse = chiaki_takion_v9_av_packet_parse;
+			break;
+		default:
+			CHIAKI_LOGE(takion->log, "Unknown Takion Protocol Version %u", (unsigned int)info->protocol_version);
+			return CHIAKI_ERR_INVALID_DATA;
+	}
+
 	takion->gkcrypt_local = NULL;
 	ret = chiaki_mutex_init(&takion->gkcrypt_local_mutex, true);
 	if(ret != CHIAKI_ERR_SUCCESS)
@@ -199,7 +213,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->postponed_packets_size = 0;
 	takion->postponed_packets_count = 0;
 
-	CHIAKI_LOGI(takion->log, "Takion connecting");
+	CHIAKI_LOGI(takion->log, "Takion connecting (version %u)", (unsigned int)info->protocol_version);
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&takion->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)

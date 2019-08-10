@@ -67,6 +67,7 @@ static inline uint8_t chiaki_takion_av_packet_audio_unit_size(ChiakiTakionAVPack
 static inline uint8_t chiaki_takion_av_packet_audio_source_units_count(ChiakiTakionAVPacket *packet)	{ return packet->units_in_frame_fec & 0xf; }
 static inline uint8_t chiaki_takion_av_packet_audio_fec_units_count(ChiakiTakionAVPacket *packet)		{ return (packet->units_in_frame_fec >> 4) & 0xf; }
 
+typedef ChiakiErrorCode (*ChiakiTakionAVPacketParse)(ChiakiTakionAVPacket *packet, uint8_t *buf, size_t buf_size);
 
 typedef struct chiaki_takion_congestion_packet_t
 {
@@ -115,6 +116,7 @@ typedef struct chiaki_takion_connect_info_t
 	ChiakiTakionCallback cb;
 	void *cb_user;
 	bool enable_crypt;
+	uint8_t protocol_version;
 } ChiakiTakionConnectInfo;
 
 
@@ -165,6 +167,8 @@ typedef struct chiaki_takion_t
 	 * Advertised Receiver Window Credit
 	 */
 	uint32_t a_rwnd;
+
+	ChiakiTakionAVPacketParse av_packet_parse;
 } ChiakiTakion;
 
 
