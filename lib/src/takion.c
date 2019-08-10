@@ -1138,7 +1138,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 
 	ChiakiTakionAVPacket packet;
-	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&packet, base_type, buf, buf_size);
+	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&packet, buf, buf_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
@@ -1158,18 +1158,21 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 #define CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO 0x17
 #define CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO 0x12
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t base_type, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
-	if(base_type != TAKION_PACKET_TYPE_VIDEO && base_type != TAKION_PACKET_TYPE_AUDIO)
-		return CHIAKI_ERR_INVALID_DATA;
 
 	if(buf_size < 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
+	uint8_t base_type = buf[0] & TAKION_PACKET_BASE_TYPE_MASK;
+
+	if(base_type != TAKION_PACKET_TYPE_VIDEO && base_type != TAKION_PACKET_TYPE_AUDIO)
+		return CHIAKI_ERR_INVALID_DATA;
+
 	packet->is_video = base_type == TAKION_PACKET_TYPE_VIDEO;
 
-	packet->uses_nalu_info_structs = ((buf[0] >> 4) & 1) != 0; // TODO: is this really correct?
+	packet->uses_nalu_info_structs = ((buf[0] >> 4) & 1) != 0;
 
 	uint8_t *av = buf+1;
 	size_t av_size = buf_size-1;
@@ -1200,15 +1203,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	uint8_t unknown_1 = av[0x11];
 
-	av += 0x12;
-	av_size -= 0x12;
+	av += 0x11;
+	av_size -= 0x11;
 
 	if(packet->is_video)
 	{
 		packet->word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
-		packet->adaptive_stream_index = av[1] >> 5;
-		av += 2;
-		av_size -= 2;
+		packet->adaptive_stream_index = av[2] >> 5;
+		av += 3;
+		av_size -= 3;
+	}
+	else
+	{
+		av += 1;
+		av_size -= 1;
+		// unknown
 	}
 
 	// TODO: parsing for uses_nalu_info_structs (before: packet.byte_at_0x1a)
@@ -1270,15 +1279,76 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *
 	if(packet->is_video)
 	{
 		*(uint16_t *)cur = htons(packet->word_at_0x18);
-		cur[3] = packet->adaptive_stream_index << 5;
+		cur[2] = packet->adaptive_stream_index << 5;
 		cur += 3;
 	}
 
 	if(packet->uses_nalu_info_structs)
 	{
 		*(uint16_t *)cur = 0; // unknown
-		cur[3] = 0; // unknown
+		cur[2] = 0; // unknown
 	}
 
 	return CHIAKI_ERR_BUF_TOO_SMALL;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t *buf, size_t buf_size)
+{
+	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
+
+	if(buf_size < 1)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	uint8_t base_type = buf[0] & TAKION_PACKET_BASE_TYPE_MASK;
+
+	if(base_type != TAKION_PACKET_TYPE_VIDEO && base_type != TAKION_PACKET_TYPE_AUDIO)
+		return CHIAKI_ERR_INVALID_DATA;
+
+	packet->is_video = base_type == TAKION_PACKET_TYPE_VIDEO;
+	packet->uses_nalu_info_structs = ((buf[0] >> 4) & 1) != 0;
+
+	size_t header_size = CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE;
+	if(packet->is_video)
+		header_size += CHIAKI_TAKION_V7_AV_HEADER_SIZE_VIDEO_ADD;
+	if(packet->uses_nalu_info_structs)
+		header_size += CHIAKI_TAKION_V7_AV_HEADER_SIZE_NALU_INFO_STRUCTS_ADD;
+
+	if(buf_size < header_size)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	packet->packet_index = ntohs(*((uint16_t *)(buf + 1)));
+	packet->frame_index = ntohs(*((uint16_t *)(buf + 3)));
+
+	uint32_t dword_2 = ntohl(*((uint32_t *)(buf + 5)));
+	packet->unit_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
+	packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
+	packet->units_in_frame_fec = (uint16_t)(dword_2 & 0x3ff);
+
+	packet->codec = buf[9];
+	// unknown *(uint32_t *)(buf + 0xa)
+	packet->key_pos = ntohl(*((uint32_t *)(buf + 0xe)));
+
+	buf += 0x12;
+	buf_size -= 0x12;
+
+	if(packet->is_video)
+	{
+		packet->word_at_0x18 = ntohs(*((uint16_t *)(buf + 0)));
+		packet->adaptive_stream_index = buf[2] >> 5;
+		buf += 3;
+		buf_size -= 3;
+	}
+
+	if(packet->uses_nalu_info_structs)
+	{
+		buf += 3;
+		buf_size -= 3;
+		// unknown
+	}
+
+	packet->data = buf;
+	packet->data_size = buf_size;
+
+	return CHIAKI_ERR_SUCCESS;
+
 }

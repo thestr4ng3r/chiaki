@@ -45,7 +45,7 @@ static MunitResult test_av_packet_parse(const MunitParameter params[], void *use
 
 	ChiakiTakionAVPacket av_packet;
 
-	ChiakiErrorCode err = chiaki_takion_av_packet_parse(&av_packet, 2, packet, sizeof(packet));
+	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&av_packet, packet, sizeof(packet));
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
 
 	munit_assert(av_packet.is_video);
