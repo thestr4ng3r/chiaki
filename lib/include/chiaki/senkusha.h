@@ -41,6 +41,7 @@ typedef struct senkusha_t
 	uint16_t ping_test_index;
 	uint16_t ping_index;
 	uint32_t ping_tag;
+	uint32_t mtu_id;
 
 	/**
 	 * signaled on change of state_finished or should_stop

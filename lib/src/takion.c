@@ -27,6 +27,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <netinet/ip.h>
+
 
 // VERY similar to SCTP, see RFC 4960
 
@@ -235,6 +237,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: %s", strerror(errno));
+		ret = CHIAKI_ERR_NETWORK;
+		goto error_sock;
+	}
+
+	const int mtu_discover_val = IP_PMTUDISC_DO;
+	r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_discover_val, sizeof(mtu_discover_val));
+	if(r < 0)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
 		ret = CHIAKI_ERR_NETWORK;
 		goto error_sock;
 	}

@@ -470,6 +470,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 		set_port(sa, htons(SESSION_PORT));
 
+		// TODO: this can block, make cancelable somehow
 		int r = getnameinfo(sa, ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, 0);
 		if(r != 0)
 		{
