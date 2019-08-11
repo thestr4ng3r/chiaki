@@ -1,9 +1,10 @@
 
 #include <streamwindow.h>
 #include <videodecoder.h>
-#include <discoverycmd.h>
 #include <mainwindow.h>
 #include <streamsession.h>
+
+#include <chiaki-cli.h>
 
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
@@ -15,7 +16,16 @@
 #include <QAudioOutput>
 #include <QAudioFormat>
 #include <QCommandLineParser>
+#include <QMap>
 
+struct CLICommand
+{
+	int (*cmd)(ChiakiLog *log, int argc, char *argv[]);
+};
+
+static const QMap<QString, CLICommand> cli_commands = {
+	{ "discover", { chiaki_cli_cmd_discover } }
+};
 
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QApplication &app);
@@ -35,10 +45,15 @@ int main(int argc, char *argv[])
 	QApplication::setApplicationName("Chiaki");
 
 	QCommandLineParser parser;
+	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
 	parser.addHelpOption();
 
-	parser.addPositionalArgument("command", "stream or discover");
-	parser.addPositionalArgument("host", "Address to connect to");
+	QStringList cmds;
+	cmds.append("stream");
+	cmds.append(cli_commands.keys());
+
+	parser.addPositionalArgument("command", cmds.join(", "));
+	parser.addPositionalArgument("host", "Address to connect to (when using the stream command)");
 
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
@@ -62,13 +77,13 @@ int main(int argc, char *argv[])
 	if(args.length() == 0)
 		return RunMain(app);
 
-	if(args.length() < 2)
-		parser.showHelp(1);
-
-	QString host = args[1];
-
 	if(args[0] == "stream")
 	{
+		if(args.length() < 2)
+			parser.showHelp(1);
+
+		QString host = args[1];
+
 		StreamSessionConnectInfo connect_info;
 
 		connect_info.log_level_mask = CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE;
@@ -87,11 +102,25 @@ int main(int argc, char *argv[])
 
 		if(connect_info.registkey.isEmpty() || connect_info.ostype.isEmpty() || connect_info.auth.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
 			parser.showHelp(1);
+
 		return RunStream(app, connect_info);
 	}
-	else if(args[0] == "discover")
+	else if(cli_commands.contains(args[0]))
 	{
-		return RunDiscoveryCmd(args[1]);
+		ChiakiLog log;
+		// TODO: add verbose arg
+		chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
+
+		const auto &cmd = cli_commands[args[0]];
+		int sub_argc = args.count();
+		QVector<QByteArray> sub_argv_b(sub_argc);
+		QVector<char *> sub_argv(sub_argc);
+		for(size_t i=0; i<sub_argc; i++)
+		{
+			sub_argv_b[i] = args[i].toLocal8Bit();
+			sub_argv[i] = sub_argv_b[i].data();
+		}
+		return cmd.cmd(&log, sub_argc, sub_argv.data());
 	}
 	else
 	{

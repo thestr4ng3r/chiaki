@@ -19,8 +19,6 @@ add_executable(chiaki
 		src/streamwindow.cpp
 		include/videodecoder.h
 		src/videodecoder.cpp
-		include/discoverycmd.h
-		src/discoverycmd.cpp
 		include/mainwindow.h
 		src/mainwindow.cpp
 		include/dynamicgridwidget.h
@@ -39,7 +37,7 @@ add_executable(chiaki
 		src/avopenglframeuploader.cpp)
 target_include_directories(chiaki PRIVATE include)
 
-target_link_libraries(chiaki chiaki-lib)
+target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
 target_link_libraries(chiaki FFMPEG::avcodec)
 target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
