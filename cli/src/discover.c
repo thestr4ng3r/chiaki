@@ -60,6 +60,41 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 
 static struct argp argp = { options, parse_opt, 0, doc, 0, 0, 0 };
 
+static void discovery_cb(ChiakiDiscoveryHost *host, void *user)
+{
+	ChiakiLog *log = user;
+
+	CHIAKI_LOGI(log, "--");
+	CHIAKI_LOGI(log, "Discovered Host:");
+	CHIAKI_LOGI(log, "State:                             %s", chiaki_discovery_host_state_string(host->state));
+
+	if(host->system_version)
+		CHIAKI_LOGI(log, "System Version:                    %s", host->system_version);
+
+	if(host->device_discovery_protocol_version)
+		CHIAKI_LOGI(log, "Device Discovery Protocol Version: %s", host->device_discovery_protocol_version);
+
+	if(host->host_request_port)
+		CHIAKI_LOGI(log, "Request Port:                      %hu", (unsigned short)host->host_request_port);
+
+	if(host->host_name)
+		CHIAKI_LOGI(log, "Host Name:                         %s", host->host_name);
+
+	if(host->host_type)
+		CHIAKI_LOGI(log, "Host Type:                         %s", host->host_type);
+
+	if(host->host_id)
+		CHIAKI_LOGI(log, "Host ID:                           %s", host->host_id);
+
+	if(host->running_app_titleid)
+		CHIAKI_LOGI(log, "Running App Title ID:              %s", host->running_app_titleid);
+
+	if(host->running_app_name)
+		CHIAKI_LOGI(log, "Running App Name:                  %s%s", host->running_app_name, (strcmp(host->running_app_name, "Persona 5") == 0 ? " (best game ever)" : ""));
+
+	CHIAKI_LOGI(log, "--");
+}
+
 CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[])
 {
 	Arguments arguments = { 0 };
@@ -82,7 +117,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	}
 
 	ChiakiDiscoveryThread thread;
-	err = chiaki_discovery_thread_start(&thread, &discovery);
+	err = chiaki_discovery_thread_start(&thread, &discovery, discovery_cb, NULL);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "Discovery thread init failed");

@@ -51,7 +51,9 @@ typedef enum chiaki_discovery_host_state_t
 	CHIAKI_DISCOVERY_HOST_STATE_STANDBY
 } ChiakiDiscoveryHostState;
 
-typedef struct chiaki_discovery_srch_response_t
+const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state);
+
+typedef struct chiaki_discovery_host_t
 {
 	ChiakiDiscoveryHostState state;
 	const char *system_version;
@@ -60,7 +62,9 @@ typedef struct chiaki_discovery_srch_response_t
 	const char *host_name;
 	const char *host_type;
 	const char *host_id;
-} ChiakiDiscoverySrchResponse;
+	const char *running_app_titleid;
+	const char *running_app_name;
+} ChiakiDiscoveryHost;
 
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
 
@@ -75,14 +79,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 CHIAKI_EXPORT void chiaki_discovery_fini(ChiakiDiscovery *discovery);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, ChiakiDiscoveryPacket *packet, struct sockaddr *addr, size_t addr_size);
 
+typedef void (*ChiakiDiscoveryCb)(ChiakiDiscoveryHost *host, void *user);
+
 typedef struct chiaki_discovery_thread_t
 {
 	ChiakiDiscovery *discovery;
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;
+	ChiakiDiscoveryCb cb;
+	void *cb_user;
 } ChiakiDiscoveryThread;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread);
 
 #ifdef __cplusplus

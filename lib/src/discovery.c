@@ -25,6 +25,18 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state)
+{
+	switch(state)
+	{
+		case CHIAKI_DISCOVERY_HOST_STATE_READY:
+			return "ready";
+		case CHIAKI_DISCOVERY_HOST_STATE_STANDBY:
+			return "standby";
+		default:
+			return "unknown";
+	}
+}
 
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet)
 {
@@ -39,7 +51,7 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoverySrchResponse *response, char *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoveryHost *response, char *buf, size_t buf_size)
 {
 	ChiakiHttpResponse http_response;
 	ChiakiErrorCode err = chiaki_http_response_parse(&http_response, buf, buf_size);
@@ -63,7 +75,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 
 	for(ChiakiHttpHeader *header = http_response.headers; header; header=header->next)
 	{
-		printf("%s: %s\n", header->key, header->value);
 		if(strcmp(header->key, "system-version") == 0)
 			response->system_version = header->value;
 		else if(strcmp(header->key, "device-discovery-protocol-version") == 0)
@@ -76,6 +87,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 			response->host_type = header->value;
 		else if(strcmp(header->key, "host-id") == 0)
 			response->host_id = header->value;
+		else if(strcmp(header->key, "running-app-titleid") == 0)
+			response->running_app_titleid = header->value;
+		else if(strcmp(header->key, "running-app-name") == 0)
+			response->running_app_name = header->value;
+		//else
+		//	printf("unknown %s: %s\n", header->key, header->value);
 	}
 
 	chiaki_http_response_fini(&http_response);
@@ -154,9 +171,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 
 static void *discovery_thread_func(void *user);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user)
 {
 	thread->discovery = discovery;
+	thread->cb = cb;
+	thread->cb_user = cb_user;
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&thread->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -224,10 +243,16 @@ static void *discovery_thread_func(void *user)
 		CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
 		chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
 
-		ChiakiDiscoverySrchResponse response;
+		ChiakiDiscoveryHost response;
 		err = chiaki_discovery_srch_response_parse(&response, buf, n);
 		if(err != CHIAKI_ERR_SUCCESS)
+		{
 			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");
+			continue;
+		}
+
+		if(thread->cb)
+			thread->cb(&response, thread->cb_user);
 	}
 
 	return NULL;
