@@ -56,7 +56,7 @@ typedef struct senkusha_t
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, ChiakiSession *session);
 CHIAKI_EXPORT void chiaki_senkusha_fini(ChiakiSenkusha *senkusha);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us);
 
 #ifdef __cplusplus
 }

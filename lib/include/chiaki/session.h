@@ -147,8 +147,9 @@ typedef struct chiaki_session_t
 	ChiakiRPCrypt rpcrypt;
 	char session_id[CHIAKI_SESSION_ID_SIZE_MAX]; // zero-terminated
 	uint8_t handshake_key[CHIAKI_HANDSHAKE_KEY_SIZE];
-	unsigned int mtu;
-	unsigned int rtt;
+	uint32_t mtu_in;
+	uint32_t mtu_out;
+	uint64_t rtt_us;
 	ChiakiECDH ecdh;
 
 	ChiakiQuitReason quit_reason;

@@ -40,17 +40,27 @@
 #define SENKUSHA_PING_COUNT_DEFAULT 10
 #define EXPECT_PONG_TIMEOUT_MS 1000
 
+// Assuming IPv4, sizeof(ip header) + sizeof(udp header)
+#define MTU_UDP_PACKET_ADD 0x1c
+
+#define MTU_AV_PACKET_ADD CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE
+
+// Amount of bytes to add to AV data size for MTU pings to get the full size of the ip packet for MTU
+#define MTU_PING_DATA_ADD (MTU_UDP_PACKET_ADD + MTU_AV_PACKET_ADD)
+
 typedef enum {
 	STATE_IDLE,
 	STATE_TAKION_CONNECT,
 	STATE_EXPECT_BANG,
 	STATE_EXPECT_DATA_ACK,
 	STATE_EXPECT_PONG,
-	STATE_EXPECT_MTU
+	STATE_EXPECT_MTU,
+	STATE_EXPECT_CLIENT_MTU_COMMAND
 } SenkushaState;
 
-static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t ping_test_index, uint16_t ping_count);
+static ChiakiErrorCode senkusha_run_rtt_test(ChiakiSenkusha *senkusha, uint16_t ping_test_index, uint16_t ping_count, uint64_t *rtt_us);
 static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32_t min, uint32_t max, uint32_t retries, uint64_t timeout_ms, uint32_t *mtu);
+static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint32_t mtu_in, uint32_t min, uint32_t max, uint32_t retries, uint64_t timeout_ms, uint32_t *mtu);
 static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user);
 static void senkusha_takion_data(ChiakiSenkusha *senkusha, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
 static void senkusha_takion_data_ack(ChiakiSenkusha *senkusha, ChiakiSeqNum32 seq_num);
@@ -59,7 +69,7 @@ static ChiakiErrorCode senkusha_send_big(ChiakiSenkusha *senkusha);
 static ChiakiErrorCode senkusha_send_disconnect(ChiakiSenkusha *senkusha);
 static ChiakiErrorCode senkusha_send_echo_command(ChiakiSenkusha *senkusha, bool enable);
 static ChiakiErrorCode senkusha_send_mtu_command(ChiakiSenkusha *senkusha, tkproto_SenkushaMtuCommand *command);
-static ChiakiErrorCode senkusha_send_client_mtu_command(ChiakiSenkusha *senkusha, tkproto_SenkushaClientMtuCommand *command);
+static ChiakiErrorCode senkusha_send_client_mtu_command(ChiakiSenkusha *senkusha, tkproto_SenkushaClientMtuCommand *command, bool wait_for_ack);
 static ChiakiErrorCode senkusha_send_data_wait_for_ack(ChiakiSenkusha *senkusha, uint8_t *buf, size_t buf_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, ChiakiSession *session)
@@ -103,7 +113,7 @@ static bool state_finished_cond_check(void *user)
 	return senkusha->state_finished || senkusha->should_stop;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us)
 {
 	ChiakiSession *session = senkusha->session;
 	ChiakiErrorCode err;
@@ -199,19 +209,30 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha)
 
 	CHIAKI_LOGI(session->log, "Senkusha successfully received bang");
 
-	err = senkusha_run_ping_test(senkusha, 0, SENKUSHA_PING_COUNT_DEFAULT);
+	err = senkusha_run_rtt_test(senkusha, 0, SENKUSHA_PING_COUNT_DEFAULT, rtt_us);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(senkusha->log, "Senkusha Ping Test failed");
 		goto disconnect;
 	}
 
-	// TODO: timeout should be measured rtt * 5
-	uint32_t mtu_in;
-	err = senkusha_run_mtu_in_test(senkusha, 576, 1454, 3, 200, &mtu_in);
+	uint64_t mtu_timeout_ms = (*rtt_us * 5) / 1000;
+	if(mtu_timeout_ms < 5)
+		mtu_timeout_ms = 5;
+	if(mtu_timeout_ms > 500)
+		mtu_timeout_ms = 500;
+
+	err = senkusha_run_mtu_in_test(senkusha, 576, 1454, 3, mtu_timeout_ms, mtu_in);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(senkusha->log, "Senkusha MTU test failed");
+		CHIAKI_LOGE(senkusha->log, "Senkusha MTU in test failed");
+		goto disconnect;
+	}
+
+	err = senkusha_run_mtu_out_test(senkusha, *mtu_in, 576, 1454, 3, mtu_timeout_ms, mtu_out);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha MTU out test failed");
 		goto disconnect;
 	}
 
@@ -228,7 +249,7 @@ quit:
 	return err;
 }
 
-static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t ping_test_index, uint16_t ping_count)
+static ChiakiErrorCode senkusha_run_rtt_test(ChiakiSenkusha *senkusha, uint16_t ping_test_index, uint16_t ping_count, uint64_t *rtt_us)
 {
 	CHIAKI_LOGI(senkusha->log, "Senkusha Ping Test with count %u starting", (unsigned int)ping_count);
 
@@ -241,6 +262,8 @@ static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t
 
 	CHIAKI_LOGI(senkusha->log, "Senkusha enabled echo");
 
+	uint64_t rtt_us_acc = 0;
+	uint64_t pings_successful = 0;
 	for(uint16_t ping_index=0; ping_index<ping_count; ping_index++)
 	{
 		CHIAKI_LOGI(senkusha->log, "Senkusha sending Ping %u of test index %u", (unsigned int)ping_index, (unsigned int)ping_test_index);
@@ -263,7 +286,7 @@ static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t
 			return err;
 		}
 
-		uint32_t tag = 0x1337; //chiaki_random_32();
+		uint32_t tag = chiaki_random_32();
 		*((uint32_t *)(data + header_size + 4)) = htonl(tag);
 
 		senkusha->state = STATE_EXPECT_PONG;
@@ -299,6 +322,8 @@ static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t
 		}
 
 		uint64_t delta_us = senkusha->pong_time_us - time_start_us;
+		rtt_us_acc += delta_us;
+		pings_successful += 1;
 		CHIAKI_LOGI(senkusha->log, "Senkusha received Pong, RTT = %.3f ms", (float)delta_us * 0.001f);
 	}
 
@@ -311,12 +336,21 @@ static ChiakiErrorCode senkusha_run_ping_test(ChiakiSenkusha *senkusha, uint16_t
 
 	CHIAKI_LOGI(senkusha->log, "Senkusha disabled echo");
 
+	if(pings_successful < 1)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha Ping test did not receive a single Pong");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	*rtt_us = rtt_us_acc / pings_successful;
+	CHIAKI_LOGI(senkusha->log, "Senkusha determined average RTT = %.3f ms", (float)(*rtt_us) * 0.001f);
+
 	return CHIAKI_ERR_SUCCESS;
 }
 
 static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32_t min, uint32_t max, uint32_t retries, uint64_t timeout_ms, uint32_t *mtu)
 {
-	CHIAKI_LOGI(senkusha->log, "Senkusha starting MTU test with min %u, max %u, retries %u, timeout %llu ms",
+	CHIAKI_LOGI(senkusha->log, "Senkusha starting MTU in test with min %u, max %u, retries %u, timeout %llu ms",
 			(unsigned int)min, (unsigned int)max, (unsigned int)retries, (unsigned long long)timeout_ms);
 
 	uint32_t cur = max;
@@ -328,6 +362,7 @@ static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32
 		{
 			senkusha->state = STATE_EXPECT_MTU;
 			senkusha->state_finished = false;
+			senkusha->state_failed = false;
 			senkusha->mtu_id = ++request_id;
 
 			tkproto_SenkushaMtuCommand mtu_cmd;
@@ -373,19 +408,161 @@ static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32
 		cur = min + (max - min) / 2;
 	}
 
-	CHIAKI_LOGI(senkusha->log, "Senkusha determined MTU %u", (unsigned int)max);
+	CHIAKI_LOGI(senkusha->log, "Senkusha determined inbound MTU %u", (unsigned int)max);
 	*mtu = max;
 
-	/*tkproto_SenkushaClientMtuCommand client_mtu_cmd;
+	return CHIAKI_ERR_SUCCESS;
+}
+
+static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint32_t mtu_in, uint32_t min, uint32_t max, uint32_t retries, uint64_t timeout_ms, uint32_t *mtu)
+{
+	if(min < 8 + MTU_PING_DATA_ADD || max < min || mtu_in < min || mtu_in > max)
+		return CHIAKI_ERR_INVALID_DATA;
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha starting MTU out test with min %u, max %u, retries %u, timeout %llu ms",
+				(unsigned int)min, (unsigned int)max, (unsigned int)retries, (unsigned long long)timeout_ms);
+
+	senkusha->state = STATE_EXPECT_CLIENT_MTU_COMMAND;
+	senkusha->state_finished = false;
+	senkusha->state_failed = false;
+	senkusha->mtu_id = 1;
+
+	tkproto_SenkushaClientMtuCommand client_mtu_cmd;
+	client_mtu_cmd.id = senkusha->mtu_id;
+	client_mtu_cmd.state = true;
+	client_mtu_cmd.mtu_req = mtu_in;
+	client_mtu_cmd.has_mtu_down = true;
+	client_mtu_cmd.mtu_down = mtu_in;
+	ChiakiErrorCode err = senkusha_send_client_mtu_command(senkusha, &client_mtu_cmd, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(senkusha->log, "Senkusha failed to send client MTU command");
+		return err;
+	}
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha sent initial client MTU command");
+
+	err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, senkusha);
+	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+	if(!senkusha->state_finished)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+		{
+			CHIAKI_LOGE(senkusha->log, "Senkusha Client MTU Command from server receive timeout");
+			return err;
+		}
+
+		if(senkusha->should_stop)
+			return CHIAKI_ERR_CANCELED;
+		else
+			CHIAKI_LOGE(senkusha->log, "Senkusha failed to receive Client MTU command");
+
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	size_t packet_buf_size = max - MTU_UDP_PACKET_ADD;
+	uint8_t *packet_buf = malloc(packet_buf_size);
+	if(!packet_buf)
+		return CHIAKI_ERR_MEMORY;
+	memset(packet_buf, 0, MTU_AV_PACKET_ADD + 8);
+	static const char padding[] = { 'C', 'H', 'I', 'A', 'K', 'I' };
+	for(size_t i=0; i<packet_buf_size - (MTU_AV_PACKET_ADD + 8); i++)
+		packet_buf[i + (MTU_AV_PACKET_ADD + 8)] = padding[i % sizeof(padding)];
+
+	err = CHIAKI_ERR_SUCCESS;
+
+	uint32_t cur = mtu_in;
+	while(max > min)
+	{
+		bool success = false;
+		for(uint32_t attempt=0; attempt<retries; attempt++)
+		{
+			uint32_t tag = chiaki_random_32();
+
+			senkusha->state = STATE_EXPECT_PONG;
+			senkusha->state_finished = false;
+			senkusha->state_failed = false;
+			senkusha->ping_tag = tag;
+			senkusha->ping_test_index = 0;
+			senkusha->ping_index = (uint16_t)attempt;
+
+			ChiakiTakionAVPacket av_packet = { 0 };
+			av_packet.codec = 0xff;
+			av_packet.is_video = false;
+			av_packet.frame_index = senkusha->ping_test_index;
+			av_packet.unit_index = senkusha->ping_index;
+			av_packet.units_in_frame_total = 0x800;
+
+			size_t header_size;
+			err = chiaki_takion_v7_av_packet_format_header(packet_buf, packet_buf_size, &header_size, &av_packet);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(senkusha->log, "Senkusha failed to format AV Header");
+				return err;
+			}
+			assert(header_size == MTU_AV_PACKET_ADD);
+
+			*((uint32_t *)(packet_buf + MTU_AV_PACKET_ADD)) = 0;
+			*((uint32_t *)(packet_buf + MTU_AV_PACKET_ADD + 4)) = htonl(tag);
+
+			CHIAKI_LOGI(senkusha->log, "Senkusha MTU %u out ping attempt %u", (unsigned int)cur, (unsigned int)attempt);
+
+			err = chiaki_takion_send_raw(&senkusha->takion, packet_buf, cur - MTU_UDP_PACKET_ADD);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(senkusha->log, "Senkusha failed to send ping");
+				goto beach;
+			}
+
+			err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, timeout_ms, state_finished_cond_check, senkusha);
+			assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
+
+			if(!senkusha->state_finished)
+			{
+				if(err == CHIAKI_ERR_TIMEOUT)
+				{
+					CHIAKI_LOGI(senkusha->log, "Senkusha MTU pong %u timeout", (unsigned int)cur);
+					continue;
+				}
+
+				if(senkusha->should_stop)
+				{
+					err = CHIAKI_ERR_CANCELED;
+					goto beach;
+				}
+				else
+					CHIAKI_LOGE(senkusha->log, "Senkusha failed to receive MTU pong");
+			}
+
+			CHIAKI_LOGI(senkusha->log, "Senkusha MTU ping %u success", (unsigned int)cur);
+			success = true;
+			break;
+		}
+
+		if(success)
+			min = cur + 1;
+		else
+			max = cur - 1;
+		cur = min + (max - min) / 2;
+	}
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha determined outbound MTU %u", (unsigned int)max);
+	*mtu = max;
+
+	CHIAKI_LOGI(senkusha->log, "Senkusha sending final Client MTU Command");
 	client_mtu_cmd.id = 2;
 	client_mtu_cmd.state = false;
-	client_mtu_cmd.mtu_req = 1454;
+	client_mtu_cmd.mtu_req = max;
 	client_mtu_cmd.has_mtu_down = true;
-	client_mtu_cmd.mtu_down = 1454;
-	ChiakiErrorCode err = senkusha_send_client_mtu_command(senkusha, &client_mtu_cmd);
-	CHIAKI_LOGD(senkusha->log, "MTU result: %d\n", err);*/
+	client_mtu_cmd.mtu_down = mtu_in;
+	err = senkusha_send_client_mtu_command(senkusha, &client_mtu_cmd, true);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(senkusha->log, "Senkusha failed to send client MTU command");
 
-	return CHIAKI_ERR_SUCCESS;
+beach:
+	free(packet_buf);
+	return err;
 }
 
 static void senkusha_takion_cb(ChiakiTakionEvent *event, void *user)
@@ -447,6 +624,30 @@ static void senkusha_takion_data(ChiakiSenkusha *senkusha, ChiakiTakionMessageDa
 			chiaki_cond_signal(&senkusha->state_cond);
 		}
 	}
+	else if(senkusha->state == STATE_EXPECT_CLIENT_MTU_COMMAND)
+	{
+		if(msg.type != tkproto_TakionMessage_PayloadType_SENKUSHA
+			|| !msg.has_senkusha_payload
+			|| msg.senkusha_payload.command != tkproto_SenkushaPayload_Command_CLIENT_MTU_COMMAND
+			|| !msg.senkusha_payload.has_client_mtu_command
+			|| msg.senkusha_payload.client_mtu_command.id != senkusha->mtu_id)
+		{
+			// There might be another MTU_COMMAND from the server, which we ignore, but this is not an error.
+			if(msg.type != tkproto_TakionMessage_PayloadType_SENKUSHA
+				|| !msg.has_senkusha_payload
+				|| msg.senkusha_payload.command != tkproto_SenkushaPayload_Command_MTU_COMMAND)
+			{
+				CHIAKI_LOGE(senkusha->log, "Senkusha expected Client MTU Command with matching id but received something else");
+			}
+		}
+		else
+		{
+			CHIAKI_LOGI(senkusha->log, "Senkusha received expected Client MTU Command");
+			senkusha->state_finished = true;
+			chiaki_cond_signal(&senkusha->state_cond);
+		}
+
+	}
 	chiaki_mutex_unlock(&senkusha->state_mutex);
 }
 
@@ -472,7 +673,8 @@ static void senkusha_takion_av(ChiakiSenkusha *senkusha, ChiakiTakionAVPacket *p
 
 	if(senkusha->state == STATE_EXPECT_PONG)
 	{
-		if(packet->frame_index != senkusha->ping_test_index
+		if(packet->is_video
+			|| packet->frame_index != senkusha->ping_test_index
 			|| packet->unit_index != senkusha->ping_index
 			|| packet->data_size < 8)
 		{
@@ -623,7 +825,7 @@ static ChiakiErrorCode senkusha_send_mtu_command(ChiakiSenkusha *senkusha, tkpro
 	return chiaki_takion_send_message_data(&senkusha->takion, 1, 8, buf, stream.bytes_written, NULL);
 }
 
-static ChiakiErrorCode senkusha_send_client_mtu_command(ChiakiSenkusha *senkusha, tkproto_SenkushaClientMtuCommand *command)
+static ChiakiErrorCode senkusha_send_client_mtu_command(ChiakiSenkusha *senkusha, tkproto_SenkushaClientMtuCommand *command, bool wait_for_ack)
 {
 	tkproto_TakionMessage msg;
 	memset(&msg, 0, sizeof(msg));
@@ -642,6 +844,9 @@ static ChiakiErrorCode senkusha_send_client_mtu_command(ChiakiSenkusha *senkusha
 		CHIAKI_LOGE(senkusha->log, "Senkusha client mtu command protobuf encoding failed");
 		return CHIAKI_ERR_UNKNOWN;
 	}
+
+	if(!wait_for_ack)
+		return chiaki_takion_send_message_data(&senkusha->takion, 1, 8, buf, stream.bytes_written, NULL);
 
 	return senkusha_send_data_wait_for_ack(senkusha, buf, stream.bytes_written);
 }

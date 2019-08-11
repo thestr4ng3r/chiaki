@@ -1180,9 +1180,6 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	}
 }
 
-#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO 0x17
-#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO 0x12
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
@@ -1265,10 +1262,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	return CHIAKI_ERR_SUCCESS;
 }
-
-#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE					0x12
-#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_VIDEO_ADD				0x3
-#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_NALU_INFO_STRUCTS_ADD	0x3
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet)
 {

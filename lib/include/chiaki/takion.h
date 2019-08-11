@@ -228,7 +228,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_history(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, uint8_t *payload, size_t payload_size);
 
+#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO 0x17
+#define CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO 0x12
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, uint8_t *buf, size_t buf_size);
+
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_BASE					0x12
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_VIDEO_ADD				0x3
+#define CHIAKI_TAKION_V7_AV_HEADER_SIZE_NALU_INFO_STRUCTS_ADD	0x3
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet);
 

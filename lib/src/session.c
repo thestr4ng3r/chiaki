@@ -317,21 +317,21 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit_ctrl);
 
-	err = chiaki_senkusha_run(&senkusha);
+	err = chiaki_senkusha_run(&senkusha, &session->mtu_in, &session->mtu_out, &session->rtt_us);
 	chiaki_senkusha_fini(&senkusha);
 
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(session->log, "Senkusha failed");
+	if(err == CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGI(session->log, "Senkusha completed successfully");
+	else if(err == CHIAKI_ERR_CANCELED)
 		QUIT(quit_ctrl);
+	else
+	{
+		CHIAKI_LOGE(session->log, "Senkusha failed, but we still try to connect with fallback values");
+		session->mtu_in = 1454;
+		session->mtu_out = 1454;
+		session->rtt_us = 1000;
 	}
-
-	CHIAKI_LOGI(session->log, "Senkusha completed successfully");
 #endif
-
-	// TODO: Senkusha should set that
-	session->mtu = 1454;
-	session->rtt = 12;
 
 	err = chiaki_random_bytes_crypt(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
