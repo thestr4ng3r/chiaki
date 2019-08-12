@@ -20,18 +20,19 @@
 #include <string.h>
 
 static void *discovery_service_thread_func(void *user);
+static void discovery_service_ping(ChiakiDiscoveryService *service);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryService *service, ChiakiDiscoveryServiceOptions *options, ChiakiLog *log)
 {
 	service->options = *options;
-	service->servers = calloc(service->options.servers_max, sizeof(ChiakiDiscoveryServiceServer));
-	if(!service->servers)
+	service->host_discovery_infos = calloc(service->options.hosts_max, sizeof(ChiakiDiscoveryServiceHostDiscoveryInfo));
+	if(!service->host_discovery_infos)
 		return CHIAKI_ERR_MEMORY;
 	service->options.send_addr = malloc(service->options.send_addr_size);
 	if(!service->options.send_addr)
 		goto error_servers;
 	memcpy(service->options.send_addr, options->send_addr, service->options.send_addr_size);
-	service->servers_count = 0;
+	service->hosts_count = 0;
 
 	ChiakiErrorCode err = chiaki_discovery_init(&service->discovery, log, service->options.send_addr->sa_family);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -55,7 +56,7 @@ error_discovery:
 error_send_addr:
 	free(service->options.send_addr);
 error_servers:
-	free(service->servers);
+	free(service->host_discovery_infos);
 	return err;
 }
 
@@ -65,11 +66,9 @@ CHIAKI_EXPORT void chiaki_discovery_service_fini(ChiakiDiscoveryService *service
 	chiaki_thread_join(&service->thread, NULL);
 	chiaki_bool_pred_cond_fini(&service->stop_cond);
 	chiaki_discovery_fini(&service->discovery);
-	free(service->servers);
+	free(service->host_discovery_infos);
 	free(service->options.send_addr);
 }
-
-static void discovery_service_ping(ChiakiDiscoveryService *service);
 
 static void *discovery_service_thread_func(void *user)
 {
@@ -93,6 +92,7 @@ static void *discovery_service_thread_func(void *user)
 
 static void discovery_service_ping(ChiakiDiscoveryService *service)
 {
+	CHIAKI_LOGV(service->log, "Discovery Service sending ping");
 	ChiakiDiscoveryPacket packet = { 0 };
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
 	chiaki_discovery_send(&service->discovery, &packet, service->options.send_addr, service->options.send_addr_size);

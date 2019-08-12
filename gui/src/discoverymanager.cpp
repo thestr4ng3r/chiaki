@@ -21,7 +21,7 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
 	ChiakiDiscoveryServiceOptions options;
 	options.ping_ms = 500;
-	options.servers_max = 16;
+	options.hosts_max = 16;
 
 	options.send_addr = nullptr; // TODO
 	options.send_addr_size = 0; // TODO

@@ -27,25 +27,29 @@ extern "C" {
 
 typedef struct chiaki_discovery_service_options_t
 {
-	size_t servers_max;
+	size_t hosts_max;
 	uint64_t ping_ms;
 	struct sockaddr *send_addr;
 	size_t send_addr_size;
 } ChiakiDiscoveryServiceOptions;
 
-typedef struct chiaki_discovery_service_server_t
+typedef struct chiaki_discovery_service_host_discovery_info_t
 {
 	uint64_t last_ping_index;
-} ChiakiDiscoveryServiceServer;
+} ChiakiDiscoveryServiceHostDiscoveryInfo;
 
 typedef struct chiaki_discovery_service_t
 {
 	ChiakiLog *log;
 	ChiakiDiscoveryServiceOptions options;
 	ChiakiDiscovery discovery;
+
 	uint64_t ping_index;
-	ChiakiDiscoveryServiceServer *servers;
-	size_t servers_count;
+	ChiakiDiscoveryHost *hosts;
+	ChiakiDiscoveryServiceHostDiscoveryInfo *host_discovery_infos;
+	size_t hosts_count;
+	ChiakiMutex state_mutex;
+
 	ChiakiThread thread;
 	ChiakiBoolPredCond stop_cond;
 } ChiakiDiscoveryService;
