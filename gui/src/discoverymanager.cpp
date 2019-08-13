@@ -1,3 +1,5 @@
+#include <utility>
+
 /*
  * This file is part of Chiaki.
  *
@@ -17,14 +19,29 @@
 
 #include <discoverymanager.h>
 
+#include <netinet/in.h>
+
+#define PING_MS		500
+#define HOSTS_MAX	16
+#define DROP_PINGS	3
+
+static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
+
 DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
 	ChiakiDiscoveryServiceOptions options;
-	options.ping_ms = 500;
-	options.hosts_max = 16;
+	options.ping_ms = PING_MS;
+	options.hosts_max = HOSTS_MAX;
+	options.host_drop_pings = DROP_PINGS;
+	options.cb = DiscoveryServiceHostsCallback;
+	options.cb_user = this;
 
-	options.send_addr = nullptr; // TODO
-	options.send_addr_size = 0; // TODO
+	sockaddr_in addr = {};
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(CHIAKI_DISCOVERY_PORT);
+	addr.sin_addr.s_addr = 0xffffffff; // 255.255.255.255
+	options.send_addr = reinterpret_cast<sockaddr *>(&addr);
+	options.send_addr_size = sizeof(addr);
 
 	ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, nullptr /* TODO */);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -34,4 +51,41 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 DiscoveryManager::~DiscoveryManager()
 {
 	chiaki_discovery_service_fini(&service);
+}
+
+void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)
+{
+	this->hosts = std::move(hosts);
+	emit HostsUpdated();
+}
+
+#include <QDebug>
+
+class DiscoveryManagerPrivate
+{
+	public:
+		static void DiscoveryServiceHosts(DiscoveryManager *discovery_manager, const QList<DiscoveryHost> &hosts)
+		{
+			QMetaObject::invokeMethod(discovery_manager, "DiscoveryServiceHosts", Qt::ConnectionType::QueuedConnection, Q_ARG(QList<DiscoveryHost>, hosts));
+		}
+};
+
+static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+{
+	QList<DiscoveryHost> hosts_list;
+	hosts_list.reserve(hosts_count);
+
+	for(size_t i=0; i<hosts_count; i++)
+	{
+		ChiakiDiscoveryHost *h = hosts + i;
+		DiscoveryHost o = {};
+		o.state = h->state;
+		o.host_request_port = o.host_request_port;
+#define CONVERT_STRING(name) if(h->name) { o.name = QString::fromLocal8Bit(h->name); }
+		CHIAKI_DISCOVERY_HOST_STRING_FOREACH(CONVERT_STRING)
+#undef CONVERT_STRING
+		hosts_list.append(o);
+	}
+
+	DiscoveryManagerPrivate::DiscoveryServiceHosts(reinterpret_cast<DiscoveryManager *>(user), hosts_list);
 }

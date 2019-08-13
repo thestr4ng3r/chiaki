@@ -32,6 +32,7 @@ int RunMain(QApplication &app);
 
 int main(int argc, char *argv[])
 {
+	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<ChiakiQuitReason>();
 
 	ChiakiErrorCode err = chiaki_lib_init();

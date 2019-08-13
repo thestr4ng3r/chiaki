@@ -241,7 +241,7 @@ static void *discovery_thread_func(void *user)
 		buf[n] = '\00';
 
 		CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
-		chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
+		//chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
 
 		ChiakiDiscoveryHost response;
 		err = chiaki_discovery_srch_response_parse(&response, buf, n);

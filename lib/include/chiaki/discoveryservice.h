@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+typedef void (*ChiakiDiscoveryServiceCb)(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
+
 typedef struct chiaki_discovery_service_options_t
 {
 	size_t hosts_max;
@@ -32,6 +34,8 @@ typedef struct chiaki_discovery_service_options_t
 	uint64_t ping_ms;
 	struct sockaddr *send_addr;
 	size_t send_addr_size;
+	ChiakiDiscoveryServiceCb cb;
+	void *cb_user;
 } ChiakiDiscoveryServiceOptions;
 
 typedef struct chiaki_discovery_service_host_discovery_info_t

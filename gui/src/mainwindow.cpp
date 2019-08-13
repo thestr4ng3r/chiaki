@@ -74,6 +74,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	}
 
 	resize(800, 600);
+
+	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::DiscoveryHostsUpdated);
 }
 
 void MainWindow::ServerItemWidgetSelected()
@@ -107,4 +109,9 @@ void MainWindow::RunDiscovery()
 void MainWindow::ShowSettings()
 {
 	qDebug() << "TODO: ShowSettings()";
+}
+
+void MainWindow::DiscoveryHostsUpdated()
+{
+	qDebug() << "updated hosts" << discovery_manager.GetHosts().count();
 }

@@ -19,20 +19,42 @@
 #define CHIAKI_DISCOVERYMANAGER_H
 
 #include <QObject>
+#include <QList>
 
 #include <chiaki/discoveryservice.h>
+
+struct DiscoveryHost
+{
+	ChiakiDiscoveryHostState state;
+	uint16_t host_request_port;
+#define STRING_MEMBER(name) QString name;
+	CHIAKI_DISCOVERY_HOST_STRING_FOREACH(STRING_MEMBER)
+#undef STRING_MEMBER
+};
+
+Q_DECLARE_METATYPE(DiscoveryHost)
 
 class DiscoveryManager : public QObject
 {
 	Q_OBJECT
 
+	friend class DiscoveryManagerPrivate;
+
 	private:
 		ChiakiDiscoveryService service;
+		QList<DiscoveryHost> hosts;
+
+	private slots:
+		void DiscoveryServiceHosts(QList<DiscoveryHost> hosts);
 
 	public:
 		explicit DiscoveryManager(QObject *parent = nullptr);
 		~DiscoveryManager();
 
+		const QList<DiscoveryHost> GetHosts() const { return hosts; }
+
+	signals:
+		void HostsUpdated();
 };
 
 #endif //CHIAKI_DISCOVERYMANAGER_H

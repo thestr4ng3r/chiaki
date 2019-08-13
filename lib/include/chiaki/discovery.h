@@ -55,6 +55,7 @@ const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state);
 
 typedef struct chiaki_discovery_host_t
 {
+	// All string members here must be in sync with CHIAKI_DISCOVERY_HOST_STRING_FOREACH
 	ChiakiDiscoveryHostState state;
 	const char *system_version;
 	const char *device_discovery_protocol_version;
@@ -65,6 +66,18 @@ typedef struct chiaki_discovery_host_t
 	const char *running_app_titleid;
 	const char *running_app_name;
 } ChiakiDiscoveryHost;
+
+/**
+ * Apply A on all names of string members in ChiakiDiscoveryHost
+ */
+#define CHIAKI_DISCOVERY_HOST_STRING_FOREACH(A) \
+	A(system_version); \
+	A(device_discovery_protocol_version); \
+	A(host_name); \
+	A(host_type); \
+	A(host_id); \
+	A(running_app_titleid); \
+	A(running_app_name);
 
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
 

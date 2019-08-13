@@ -20,6 +20,8 @@
 
 #include <QMainWindow>
 
+#include "discoverymanager.h"
+
 class DynamicGridWidget;
 class ServerItemWidget;
 
@@ -31,6 +33,8 @@ class MainWindow : public QMainWindow
 		DynamicGridWidget *grid_widget;
 		QList<ServerItemWidget *> server_item_widgets;
 
+		DiscoveryManager discovery_manager;
+
 	public:
 		explicit MainWindow(QWidget *parent = nullptr);
 
@@ -40,6 +44,8 @@ class MainWindow : public QMainWindow
 
 		void RunDiscovery();
 		void ShowSettings();
+
+		void DiscoveryHostsUpdated();
 };
 
 #endif //CHIAKI_MAINWINDOW_H

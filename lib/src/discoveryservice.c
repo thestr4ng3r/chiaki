@@ -24,6 +24,7 @@ static void *discovery_service_thread_func(void *user);
 static void discovery_service_ping(ChiakiDiscoveryService *service);
 static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service);
 static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *user);
+static void discovery_service_report_state(ChiakiDiscoveryService *service);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryService *service, ChiakiDiscoveryServiceOptions *options, ChiakiLog *log)
 {
@@ -111,13 +112,15 @@ static void *discovery_service_thread_func(void *user)
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	while(service->stop_cond.pred)
+	while(true)
 	{
 		err = chiaki_bool_pred_cond_timedwait(&service->stop_cond, service->options.ping_ms);
 		if(err != CHIAKI_ERR_TIMEOUT)
 			break;
 		discovery_service_ping(service);
 	}
+
+	chiaki_discovery_thread_stop(&discovery_thread);
 
 beach:
 	chiaki_bool_pred_cond_unlock(&service->stop_cond);
@@ -137,25 +140,31 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	CHIAKI_LOGV(service->log, "Discovery Service sending ping");
 	ChiakiDiscoveryPacket packet = { 0 };
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
-	chiaki_discovery_send(&service->discovery, &packet, service->options.send_addr, service->options.send_addr_size);
+	err = chiaki_discovery_send(&service->discovery, &packet, service->options.send_addr, service->options.send_addr_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping");
 }
 
 static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)
 {
 	// service->state_mutex must be locked
 
+	bool change = false;
+
 	for(size_t i=0; i<service->hosts_count; i++)
 	{
-		if(service->host_discovery_infos[i].last_ping_index >= service->ping_index - service->options.host_drop_pings)
+		if(service->host_discovery_infos[i].last_ping_index + service->options.host_drop_pings >= service->ping_index)
 			continue;
 
-		CHIAKI_LOGI(service->log, "Discovery Service: Host with id %s is no longer available", service->hosts[i].host_id);
+		ChiakiDiscoveryHost *host = &service->hosts[i];
+		CHIAKI_LOGI(service->log, "Discovery Service: Host with id %s is no longer available", host->host_id ? host->host_id : "");
 
-		// TODO: free inner strings of service->hosts[i]
+#define FREE_STRING(name) do { free((char *)host->name); } while(0)
+		CHIAKI_DISCOVERY_HOST_STRING_FOREACH(FREE_STRING)
+#undef FREE_STRING
 
 		if(i < service->hosts_count - 1)
 		{
-			// TODO: check again if correct
 			memmove(service->host_discovery_infos + i,
 					service->host_discovery_infos + i + 1,
 					sizeof(ChiakiDiscoveryServiceHostDiscoveryInfo) * (service->hosts_count - i - 1));
@@ -165,9 +174,14 @@ static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)
 					sizeof(ChiakiDiscoveryHost) * (service->hosts_count - i - 1));
 		}
 
+		change = true;
+
 		i--;
 		service->hosts_count--;
 	}
+
+	if(change)
+		discovery_service_drop_old_hosts(service);
 }
 
 static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *user)
@@ -180,8 +194,12 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 		return;
 	}
 
+	CHIAKI_LOGV(service->log, "Discovery Service Received host with id %s", host->host_id);
+
 	ChiakiErrorCode err = chiaki_mutex_lock(&service->state_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
+
+	bool change = false;
 
 	size_t index = SIZE_MAX;
 	for(size_t i=0; i<service->hosts_count; i++)
@@ -204,6 +222,7 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 			goto r2con;
 		}
 
+		change = true;
 		index = service->hosts_count++;
 		memset(&service->hosts[index], 0, sizeof(ChiakiDiscoveryHost));
 	}
@@ -211,12 +230,19 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 	service->host_discovery_infos[index].last_ping_index = service->ping_index;
 
 	ChiakiDiscoveryHost *host_slot = &service->hosts[index];
+
+	if(host_slot->state != host->state || host_slot->host_request_port != host->host_request_port)
+		change = true;
+
 	host_slot->state = host->state;
 	host_slot->host_request_port = host->host_request_port;
 
 #define UPDATE_STRING(name) do { \
 		if(host_slot->name && host->name && strcmp(host_slot->name, host->name) == 0) \
+            break; \
+		if(!host_slot->name && !host->name) \
 			break; \
+		change = true; \
 		if(host_slot->name) \
 			free((char *)host_slot->name); \
 		if(host->name) \
@@ -225,14 +251,20 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 			host_slot->name = NULL; \
 	} while(0)
 
-	UPDATE_STRING(system_version);
-	UPDATE_STRING(device_discovery_protocol_version);
-	UPDATE_STRING(host_name);
-	UPDATE_STRING(host_type);
-	UPDATE_STRING(host_id);
-	UPDATE_STRING(running_app_titleid);
-	UPDATE_STRING(running_app_name);
+	CHIAKI_DISCOVERY_HOST_STRING_FOREACH(UPDATE_STRING)
+
+#undef UPDATE_STRING
+
+	if(change)
+		discovery_service_report_state(service);
 
 r2con:
 	chiaki_mutex_unlock(&service->state_mutex);
+}
+
+static void discovery_service_report_state(ChiakiDiscoveryService *service)
+{
+	// service->state_mutex must be locked
+	if(service->options.cb)
+		service->options.cb(service->hosts, service->hosts_count, service->options.cb_user);
 }
