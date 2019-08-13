@@ -33,7 +33,7 @@ class ServerIconWidget : public QWidget
 		void paintEvent(QPaintEvent *event) override;
 
 	public:
-		explicit ServerIconWidget(QWidget *parent = nullptr) : QWidget(parent) {}
+		explicit ServerIconWidget(QWidget *parent = nullptr);
 
 		void SetState(ChiakiDiscoveryHostState state)	{ this->state = state; update(); }
 };

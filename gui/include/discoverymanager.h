@@ -41,6 +41,7 @@ class DiscoveryManager : public QObject
 	friend class DiscoveryManagerPrivate;
 
 	private:
+		ChiakiLog log;
 		ChiakiDiscoveryService service;
 		QList<DiscoveryHost> hosts;
 

@@ -18,11 +18,12 @@
 #ifndef CHIAKI_SERVERITEMWIDGET_H
 #define CHIAKI_SERVERITEMWIDGET_H
 
-#include <QWidget>
+#include <QFrame>
 
 class ServerIconWidget;
+class DisplayServer;
 
-class ServerItemWidget : public QWidget
+class ServerItemWidget : public QFrame
 {
 	Q_OBJECT
 
@@ -40,6 +41,8 @@ class ServerItemWidget : public QWidget
 
 		bool IsSelected() { return selected; }
 		void SetSelected(bool selected);
+
+		void Update(const DisplayServer &display_server);
 
 	signals:
 		void Selected();

@@ -17,21 +17,27 @@
 
 #include <serveritemwidget.h>
 #include <servericonwidget.h>
+#include <mainwindow.h>
 
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QStyle>
 
-ServerItemWidget::ServerItemWidget(QWidget *parent) : QWidget(parent)
+ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 {
+	setFrameStyle(QFrame::Panel | QFrame::Raised);
+
 	auto layout = new QVBoxLayout(this);
-	setLayout(layout);
+	this->setLayout(layout);
 
 	auto label = new QLabel("Server", this);
 	layout->addWidget(label);
 
 	icon_widget = new ServerIconWidget(this);
 	layout->addWidget(icon_widget);
+
+	auto label2 = new QLabel("Server2", this);
+	layout->addWidget(label2);
 
 	this->selected = true;
 	SetSelected(false);
@@ -54,5 +60,17 @@ void ServerItemWidget::SetSelected(bool selected)
 	if(this->selected == selected)
 		return;
 	this->selected = selected;
-	setStyleSheet(selected ? "background-color: palette(highlight);" : "");
+	setStyleSheet(selected ? "background-color: palette(highlight); color: palette(highlighted-text);" : "");
+}
+
+void ServerItemWidget::Update(const DisplayServer &display_server)
+{
+	if(display_server.discovered)
+	{
+		icon_widget->SetState(display_server.discovery_host.state);
+	}
+	else
+	{
+		icon_widget->SetState(CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
+	}
 }

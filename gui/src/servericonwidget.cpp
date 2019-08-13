@@ -19,6 +19,10 @@
 
 #include <QPainter>
 
+ServerIconWidget::ServerIconWidget(QWidget *parent) : QWidget(parent)
+{
+}
+
 void ServerIconWidget::paintEvent(QPaintEvent *event)
 {
 	static const float icon_aspect = 100.0f / 17.0f;

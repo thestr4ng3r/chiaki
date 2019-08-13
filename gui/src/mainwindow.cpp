@@ -64,18 +64,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	scroll_content_layout->addStretch(0);
 	grid_widget->setContentsMargins(0, 0, 0, 0);
 
-	for(int i=0; i<10; i++)
-	{
-		auto w = new ServerItemWidget(grid_widget);
-		connect(w, &ServerItemWidget::Selected, this, &MainWindow::ServerItemWidgetSelected);
-		connect(w, &ServerItemWidget::Triggered, this, &MainWindow::ServerItemWidgetTriggered);
-		server_item_widgets.append(w);
-		grid_widget->AddWidget(w);
-	}
-
 	resize(800, 600);
+	
+	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 
-	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::DiscoveryHostsUpdated);
+	UpdateDisplayServers();
+}
+
+MainWindow::~MainWindow()
+{
 }
 
 void MainWindow::ServerItemWidgetSelected()
@@ -111,7 +108,37 @@ void MainWindow::ShowSettings()
 	qDebug() << "TODO: ShowSettings()";
 }
 
-void MainWindow::DiscoveryHostsUpdated()
+void MainWindow::UpdateDisplayServers()
 {
-	qDebug() << "updated hosts" << discovery_manager.GetHosts().count();
+	display_servers.clear();
+
+	for(const auto &host : discovery_manager.GetHosts())
+	{
+		DisplayServer server;
+		server.discovered = true;
+		server.discovery_host = host;
+		display_servers.append(server);
+	}
+	
+	UpdateServerWidgets();
+}
+
+void MainWindow::UpdateServerWidgets()
+{
+	// remove excessive widgets
+	while(server_item_widgets.count() > display_servers.count())
+		delete server_item_widgets.takeLast();
+
+	// add new widgets as necessary
+	while(server_item_widgets.count() < display_servers.count())
+	{
+		auto widget = new ServerItemWidget(grid_widget);
+		connect(widget, &ServerItemWidget::Selected, this, &MainWindow::ServerItemWidgetSelected);
+		connect(widget, &ServerItemWidget::Triggered, this, &MainWindow::ServerItemWidgetTriggered);
+		server_item_widgets.append(widget);
+		grid_widget->AddWidget(widget);
+	}
+
+	for(size_t i=0; i<server_item_widgets.count(); i++)
+		server_item_widgets[i]->Update(display_servers[i]);
 }

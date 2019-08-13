@@ -25,6 +25,12 @@
 class DynamicGridWidget;
 class ServerItemWidget;
 
+struct DisplayServer
+{
+	DiscoveryHost discovery_host;
+	bool discovered;
+};
+
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -35,17 +41,21 @@ class MainWindow : public QMainWindow
 
 		DiscoveryManager discovery_manager;
 
-	public:
-		explicit MainWindow(QWidget *parent = nullptr);
+		QList<DisplayServer> display_servers;
 
-	public slots:
+	private slots:
 		void ServerItemWidgetSelected();
 		void ServerItemWidgetTriggered();
 
 		void RunDiscovery();
 		void ShowSettings();
 
-		void DiscoveryHostsUpdated();
+		void UpdateDisplayServers();
+		void UpdateServerWidgets();
+
+	public:
+		explicit MainWindow(QWidget *parent = nullptr);
+		~MainWindow() override;
 };
 
 #endif //CHIAKI_MAINWINDOW_H

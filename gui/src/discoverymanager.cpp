@@ -29,6 +29,8 @@ static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hos
 
 DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
+	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
+
 	ChiakiDiscoveryServiceOptions options;
 	options.ping_ms = PING_MS;
 	options.hosts_max = HOSTS_MAX;
@@ -43,7 +45,7 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 	options.send_addr = reinterpret_cast<sockaddr *>(&addr);
 	options.send_addr_size = sizeof(addr);
 
-	ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, nullptr /* TODO */);
+	ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw std::exception();
 }

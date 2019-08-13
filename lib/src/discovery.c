@@ -198,6 +198,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThrea
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread)
 {
+	chiaki_stop_pipe_stop(&thread->stop_pipe);
 	ChiakiErrorCode err = chiaki_thread_join(&thread->thread, NULL);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;

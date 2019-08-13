@@ -28,6 +28,7 @@ static void discovery_service_report_state(ChiakiDiscoveryService *service);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryService *service, ChiakiDiscoveryServiceOptions *options, ChiakiLog *log)
 {
+	service->log = log;
 	service->options = *options;
 	service->ping_index = 0;
 
@@ -221,6 +222,8 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 			CHIAKI_LOGE(service->log, "Discovery Service received new host, but no space available");
 			goto r2con;
 		}
+
+		CHIAKI_LOGI(service->log, "Discovery Service detected new host with id %s", host->host_id);
 
 		change = true;
 		index = service->hosts_count++;
