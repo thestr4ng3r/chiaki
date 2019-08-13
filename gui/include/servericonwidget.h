@@ -15,35 +15,27 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIAKI_SERVERITEMWIDGET_H
-#define CHIAKI_SERVERITEMWIDGET_H
+#ifndef CHIAKI_SERVERICONWIDGET_H
+#define CHIAKI_SERVERICONWIDGET_H
+
+#include <chiaki/discovery.h>
 
 #include <QWidget>
 
-class ServerIconWidget;
-
-class ServerItemWidget : public QWidget
+class ServerIconWidget : public QWidget
 {
 	Q_OBJECT
 
 	private:
-		bool selected;
-
-		ServerIconWidget *icon_widget;
+		ChiakiDiscoveryHostState state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
 
 	protected:
-		void mousePressEvent(QMouseEvent *event) override;
-		void mouseDoubleClickEvent(QMouseEvent *event) override;
+		void paintEvent(QPaintEvent *event) override;
 
 	public:
-		explicit ServerItemWidget(QWidget *parent = nullptr);
+		explicit ServerIconWidget(QWidget *parent = nullptr) : QWidget(parent) {}
 
-		bool IsSelected() { return selected; }
-		void SetSelected(bool selected);
-
-	signals:
-		void Selected();
-		void Triggered();
+		void SetState(ChiakiDiscoveryHostState state)	{ this->state = state; update(); }
 };
 
-#endif //CHIAKI_CONSOLEITEMWIDGET_H
+#endif // CHIAKI_SERVERICONWIDGET_H

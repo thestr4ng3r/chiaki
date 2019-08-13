@@ -16,6 +16,7 @@
  */
 
 #include <serveritemwidget.h>
+#include <servericonwidget.h>
 
 #include <QLabel>
 #include <QVBoxLayout>
@@ -28,6 +29,9 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QWidget(parent)
 
 	auto label = new QLabel("Server", this);
 	layout->addWidget(label);
+
+	icon_widget = new ServerIconWidget(this);
+	layout->addWidget(icon_widget);
 
 	this->selected = true;
 	SetSelected(false);
