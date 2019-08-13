@@ -127,7 +127,11 @@ void MainWindow::UpdateServerWidgets()
 {
 	// remove excessive widgets
 	while(server_item_widgets.count() > display_servers.count())
-		delete server_item_widgets.takeLast();
+	{
+		auto widget = server_item_widgets.takeLast();
+		grid_widget->RemoveWidget(widget);
+		delete widget;
+	}
 
 	// add new widgets as necessary
 	while(server_item_widgets.count() < display_servers.count())

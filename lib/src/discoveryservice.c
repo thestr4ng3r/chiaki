@@ -182,7 +182,7 @@ static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)
 	}
 
 	if(change)
-		discovery_service_drop_old_hosts(service);
+		discovery_service_report_state(service);
 }
 
 static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *user)
