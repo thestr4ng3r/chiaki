@@ -61,8 +61,6 @@ void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)
 	emit HostsUpdated();
 }
 
-#include <QDebug>
-
 class DiscoveryManagerPrivate
 {
 	public:

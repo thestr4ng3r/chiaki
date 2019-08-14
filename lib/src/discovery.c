@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state)
 {
@@ -51,7 +52,7 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoveryHost *response, char *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoveryHost *response, struct sockaddr *addr, char *buf, size_t buf_size)
 {
 	ChiakiHttpResponse http_response;
 	ChiakiErrorCode err = chiaki_http_response_parse(&http_response, buf, buf_size);
@@ -59,6 +60,28 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 		return err;
 
 	memset(response, 0, sizeof(*response));
+
+	size_t host_addr_str_size = 40;
+	char *host_addr_str = malloc(host_addr_str_size);
+	if(!host_addr_str)
+		return CHIAKI_ERR_MEMORY;
+	void *addr_src;
+	switch(addr->sa_family)
+	{
+		case AF_INET:
+			addr_src = &((struct sockaddr_in *)addr)->sin_addr;
+			break;
+		case AF_INET6:
+			addr_src = &((struct sockaddr_in6 *)addr)->sin6_addr;
+			break;
+		default:
+			addr_src = NULL;
+			break;
+	}
+	if(addr_src)
+		response->host_addr = inet_ntop(addr->sa_family, addr_src, host_addr_str, host_addr_str_size);
+	if(!response->host_addr)
+		free(host_addr_str);
 
 	switch(http_response.code)
 	{
@@ -245,7 +268,7 @@ static void *discovery_thread_func(void *user)
 		//chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
 
 		ChiakiDiscoveryHost response;
-		err = chiaki_discovery_srch_response_parse(&response, buf, n);
+		err = chiaki_discovery_srch_response_parse(&response, &client_addr, buf, n);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");

@@ -87,8 +87,10 @@ void DynamicGridWidget::UpdateLayout()
 	if(columns == 0)
 		return;
 
-	for(unsigned int i=0; i<widgets.length(); i++)
-		layout->addWidget(widgets[i], i / columns, i % columns);
+	Qt::Alignment alignment = widgets.count() == 1 ? Qt::AlignLeft : Qt::AlignCenter;
+
+	for(unsigned int i=0; i<widgets.count(); i++)
+		layout->addWidget(widgets[i], i / columns, i % columns, alignment);
 
 	setMinimumWidth(item_width);
 }

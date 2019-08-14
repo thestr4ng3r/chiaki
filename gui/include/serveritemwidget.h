@@ -20,6 +20,8 @@
 
 #include <QFrame>
 
+class QLabel;
+
 class ServerIconWidget;
 class DisplayServer;
 
@@ -30,6 +32,8 @@ class ServerItemWidget : public QFrame
 	private:
 		bool selected;
 
+		QLabel *top_label;
+		QLabel *bottom_label;
 		ServerIconWidget *icon_widget;
 
 	protected:

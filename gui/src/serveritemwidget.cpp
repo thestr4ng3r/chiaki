@@ -30,14 +30,16 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 	auto layout = new QVBoxLayout(this);
 	this->setLayout(layout);
 
-	auto label = new QLabel("Server", this);
-	layout->addWidget(label);
+	top_label = new QLabel(this);
+	top_label->setAlignment(Qt::AlignCenter);
+	layout->addWidget(top_label);
 
 	icon_widget = new ServerIconWidget(this);
 	layout->addWidget(icon_widget);
 
-	auto label2 = new QLabel("Server2", this);
-	layout->addWidget(label2);
+	bottom_label = new QLabel(this);
+	bottom_label->setAlignment(Qt::AlignCenter);
+	layout->addWidget(bottom_label);
 
 	this->selected = true;
 	SetSelected(false);
@@ -68,9 +70,16 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 	if(display_server.discovered)
 	{
 		icon_widget->SetState(display_server.discovery_host.state);
+		top_label->setText(tr("%1\nID: %2\nAddress: %3").arg(
+				display_server.discovery_host.host_name,
+				display_server.discovery_host.host_id,
+				display_server.discovery_host.host_addr));
+		bottom_label->setText(tr("State: %1").arg(chiaki_discovery_host_state_string(display_server.discovery_host.state)));
 	}
 	else
 	{
 		icon_widget->SetState(CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
+		top_label->setText("");
+		bottom_label->setText("");
 	}
 }
