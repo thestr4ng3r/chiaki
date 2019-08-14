@@ -24,6 +24,7 @@
 
 class DynamicGridWidget;
 class ServerItemWidget;
+class Settings;
 
 struct DisplayServer
 {
@@ -36,6 +37,10 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 	private:
+		Settings *settings;
+
+		QAction *discover_action;
+
 		DynamicGridWidget *grid_widget;
 		QList<ServerItemWidget *> server_item_widgets;
 
@@ -47,14 +52,14 @@ class MainWindow : public QMainWindow
 		void ServerItemWidgetSelected();
 		void ServerItemWidgetTriggered();
 
-		void RunDiscovery();
+		void UpdateDiscoveryEnabled();
 		void ShowSettings();
 
 		void UpdateDisplayServers();
 		void UpdateServerWidgets();
 
 	public:
-		explicit MainWindow(QWidget *parent = nullptr);
+		explicit MainWindow(Settings *settings, QWidget *parent = nullptr);
 		~MainWindow() override;
 };
 

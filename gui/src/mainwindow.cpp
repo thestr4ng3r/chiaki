@@ -18,6 +18,7 @@
 #include <mainwindow.h>
 #include <dynamicgridwidget.h>
 #include <serveritemwidget.h>
+#include <settings.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -25,7 +26,9 @@
 #include <QToolBar>
 #include <QDebug>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+MainWindow::MainWindow(Settings *settings, QWidget *parent)
+	: QMainWindow(parent),
+	settings(settings)
 {
 	auto main_widget = new QWidget(this);
 	auto layout = new QVBoxLayout();
@@ -37,9 +40,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	tool_bar->setMovable(false);
 	addToolBar(tool_bar);
 
-	auto discover_action = new QAction(tr("Discover"), this);
+	discover_action = new QAction(tr("Automatically Search for Consoles"), this);
+	discover_action->setCheckable(true);
+	discover_action->setChecked(settings->GetDiscoveryEnabled());
 	tool_bar->addAction(discover_action);
-	connect(discover_action, &QAction::triggered, this, &MainWindow::RunDiscovery);
+	connect(discover_action, &QAction::triggered, this, &MainWindow::UpdateDiscoveryEnabled);
 
 	auto tool_bar_spacer = new QWidget();
 	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
@@ -69,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 
 	UpdateDisplayServers();
+	UpdateDiscoveryEnabled();
 }
 
 MainWindow::~MainWindow()
@@ -98,9 +104,11 @@ void MainWindow::ServerItemWidgetTriggered()
 	// TODO: connect
 }
 
-void MainWindow::RunDiscovery()
+void MainWindow::UpdateDiscoveryEnabled()
 {
-	qDebug() << "TODO: RunDiscovery()";
+	bool enabled = discover_action->isChecked();
+	settings->SetDiscoveryEnabled(enabled);
+	discovery_manager.SetActive(enabled);
 }
 
 void MainWindow::ShowSettings()

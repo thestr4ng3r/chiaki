@@ -43,6 +43,7 @@ class DiscoveryManager : public QObject
 	private:
 		ChiakiLog log;
 		ChiakiDiscoveryService service;
+		bool service_active;
 		QList<DiscoveryHost> hosts;
 
 	private slots:
@@ -51,6 +52,8 @@ class DiscoveryManager : public QObject
 	public:
 		explicit DiscoveryManager(QObject *parent = nullptr);
 		~DiscoveryManager();
+
+		void SetActive(bool active);
 
 		const QList<DiscoveryHost> GetHosts() const { return hosts; }
 

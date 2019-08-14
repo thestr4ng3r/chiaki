@@ -31,28 +31,51 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
 	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
 
-	ChiakiDiscoveryServiceOptions options;
-	options.ping_ms = PING_MS;
-	options.hosts_max = HOSTS_MAX;
-	options.host_drop_pings = DROP_PINGS;
-	options.cb = DiscoveryServiceHostsCallback;
-	options.cb_user = this;
-
-	sockaddr_in addr = {};
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(CHIAKI_DISCOVERY_PORT);
-	addr.sin_addr.s_addr = 0xffffffff; // 255.255.255.255
-	options.send_addr = reinterpret_cast<sockaddr *>(&addr);
-	options.send_addr_size = sizeof(addr);
-
-	ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
-	if(err != CHIAKI_ERR_SUCCESS)
-		throw std::exception();
+	service_active = false;
 }
 
 DiscoveryManager::~DiscoveryManager()
 {
-	chiaki_discovery_service_fini(&service);
+	if(service_active)
+		chiaki_discovery_service_fini(&service);
+}
+
+void DiscoveryManager::SetActive(bool active)
+{
+	if(service_active == active)
+		return;
+	service_active = active;
+
+	if(active)
+	{
+		ChiakiDiscoveryServiceOptions options;
+		options.ping_ms = PING_MS;
+		options.hosts_max = HOSTS_MAX;
+		options.host_drop_pings = DROP_PINGS;
+		options.cb = DiscoveryServiceHostsCallback;
+		options.cb_user = this;
+
+		sockaddr_in addr = {};
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(CHIAKI_DISCOVERY_PORT);
+		addr.sin_addr.s_addr = 0xffffffff; // 255.255.255.255
+		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
+		options.send_addr_size = sizeof(addr);
+
+		ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service");
+			return;
+		}
+	}
+	else
+	{
+		chiaki_discovery_service_fini(&service);
+		hosts = {};
+		emit HostsUpdated();
+	}
+
 }
 
 void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)

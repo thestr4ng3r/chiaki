@@ -3,6 +3,7 @@
 #include <videodecoder.h>
 #include <mainwindow.h>
 #include <streamsession.h>
+#include <settings.h>
 
 #include <chiaki-cli.h>
 
@@ -28,12 +29,15 @@ static const QMap<QString, CLICommand> cli_commands = {
 };
 
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
-int RunMain(QApplication &app);
+int RunMain(QApplication &app, Settings *settings);
 
 int main(int argc, char *argv[])
 {
 	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<ChiakiQuitReason>();
+
+	QApplication::setOrganizationName("Chiaki");
+	QApplication::setApplicationName("Chiaki");
 
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -43,7 +47,8 @@ int main(int argc, char *argv[])
 	}
 
 	QApplication app(argc, argv);
-	QApplication::setApplicationName("Chiaki");
+
+	Settings settings;
 
 	QCommandLineParser parser;
 	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
@@ -76,7 +81,7 @@ int main(int argc, char *argv[])
 	QStringList args = parser.positionalArguments();
 
 	if(args.length() == 0)
-		return RunMain(app);
+		return RunMain(app, &settings);
 
 	if(args[0] == "stream")
 	{
@@ -129,9 +134,9 @@ int main(int argc, char *argv[])
 	}
 }
 
-int RunMain(QApplication &app)
+int RunMain(QApplication &app, Settings *settings)
 {
-	MainWindow main_window;
+	MainWindow main_window(settings);
 	main_window.show();
 	return app.exec();
 }

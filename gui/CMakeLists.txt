@@ -36,7 +36,9 @@ add_executable(chiaki
 		include/avopenglframeuploader.h
 		src/avopenglframeuploader.cpp
 		include/servericonwidget.h
-		src/servericonwidget.cpp)
+		src/servericonwidget.cpp
+		include/settings.h
+		src/settings.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
