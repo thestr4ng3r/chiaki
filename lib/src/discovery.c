@@ -52,7 +52,7 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoveryHost *response, struct sockaddr *addr, char *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscoveryHost *response, struct sockaddr *addr, char *addr_buf, size_t addr_buf_size, char *buf, size_t buf_size)
 {
 	ChiakiHttpResponse http_response;
 	ChiakiErrorCode err = chiaki_http_response_parse(&http_response, buf, buf_size);
@@ -61,10 +61,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 
 	memset(response, 0, sizeof(*response));
 
-	size_t host_addr_str_size = 40;
-	char *host_addr_str = malloc(host_addr_str_size);
-	if(!host_addr_str)
-		return CHIAKI_ERR_MEMORY;
 	void *addr_src;
 	switch(addr->sa_family)
 	{
@@ -79,9 +75,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 			break;
 	}
 	if(addr_src)
-		response->host_addr = inet_ntop(addr->sa_family, addr_src, host_addr_str, host_addr_str_size);
-	if(!response->host_addr)
-		free(host_addr_str);
+		response->host_addr = inet_ntop(addr->sa_family, addr_src, addr_buf, addr_buf_size);
 
 	switch(http_response.code)
 	{
@@ -267,8 +261,9 @@ static void *discovery_thread_func(void *user)
 		CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
 		//chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
 
+		char addr_buf[64];
 		ChiakiDiscoveryHost response;
-		err = chiaki_discovery_srch_response_parse(&response, &client_addr, buf, n);
+		err = chiaki_discovery_srch_response_parse(&response, &client_addr, addr_buf, sizeof(addr_buf), buf, n);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");

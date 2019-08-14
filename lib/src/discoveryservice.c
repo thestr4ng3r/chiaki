@@ -96,6 +96,15 @@ CHIAKI_EXPORT void chiaki_discovery_service_fini(ChiakiDiscoveryService *service
 	chiaki_discovery_fini(&service->discovery);
 	chiaki_mutex_fini(&service->state_mutex);
 	free(service->options.send_addr);
+
+	for(size_t i=0; i<service->hosts_count; i++)
+	{
+		ChiakiDiscoveryHost *host = &service->hosts[i];
+#define FREE_STRING(name) free((char *)host->name);
+		CHIAKI_DISCOVERY_HOST_STRING_FOREACH(FREE_STRING)
+#undef FREE_STRING
+	}
+
 	free(service->host_discovery_infos);
 	free(service->hosts);
 }
