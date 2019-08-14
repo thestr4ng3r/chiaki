@@ -36,8 +36,10 @@ typedef struct chiaki_rpcrypt_t
 } ChiakiRPCrypt;
 
 CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *ambassador, const uint8_t *nonce, const uint8_t *morning);
+CHIAKI_EXPORT void chiaki_rpcrypt_aeropause(uint8_t *aeropause, const uint8_t *nonce);
 
-CHIAKI_EXPORT void chiaki_rpcrypt_init(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, const uint8_t *morning);
+CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, const uint8_t *morning);
+CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, uint32_t pin);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_encrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *in, uint8_t *out, size_t sz);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_decrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, uint8_t *in, uint8_t *out, size_t sz);

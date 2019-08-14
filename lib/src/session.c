@@ -287,7 +287,7 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Session request successful");
 
-	chiaki_rpcrypt_init(&session->rpcrypt, session->nonce, session->connect_info.morning);
+	chiaki_rpcrypt_init_auth(&session->rpcrypt, session->nonce, session->connect_info.morning);
 
 	// PS4 doesn't always react right away, sleep a bit
 	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10, session_check_state_pred, session);
@@ -482,7 +482,10 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 		session_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if(session_sock < 0)
+		{
+			free(sa);
 			continue;
+		}
 		r = connect(session_sock, sa, ai->ai_addrlen);
 		if(r < 0)
 		{

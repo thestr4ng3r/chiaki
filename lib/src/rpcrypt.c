@@ -23,11 +23,11 @@
 #include <string.h>
 #include <stdbool.h>
 
+static const uint8_t echo_b[] = { 0xe1, 0xec, 0x9c, 0x3a, 0xdd, 0xbd, 0x08, 0x85, 0xfc, 0x0e, 0x1d, 0x78, 0x90, 0x32, 0xc0, 0x04 };
 
 CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *ambassador, const uint8_t *nonce, const uint8_t *morning)
 {
 	static const uint8_t echo_a[] = { 0x01, 0x49, 0x87, 0x9b, 0x65, 0x39, 0x8b, 0x39, 0x4b, 0x3a, 0x8d, 0x48, 0xc3, 0x0a, 0xef, 0x51 };
-	static const uint8_t echo_b[] = { 0xe1, 0xec, 0x9c, 0x3a, 0xdd, 0xbd, 0x08, 0x85, 0xfc, 0x0e, 0x1d, 0x78, 0x90, 0x32, 0xc0, 0x04 };
 
 	for(uint8_t i=0; i<CHIAKI_KEY_BYTES; i++)
 	{
@@ -49,10 +49,32 @@ CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *am
 	}
 }
 
+CHIAKI_EXPORT void chiaki_rpcrypt_aeropause(uint8_t *aeropause, const uint8_t *nonce)
+{
+	for(size_t i=0; i<CHIAKI_KEY_BYTES; i++)
+	{
+		uint8_t v = nonce[i];
+		v -= i;
+		v -= 0x29;
+		v ^= echo_b[i];
+		aeropause[i] = v;
+	}
+}
 
-CHIAKI_EXPORT void chiaki_rpcrypt_init(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, const uint8_t *morning)
+CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, const uint8_t *morning)
 {
 	chiaki_rpcrypt_bright_ambassador(rpcrypt->bright, rpcrypt->ambassador, nonce, morning);
+}
+
+CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, uint32_t pin)
+{
+	static const uint8_t regist_aes_key[CHIAKI_KEY_BYTES] = { 0x3f, 0x1c, 0xc4, 0xb6, 0xdc, 0xbb, 0x3e, 0xcc, 0x50, 0xba, 0xed, 0xef, 0x97, 0x34, 0xc7, 0xc9 };
+	memcpy(rpcrypt->ambassador, nonce, sizeof(rpcrypt->ambassador));
+	memcpy(rpcrypt->bright, regist_aes_key, sizeof(rpcrypt->bright));
+	rpcrypt->bright[0] ^= (uint8_t)((pin >> 0x18) & 0xff);
+	rpcrypt->bright[1] ^= (uint8_t)((pin >> 0x10) & 0xff);
+	rpcrypt->bright[2] ^= (uint8_t)((pin >> 0x08) & 0xff);
+	rpcrypt->bright[3] ^= (uint8_t)((pin >> 0x00) & 0xff);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter)

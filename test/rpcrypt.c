@@ -47,7 +47,7 @@ static MunitResult test_iv(const MunitParameter params[], void *user)
 	ChiakiRPCrypt rpcrypt;
 	ChiakiErrorCode err;
 
-	chiaki_rpcrypt_init(&rpcrypt, nonce, morning);
+	chiaki_rpcrypt_init_auth(&rpcrypt, nonce, morning);
 
 	uint8_t iv[CHIAKI_KEY_BYTES];
 
@@ -81,7 +81,7 @@ static MunitResult test_encrypt(const MunitParameter params[], void *user)
 	ChiakiRPCrypt rpcrypt;
 	ChiakiErrorCode err;
 
-	chiaki_rpcrypt_init(&rpcrypt, nonce, morning);
+	chiaki_rpcrypt_init_auth(&rpcrypt, nonce, morning);
 
 	// less than block size
 	uint8_t buf_a[] = { 0x13, 0x37, 0xc0, 0xff, 0xee };
@@ -123,7 +123,7 @@ static MunitResult test_decrypt(const MunitParameter params[], void *user)
 	ChiakiRPCrypt rpcrypt;
 	ChiakiErrorCode err;
 
-	chiaki_rpcrypt_init(&rpcrypt, nonce, morning);
+	chiaki_rpcrypt_init_auth(&rpcrypt, nonce, morning);
 
 	// less than block size
 	uint8_t buf_a[] = { 0x8d, 0xd2, 0x1d, 0xfb };

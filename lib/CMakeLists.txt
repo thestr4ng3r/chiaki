@@ -31,7 +31,8 @@ set(HEADER_FILES
 		include/chiaki/controller.h
 		include/chiaki/takionsendbuffer.h
 		include/chiaki/time.h
-		include/chiaki/fec.h)
+		include/chiaki/fec.h
+		include/chiaki/regist.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -65,7 +66,8 @@ set(SOURCE_FILES
 		src/controller.c
 		src/takionsendbuffer.c
 		src/time.c
-		src/fec)
+		src/fec
+		src/regist.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
