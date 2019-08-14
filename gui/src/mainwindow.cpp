@@ -19,6 +19,7 @@
 #include <dynamicgridwidget.h>
 #include <serveritemwidget.h>
 #include <settings.h>
+#include <registdialog.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -49,6 +50,13 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto tool_bar_spacer = new QWidget();
 	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
 	tool_bar->addWidget(tool_bar_spacer);
+
+	auto regist_action = new QAction(tr("Register"), this);
+	tool_bar->addAction(regist_action);
+	connect(regist_action, &QAction::triggered, this, [this]() {
+		RegistDialog dialog(this->settings, this);
+		dialog.exec();
+	});
 
 	auto settings_action = new QAction(tr("Settings"), this);
 	tool_bar->addAction(settings_action);

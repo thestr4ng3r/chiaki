@@ -38,7 +38,9 @@ add_executable(chiaki
 		include/servericonwidget.h
 		src/servericonwidget.cpp
 		include/settings.h
-		src/settings.cpp)
+		src/settings.cpp
+		include/registdialog.h
+		src/registdialog.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
