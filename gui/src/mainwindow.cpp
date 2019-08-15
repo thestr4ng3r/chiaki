@@ -20,6 +20,7 @@
 #include <serveritemwidget.h>
 #include <settings.h>
 #include <registdialog.h>
+#include <settingsdialog.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -128,7 +129,8 @@ void MainWindow::UpdateDiscoveryEnabled()
 
 void MainWindow::ShowSettings()
 {
-	qDebug() << "TODO: ShowSettings()";
+	SettingsDialog dialog(settings, this);
+	dialog.exec();
 }
 
 void MainWindow::UpdateDisplayServers()

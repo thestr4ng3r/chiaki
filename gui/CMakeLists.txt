@@ -42,7 +42,9 @@ add_executable(chiaki
 		include/registdialog.h
 		src/registdialog.cpp
 		include/host.h
-		src/host.cpp)
+		src/host.cpp
+		include/settingsdialog.h
+		src/settingsdialog.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
