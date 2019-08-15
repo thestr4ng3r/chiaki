@@ -19,6 +19,7 @@
 
 #include <chiaki/regist.h>
 #include <chiaki/rpcrypt.h>
+#include <chiaki/http.h>
 #include <chiaki/random.h>
 
 #include <string.h>
@@ -29,8 +30,13 @@
 
 #define REGIST_PORT 9295
 
+#define SEARCH_REQUEST_SLEEP_MS 100
+#define REGIST_REPONSE_TIMEOUT_MS 3000
+
 static void *regist_thread_func(void *user);
-static int regist_connect(ChiakiRegist *regist);
+static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos);
+static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int protocol);
+static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, int sock, ChiakiRPCrypt *rpcrypt);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, const ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user)
 {
@@ -115,6 +121,9 @@ static void *regist_thread_func(void *user)
 {
 	ChiakiRegist *regist = user;
 
+	bool canceled = false;
+	bool success = false;
+
 	uint8_t ambassador[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiErrorCode err = chiaki_random_bytes_crypt(ambassador, sizeof(ambassador));
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -143,14 +152,37 @@ static void *regist_thread_func(void *user)
 		goto fail;
 	}
 
-	int sock = regist_connect(regist);
-	if(sock < 0)
+	struct addrinfo *addrinfos;
+	int r = getaddrinfo(regist->info.host, NULL, NULL, &addrinfos);
+	if(r != 0)
 	{
-		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect");
+		CHIAKI_LOGE(regist->log, "Regist failed to getaddrinfo on %s", regist->info.host);
 		goto fail;
 	}
 
-	CHIAKI_LOGI(regist->log, "Regist connected to %s", regist->info.host);
+	err = regist_search(regist, addrinfos); // TODO: get addr from response
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(regist->log, "Regist search failed");
+		goto fail_addrinfos;
+	}
+
+	err = chiaki_stop_pipe_sleep(&regist->stop_pipe, SEARCH_REQUEST_SLEEP_MS); // PS4 doesn't accept requests immediately
+	if(err != CHIAKI_ERR_TIMEOUT)
+	{
+		CHIAKI_LOGI(regist->log, "Regist canceled");
+		canceled = true;
+		goto fail_addrinfos;
+	}
+
+	int sock = regist_connect(regist, addrinfos, IPPROTO_TCP);
+	if(sock < 0)
+	{
+		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for request");
+		goto fail_addrinfos;
+	}
+
+	CHIAKI_LOGI(regist->log, "Regist connected to %s, sending request", regist->info.host);
 
 	int s = send(sock, request_header, request_header_size, 0);
 	if(s < 0)
@@ -166,44 +198,93 @@ static void *regist_thread_func(void *user)
 		goto fail_socket;
 	}
 
-	char recv_buf[0x100];
-	ssize_t received;
-rerecv:
-	received = recv(sock, recv_buf, sizeof(recv_buf) - 1, 0);
-	if(received < 0)
-		CHIAKI_LOGE(regist->log, "Failed");
-	else if(received > 0)
+	CHIAKI_LOGI(regist->log, "Regist waiting for response");
+
+	err = regist_recv_response(regist, sock, &crypt);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		chiaki_log_hexdump(regist->log, CHIAKI_LOG_DEBUG, (uint8_t *)recv_buf, received);
-		goto rerecv;
+		CHIAKI_LOGE(regist->log, "Regist eventually failed");
+		goto fail_socket;
 	}
 
-	close(sock);
+	CHIAKI_LOGI(regist->log, "Regist successfully received response");
 
-	regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS); // TODO: communicate params
-	return NULL;
+	success = true;
+	// TODO: params
 
 fail_socket:
 	close(sock);
+fail_addrinfos:
+	freeaddrinfo(addrinfos);
 fail:
-	regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED);
+	if(canceled)
+		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED);
+	else if(success)
+		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS);
+	else
+		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED);
 	return NULL;
 }
 
-static int regist_connect(ChiakiRegist *regist)
+static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos)
 {
-	struct addrinfo *addrinfos;
-	int r = getaddrinfo(regist->info.host, NULL, NULL, &addrinfos);
-	if(r != 0)
+	CHIAKI_LOGI(regist->log, "Regist starting search");
+	int sock = regist_connect(regist, addrinfos, IPPROTO_UDP);
+	if(sock < 0)
 	{
-		CHIAKI_LOGE(regist->log, "Regist failed to getaddrinfo on %s", regist->info.host);
-		return -1;
+		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for search");
+		return CHIAKI_ERR_NETWORK;
 	}
 
+	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+
+	CHIAKI_LOGI(regist->log, "Regist sending search packet");
+	int r = send(sock, "SRC2", 4, 0);
+	if(r < 0)
+	{
+		CHIAKI_LOGE(regist->log, "Regist failed to send search: %s", strerror(errno));
+		goto done;
+	}
+
+	// TODO: stop pipe and loop
+	uint8_t buf[0x100];
+	struct sockaddr recv_addr;
+	socklen_t recv_addr_size;
+rerecv:
+	recv_addr_size = sizeof(recv_addr);
+	ssize_t n = recvfrom(sock, buf, sizeof(buf) - 1, 0, &recv_addr, &recv_addr_size);
+	if(n <= 0)
+	{
+		if(n < 0)
+			CHIAKI_LOGE(regist->log, "Regist failed to receive search response: %s", strerror(errno));
+		else
+			CHIAKI_LOGE(regist->log, "Regist failed to receive search response");
+		err = CHIAKI_ERR_NETWORK;
+		goto done;
+	}
+
+	CHIAKI_LOGV(regist->log, "Regist received packet:");
+	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
+
+	if(n >= 4 && memcmp(buf, "RES2", 4) == 0)
+	{
+		CHIAKI_LOGI(regist->log, "Regist received search response"); // TODO: print from <addr>
+		goto done;
+	}
+
+	goto rerecv;
+
+done:
+	close(sock);
+	return err;
+}
+
+static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int protocol)
+{
 	int sock = -1;
 	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
 	{
-		if(ai->ai_protocol != IPPROTO_TCP)
+		if(ai->ai_protocol != protocol)
 			continue;
 
 		if(ai->ai_addr->sa_family != AF_INET) // TODO: support IPv6
@@ -222,7 +303,7 @@ static int regist_connect(ChiakiRegist *regist)
 			free(sa);
 			continue;
 		}
-		r = connect(sock, sa, ai->ai_addrlen);
+		int r = connect(sock, sa, ai->ai_addrlen);
 		if(r < 0)
 		{
 			int errsv = errno;
@@ -235,7 +316,85 @@ static int regist_connect(ChiakiRegist *regist)
 		free(sa);
 		break;
 	}
-	freeaddrinfo(addrinfos);
 
 	return sock;
+}
+
+static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, int sock, ChiakiRPCrypt *rpcrypt)
+{
+	uint8_t buf[0x200];
+	size_t buf_filled_size;
+	size_t header_size;
+	ChiakiErrorCode err = chiaki_recv_http_header(sock, (char *)buf, sizeof(buf), &header_size, &buf_filled_size, &regist->stop_pipe, REGIST_REPONSE_TIMEOUT_MS);
+	if(err == CHIAKI_ERR_CANCELED)
+		return err;
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(regist->log, "Regist failed to receive response HTTP header");
+		return err;
+	}
+
+	CHIAKI_LOGV(regist->log, "Regist response HTTP header:");
+	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, header_size);
+
+	ChiakiHttpResponse http_response;
+	err = chiaki_http_response_parse(&http_response, (char *)buf, header_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(regist->log, "Regist failed to pare response HTTP header");
+		return err;
+	}
+
+	if(http_response.code != 200)
+	{
+		CHIAKI_LOGE(regist->log, "Regist received HTTP code %d", http_response.code);
+		chiaki_http_response_fini(&http_response);
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	size_t content_size = 0;
+	for(ChiakiHttpHeader *header=http_response.headers; header; header=header->next)
+	{
+		if(strcmp(header->key, "Content-Length") == 0)
+		{
+			content_size = (size_t)strtoull(header->value, NULL, 0);
+		}
+	}
+
+	chiaki_http_response_fini(&http_response);
+
+	if(!content_size)
+	{
+		CHIAKI_LOGE(regist->log, "Regist response does not contain or contains invalid Content-Length");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
+
+	if(content_size + header_size > sizeof(buf))
+	{
+		CHIAKI_LOGE(regist->log, "Regist response content too big");
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+	}
+
+	while(buf_filled_size < content_size + header_size)
+	{
+		// TODO: stop pipe
+		ssize_t received = recv(sock, buf + buf_filled_size, (content_size + header_size) - buf_filled_size, 0);
+		if(received <= 0)
+		{
+			CHIAKI_LOGE(regist->log, "Regist failed to receive response content");
+			return CHIAKI_ERR_NETWORK;
+		}
+		buf_filled_size += received;
+	}
+
+	uint8_t *payload = buf + header_size;
+	size_t payload_size = buf_filled_size - header_size;
+	chiaki_rpcrypt_decrypt(rpcrypt, 0, payload, payload, payload_size);
+
+	CHIAKI_LOGI(regist->log, "Regist response payload (decrypted):");
+	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
+
+	// TODO: parse content
+
+	return CHIAKI_ERR_SUCCESS;
 }

@@ -37,6 +37,7 @@ typedef struct chiaki_regist_info_t
 
 typedef enum chiaki_regist_event_type_t {
 	CHIAKI_REGIST_EVENT_TYPE_CONNECTED,
+	CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED,
 	CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED,
 	CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS
 } ChiakiRegistEventType;

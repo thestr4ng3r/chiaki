@@ -113,7 +113,8 @@ RegistExecuteDialog::RegistExecuteDialog(const ChiakiRegistInfo &regist_info, QW
 	layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, RegistExecuteDialogLogCb, this);
+	// TODO: respect verbose setting
+	chiaki_log_init(&log, CHIAKI_LOG_ALL/* & ~CHIAKI_LOG_VERBOSE*/, RegistExecuteDialogLogCb, this);
 	chiaki_regist_start(&regist, &log, &regist_info, RegistExecuteDialogRegistCb, this);
 
 	resize(600, 400);
