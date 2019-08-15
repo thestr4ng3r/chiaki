@@ -25,6 +25,14 @@
 #define HOSTS_MAX	16
 #define DROP_PINGS	3
 
+HostMAC DiscoveryHost::GetHostMAC() const
+{
+	QByteArray data = QByteArray::fromHex(host_id.toUtf8());
+	if(data.size() != 6)
+		return HostMAC();
+	return HostMAC((uint8_t *)data.constData());
+}
+
 static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
 
 DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)

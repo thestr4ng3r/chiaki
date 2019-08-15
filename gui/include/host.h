@@ -32,6 +32,7 @@ class HostMAC
 		HostMAC()								{ memset(mac, 0, sizeof(mac)); }
 		explicit HostMAC(const uint8_t mac[6])	{ memcpy(this->mac, mac, sizeof(this->mac)); }
 		const uint8_t *GetMAC() const			{ return mac; }
+		QString ToString() const				{ return QByteArray((const char *)mac, sizeof(mac)).toHex(); }
 };
 
 static bool operator==(const HostMAC &a, const HostMAC &b) { return memcmp(a.GetMAC(), b.GetMAC(), 6) == 0; }

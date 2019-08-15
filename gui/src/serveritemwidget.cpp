@@ -72,7 +72,7 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 		icon_widget->SetState(display_server.discovery_host.state);
 		top_label->setText(tr("%1\nID: %2\nAddress: %3").arg(
 				display_server.discovery_host.host_name,
-				display_server.discovery_host.host_id,
+				display_server.discovery_host.GetHostMAC().ToString(),
 				display_server.discovery_host.host_addr));
 		bottom_label->setText(tr("State: %1").arg(chiaki_discovery_host_state_string(display_server.discovery_host.state)));
 	}

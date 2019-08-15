@@ -18,6 +18,8 @@
 #ifndef CHIAKI_DISCOVERYMANAGER_H
 #define CHIAKI_DISCOVERYMANAGER_H
 
+#include "host.h"
+
 #include <QObject>
 #include <QList>
 
@@ -30,6 +32,8 @@ struct DiscoveryHost
 #define STRING_MEMBER(name) QString name;
 	CHIAKI_DISCOVERY_HOST_STRING_FOREACH(STRING_MEMBER)
 #undef STRING_MEMBER
+
+	HostMAC GetHostMAC() const;
 };
 
 Q_DECLARE_METATYPE(DiscoveryHost)
