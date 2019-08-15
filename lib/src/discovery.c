@@ -258,7 +258,7 @@ static void *discovery_thread_func(void *user)
 
 		buf[n] = '\00';
 
-		CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
+		//CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
 		//chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
 
 		char addr_buf[64];

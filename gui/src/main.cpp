@@ -5,6 +5,7 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <registdialog.h>
+#include <host.h>
 
 #include <chiaki-cli.h>
 
@@ -38,6 +39,7 @@ int RunMain(QApplication &app, Settings *settings);
 int main(int argc, char *argv[])
 {
 	qRegisterMetaType<DiscoveryHost>();
+	qRegisterMetaType<RegisteredHost>();
 	qRegisterMetaType<ChiakiQuitReason>();
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();

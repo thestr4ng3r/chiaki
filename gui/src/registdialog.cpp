@@ -141,9 +141,9 @@ void RegistExecuteDialog::Finished()
 	button_box->addButton(QDialogButtonBox::Close);
 }
 
-void RegistExecuteDialog::Success()
+void RegistExecuteDialog::Success(RegisteredHost host)
 {
-	printf("finished\n");
+	CHIAKI_LOGI(&log, "Successfully registered %s", host.GetPS4Nickname().toLocal8Bit().constData());
 	Finished();
 }
 
@@ -164,7 +164,7 @@ class RegistExecuteDialogPrivate
 			switch(event->type)
 			{
 				case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
-					QMetaObject::invokeMethod(dialog, "Success", Qt::ConnectionType::QueuedConnection);
+					QMetaObject::invokeMethod(dialog, "Success", Qt::ConnectionType::QueuedConnection, Q_ARG(RegisteredHost, *event->registered_host));
 					break;
 				case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
 					QMetaObject::invokeMethod(dialog, "Failed", Qt::ConnectionType::QueuedConnection);

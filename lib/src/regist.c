@@ -36,7 +36,8 @@
 static void *regist_thread_func(void *user);
 static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos);
 static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int protocol);
-static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, int sock, ChiakiRPCrypt *rpcrypt);
+static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, int sock, ChiakiRPCrypt *rpcrypt);
+static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, ChiakiRegisteredHost *host, char *buf, size_t buf_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, const ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user)
 {
@@ -200,7 +201,8 @@ static void *regist_thread_func(void *user)
 
 	CHIAKI_LOGI(regist->log, "Regist waiting for response");
 
-	err = regist_recv_response(regist, sock, &crypt);
+	ChiakiRegisteredHost host;
+	err = regist_recv_response(regist, &host, sock, &crypt);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(regist->log, "Regist eventually failed");
@@ -210,7 +212,6 @@ static void *regist_thread_func(void *user)
 	CHIAKI_LOGI(regist->log, "Regist successfully received response");
 
 	success = true;
-	// TODO: params
 
 fail_socket:
 	close(sock);
@@ -220,7 +221,12 @@ fail:
 	if(canceled)
 		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED);
 	else if(success)
-		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS);
+	{
+		ChiakiRegistEvent event = { 0 };
+		event.type = CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS;
+		event.registered_host = &host;
+		regist->cb(&event, regist->cb_user);
+	}
 	else
 		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED);
 	return NULL;
@@ -320,7 +326,7 @@ static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int 
 	return sock;
 }
 
-static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, int sock, ChiakiRPCrypt *rpcrypt)
+static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, int sock, ChiakiRPCrypt *rpcrypt)
 {
 	uint8_t buf[0x200];
 	size_t buf_filled_size;
@@ -394,7 +400,126 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, int sock, Chia
 	CHIAKI_LOGI(regist->log, "Regist response payload (decrypted):");
 	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
-	// TODO: parse content
+	err = regist_parse_response_payload(regist, host, (char *)payload, payload_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(regist->log, "Regist failed to parse response payload");
+		return err;
+	}
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, ChiakiRegisteredHost *host, char *buf, size_t buf_size)
+{
+	ChiakiHttpHeader *headers;
+	ChiakiErrorCode err = chiaki_http_header_parse(&headers, buf, buf_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(regist->log, "Regist failed to parse response payload HTTP header");
+		return err;
+	}
+
+	memset(host, 0, sizeof(*host));
+
+	bool mac_found = false;
+	bool regist_key_found = false;
+	bool key_found = false;
+
+	for(ChiakiHttpHeader *header=headers; header; header=header->next)
+	{
+#define COPY_STRING(name, key_str) \
+		if(strcmp(header->key, key_str) == 0) \
+		{ \
+			size_t len = strlen(header->value); \
+			if(len >= sizeof(host->name)) \
+			{ \
+				CHIAKI_LOGE(regist->log, "Regist value for " key_str " in response is too long"); \
+				continue; \
+			} \
+			memcpy(host->name, header->value, len); \
+			host->name[len] = 0; \
+			continue; \
+		}
+		COPY_STRING(ap_ssid, "AP-Ssid")
+		COPY_STRING(ap_bssid, "AP-Bssid")
+		COPY_STRING(ap_key, "AP-Key")
+		COPY_STRING(ap_name, "AP-Name")
+		COPY_STRING(ps4_nickname, "PS4-Nickname")
+#undef COPY_STRING
+
+		if(strcmp(header->key, "PS4-RegistKey") == 0)
+		{
+			memset(host->rp_regist_key, 0, sizeof(host->rp_regist_key));
+			size_t buf_size = sizeof(host->rp_regist_key);
+			err = parse_hex((uint8_t *)host->rp_regist_key, &buf_size, header->value, strlen(header->value));
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(regist->log, "Regist received invalid RegistKey in response");
+				memset(host->rp_regist_key, 0, sizeof(host->rp_regist_key));
+			}
+			else
+			{
+				regist_key_found = true;
+			}
+		}
+		else if(strcmp(header->key, "RP-KeyType") == 0)
+		{
+			host->rp_key_type = (uint32_t)strtoul(header->value, NULL, 0);
+		}
+		else if(strcmp(header->key, "RP-Key") == 0)
+		{
+			size_t buf_size = sizeof(host->rp_key);
+			err = parse_hex((uint8_t *)host->rp_key, &buf_size, header->value, strlen(header->value));
+			if(err != CHIAKI_ERR_SUCCESS || buf_size != sizeof(host->rp_key))
+			{
+				CHIAKI_LOGE(regist->log, "Regist received invalid key in response");
+				memset(host->rp_key, 0, sizeof(host->rp_key));
+			}
+			else
+			{
+				key_found = true;
+			}
+		}
+		else if(strcmp(header->key, "PS4-Mac") == 0)
+		{
+			size_t buf_size = sizeof(host->ps4_mac);
+			err = parse_hex((uint8_t *)host->ps4_mac, &buf_size, header->value, strlen(header->value));
+			if(err != CHIAKI_ERR_SUCCESS || buf_size != sizeof(host->ps4_mac))
+			{
+				CHIAKI_LOGE(regist->log, "Regist received invalid MAC Address in response");
+				memset(host->ps4_mac, 0, sizeof(host->ps4_mac));
+			}
+			else
+			{
+				mac_found = true;
+			}
+		}
+		else
+		{
+			CHIAKI_LOGI(regist->log, "Regist received unknown key %s in response payload", header->key);
+		}
+	}
+
+	chiaki_http_header_free(headers);
+
+	if(!regist_key_found)
+	{
+		CHIAKI_LOGE(regist->log, "Regist response is missing RegistKey (or it was invalid)");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
+
+	if(!key_found)
+	{
+		CHIAKI_LOGE(regist->log, "Regist response is missing key (or it was invalid)");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
+
+	if(!mac_found)
+	{
+		CHIAKI_LOGE(regist->log, "Regist response is missing MAC Adress (or it was invalid)");
+		return CHIAKI_ERR_INVALID_RESPONSE;
+	}
 
 	return CHIAKI_ERR_SUCCESS;
 }

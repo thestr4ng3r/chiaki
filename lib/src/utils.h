@@ -43,4 +43,37 @@ static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)
 	}
 }
 
+static inline int8_t nibble_value(char c)
+{
+	if(c >= '0' && c <= '9')
+		return c - '0';
+	if(c >= 'a' && c <= 'f')
+		return c - 'a' + 0xa;
+	if(c >= 'A' && c <= 'F')
+		return c - 'A' + 0xa;
+	return -1;
+}
+
+static inline ChiakiErrorCode parse_hex(uint8_t *buf, size_t *buf_size, const char *hex, size_t hex_size)
+{
+	if(hex_size % 2 != 0)
+		return CHIAKI_ERR_INVALID_DATA;
+	if(hex_size / 2 > *buf_size)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	for(size_t i=0; i<hex_size; i+=2)
+	{
+		int8_t h = nibble_value(hex[i+0]);
+		if(h < 0)
+			return CHIAKI_ERR_INVALID_DATA;
+		int8_t l = nibble_value(hex[i+1]);
+		if(l < 0)
+			return CHIAKI_ERR_INVALID_DATA;
+		buf[i/2] = (h << 4) | l;
+	}
+
+	*buf_size = hex_size / 2;
+	return CHIAKI_ERR_SUCCESS;
+}
+
 #endif // CHIAKI_UTILS_H

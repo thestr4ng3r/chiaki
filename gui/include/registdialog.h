@@ -18,6 +18,8 @@
 #ifndef CHIAKI_REGISTDIALOG_H
 #define CHIAKI_REGISTDIALOG_H
 
+#include "host.h"
+
 #include <chiaki/regist.h>
 
 #include <QDialog>
@@ -69,7 +71,7 @@ class RegistExecuteDialog: public QDialog
 
 	private slots:
 		void Log(ChiakiLogLevel level, QString msg);
-		void Success();
+		void Success(RegisteredHost host);
 		void Failed();
 
 	public:

@@ -65,12 +65,14 @@ typedef enum {
 
 CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps);
 
+#define CHIAKI_SESSION_AUTH_SIZE 0x10
+
 typedef struct chiaki_connect_info_t
 {
 	const char *host; // null terminated
 	const char *regist_key; // null terminated
 	const char *ostype; // null terminated
-	char auth[0x10]; // must be completely filled (pad with \0)
+	char auth[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
 	uint8_t did[CHIAKI_RP_DID_SIZE];
 	ChiakiConnectVideoProfile video_profile;
