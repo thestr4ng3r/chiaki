@@ -17,6 +17,8 @@
 
 #include <host.h>
 
+#include <QSettings>
+
 RegisteredHost::RegisteredHost()
 {
 	memset(rp_regist_key, 0, sizeof(rp_regist_key));
@@ -34,4 +36,34 @@ RegisteredHost::RegisteredHost(const ChiakiRegisteredHost &chiaki_host)
 	memcpy(rp_regist_key, chiaki_host.rp_regist_key, sizeof(rp_regist_key));
 	rp_key_type = chiaki_host.rp_key_type;
 	memcpy(rp_key, chiaki_host.rp_key, sizeof(rp_key));
+}
+
+void RegisteredHost::SaveToSettings(QSettings *settings)
+{
+	settings->setValue("ap_ssid", ap_ssid);
+	settings->setValue("ap_bssid", ap_bssid);
+	settings->setValue("ap_key", ap_key);
+	settings->setValue("ap_name", ap_name);
+	settings->setValue("ps4_nickname", ps4_nickname);
+	settings->setValue("rp_regist_key", QByteArray(rp_regist_key, sizeof(rp_regist_key)));
+	settings->setValue("rp_key_type", rp_key_type);
+	settings->setValue("rp_key", QByteArray((const char *)rp_key, sizeof(rp_key)));
+}
+
+RegisteredHost RegisteredHost::LoadFromSettings(QSettings *settings)
+{
+	RegisteredHost r;
+	r.ap_ssid = settings->value("ap_ssid").toString();
+	r.ap_bssid = settings->value("ap_bssid").toString();
+	r.ap_key = settings->value("ap_key").toString();
+	r.ap_name = settings->value("ap_name").toString();
+	r.ps4_nickname = settings->value("ps4_nickname").toString();
+	auto rp_regist_key = settings->value("rp_regist_key").toByteArray();
+	if(rp_regist_key.size() == sizeof(r.rp_regist_key))
+		memcpy(r.rp_regist_key, rp_regist_key.constData(), sizeof(r.rp_regist_key));
+	r.rp_key_type = settings->value("rp_key_type").toUInt();
+	auto rp_key = settings->value("rp_key").toByteArray();
+	if(rp_key.size() == sizeof(r.rp_key))
+		memcpy(r.rp_key, rp_key.constData(), sizeof(r.rp_key));
+	return r;
 }

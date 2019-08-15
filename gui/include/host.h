@@ -23,6 +23,8 @@
 
 #include <chiaki/regist.h>
 
+class QSettings;
+
 class HostMAC
 {
 	private:
@@ -55,6 +57,9 @@ class RegisteredHost
 		RegisteredHost(const ChiakiRegisteredHost &chiaki_host);
 
 		const QString &GetPS4Nickname() const	{ return ps4_nickname; }
+
+		void SaveToSettings(QSettings *settings);
+		static RegisteredHost LoadFromSettings(QSettings *settings);
 };
 
 Q_DECLARE_METATYPE(RegisteredHost)
