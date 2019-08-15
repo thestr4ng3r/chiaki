@@ -48,7 +48,6 @@ struct StreamSessionConnectInfo
 	QString host;
 	QString regist_key;
 	QString morning;
-	QString did;
 	ChiakiConnectVideoProfile video_profile;
 };
 

@@ -72,7 +72,6 @@ typedef struct chiaki_connect_info_t
 	const char *host; // null terminated
 	char regist_key[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
-	uint8_t did[CHIAKI_RP_DID_SIZE];
 	ChiakiConnectVideoProfile video_profile;
 } ChiakiConnectInfo;
 

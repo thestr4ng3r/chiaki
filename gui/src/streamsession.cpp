@@ -64,12 +64,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(chiaki_connect_info.morning))
 		throw ChiakiException("Morning invalid");
 
-	size_t did_size = sizeof(chiaki_connect_info.did);
-	QByteArray did_str = connect_info.did.toUtf8();
-	err = chiaki_base64_decode(did_str.constData(), did_str.length(), chiaki_connect_info.did, &did_size);
-	if(err != CHIAKI_ERR_SUCCESS || did_size != sizeof(chiaki_connect_info.did))
-		throw ChiakiException("Did invalid");
-
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
 	err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());

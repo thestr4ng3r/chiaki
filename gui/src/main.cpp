@@ -75,10 +75,6 @@ int main(int argc, char *argv[])
 	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
-	QCommandLineOption did_option("did", "", "did");
-	parser.addOption(did_option);
-
-
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
 
@@ -100,13 +96,12 @@ int main(int argc, char *argv[])
 		connect_info.host = host;
 		connect_info.regist_key = parser.value(regist_key_option);
 		connect_info.morning = parser.value(morning_option);
-		connect_info.did = parser.value(did_option);
 
 		chiaki_connect_video_profile_preset(&connect_info.video_profile,
 				CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
 				CHIAKI_VIDEO_FPS_PRESET_30);
 
-		if(connect_info.regist_key.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
+		if(connect_info.regist_key.isEmpty() || connect_info.morning.isEmpty())
 			parser.showHelp(1);
 
 		return RunStream(app, connect_info);

@@ -155,7 +155,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	memcpy(session->connect_info.regist_key, connect_info->regist_key, sizeof(session->connect_info.regist_key));
 	memcpy(session->connect_info.morning, connect_info->morning, sizeof(session->connect_info.morning));
-	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
+
+	const uint8_t did_prefix[] = { 0x00, 0x18, 0x00, 0x00, 0x00, 0x07, 0x00, 0x40, 0x00, 0x80 };
+	const uint8_t did_suffix[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	memcpy(session->connect_info.did, did_prefix, sizeof(did_prefix));
+	chiaki_random_bytes_crypt(session->connect_info.did + sizeof(did_prefix), sizeof(session->connect_info.did) - sizeof(did_prefix) - sizeof(did_suffix));
+	memcpy(session->connect_info.did + sizeof(session->connect_info.did) - sizeof(did_suffix), did_suffix, sizeof(did_suffix));
 
 	session->connect_info.video_profile = connect_info->video_profile;
 
