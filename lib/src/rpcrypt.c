@@ -29,7 +29,7 @@ CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *am
 {
 	static const uint8_t echo_a[] = { 0x01, 0x49, 0x87, 0x9b, 0x65, 0x39, 0x8b, 0x39, 0x4b, 0x3a, 0x8d, 0x48, 0xc3, 0x0a, 0xef, 0x51 };
 
-	for(uint8_t i=0; i<CHIAKI_KEY_BYTES; i++)
+	for(uint8_t i=0; i<CHIAKI_RPCRYPT_KEY_SIZE; i++)
 	{
 		uint8_t v = nonce[i];
 		v -= i;
@@ -38,7 +38,7 @@ CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *am
 		ambassador[i] = v;
 	}
 
-	for(uint8_t i=0; i<CHIAKI_KEY_BYTES; i++)
+	for(uint8_t i=0; i<CHIAKI_RPCRYPT_KEY_SIZE; i++)
 	{
 		uint8_t v = morning[i];
 		v -= i;
@@ -49,11 +49,11 @@ CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(uint8_t *bright, uint8_t *am
 	}
 }
 
-CHIAKI_EXPORT void chiaki_rpcrypt_aeropause(uint8_t *aeropause, const uint8_t *nonce)
+CHIAKI_EXPORT void chiaki_rpcrypt_aeropause(uint8_t *aeropause, const uint8_t *ambassador)
 {
-	for(size_t i=0; i<CHIAKI_KEY_BYTES; i++)
+	for(size_t i=0; i<CHIAKI_RPCRYPT_KEY_SIZE; i++)
 	{
-		uint8_t v = nonce[i];
+		uint8_t v = ambassador[i];
 		v -= i;
 		v -= 0x29;
 		v ^= echo_b[i];
@@ -66,10 +66,10 @@ CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, const uint8_
 	chiaki_rpcrypt_bright_ambassador(rpcrypt->bright, rpcrypt->ambassador, nonce, morning);
 }
 
-CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint8_t *nonce, uint32_t pin)
+CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint8_t *ambassador, uint32_t pin)
 {
-	static const uint8_t regist_aes_key[CHIAKI_KEY_BYTES] = { 0x3f, 0x1c, 0xc4, 0xb6, 0xdc, 0xbb, 0x3e, 0xcc, 0x50, 0xba, 0xed, 0xef, 0x97, 0x34, 0xc7, 0xc9 };
-	memcpy(rpcrypt->ambassador, nonce, sizeof(rpcrypt->ambassador));
+	static const uint8_t regist_aes_key[CHIAKI_RPCRYPT_KEY_SIZE] = { 0x3f, 0x1c, 0xc4, 0xb6, 0xdc, 0xbb, 0x3e, 0xcc, 0x50, 0xba, 0xed, 0xef, 0x97, 0x34, 0xc7, 0xc9 };
+	memcpy(rpcrypt->ambassador, ambassador, sizeof(rpcrypt->ambassador));
 	memcpy(rpcrypt->bright, regist_aes_key, sizeof(rpcrypt->bright));
 	rpcrypt->bright[0] ^= (uint8_t)((pin >> 0x18) & 0xff);
 	rpcrypt->bright[1] ^= (uint8_t)((pin >> 0x10) & 0xff);
@@ -81,26 +81,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt,
 {
 	uint8_t hmac_key[] = { 0xac, 0x07, 0x88, 0x83, 0xc8, 0x3a, 0x1f, 0xe8, 0x11, 0x46, 0x3a, 0xf3, 0x9e, 0xe3, 0xe3, 0x77 };
 
-	uint8_t buf[CHIAKI_KEY_BYTES + 8];
-	memcpy(buf, rpcrypt->ambassador, CHIAKI_KEY_BYTES);
-	buf[CHIAKI_KEY_BYTES + 0] = (uint8_t)((counter >> 0x38) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 1] = (uint8_t)((counter >> 0x30) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 2] = (uint8_t)((counter >> 0x28) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 3] = (uint8_t)((counter >> 0x20) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 4] = (uint8_t)((counter >> 0x18) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 5] = (uint8_t)((counter >> 0x10) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 6] = (uint8_t)((counter >> 0x08) & 0xff);
-	buf[CHIAKI_KEY_BYTES + 7] = (uint8_t)((counter >> 0x00) & 0xff);
+	uint8_t buf[CHIAKI_RPCRYPT_KEY_SIZE + 8];
+	memcpy(buf, rpcrypt->ambassador, CHIAKI_RPCRYPT_KEY_SIZE);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 0] = (uint8_t)((counter >> 0x38) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 1] = (uint8_t)((counter >> 0x30) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 2] = (uint8_t)((counter >> 0x28) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 3] = (uint8_t)((counter >> 0x20) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 4] = (uint8_t)((counter >> 0x18) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 5] = (uint8_t)((counter >> 0x10) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 6] = (uint8_t)((counter >> 0x08) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 7] = (uint8_t)((counter >> 0x00) & 0xff);
 
 	uint8_t hmac[32];
 	unsigned int hmac_len = 0;
-	if(!HMAC(EVP_sha256(), hmac_key, CHIAKI_KEY_BYTES, buf, sizeof(buf), hmac, &hmac_len))
+	if(!HMAC(EVP_sha256(), hmac_key, CHIAKI_RPCRYPT_KEY_SIZE, buf, sizeof(buf), hmac, &hmac_len))
 		return CHIAKI_ERR_UNKNOWN;
 
-	if(hmac_len < CHIAKI_KEY_BYTES)
+	if(hmac_len < CHIAKI_RPCRYPT_KEY_SIZE)
 		return CHIAKI_ERR_UNKNOWN;
 
-	memcpy(iv, hmac, CHIAKI_KEY_BYTES);
+	memcpy(iv, hmac, CHIAKI_RPCRYPT_KEY_SIZE);
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -110,7 +110,7 @@ static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t cou
 	if(!ctx)
 		return CHIAKI_ERR_UNKNOWN;
 
-	uint8_t iv[CHIAKI_KEY_BYTES];
+	uint8_t iv[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiErrorCode err = chiaki_rpcrypt_generate_iv(rpcrypt, iv, counter);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;

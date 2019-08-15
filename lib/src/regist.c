@@ -93,14 +93,30 @@ static const char * const request_fmt =
 
 static const char * const request_inner_fmt =
 	"Client-Type: Windows\r\n"
-	"Np-Online-Id: %s\r\n\r\n";
+	"Np-Online-Id: %s\r\n";
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_id)
+{
+	size_t buf_size_val = *buf_size;
+	static const size_t inner_header_off = 0x1e0;
+	if(buf_size_val < inner_header_off)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+	memset(buf, 'A', inner_header_off);
+	chiaki_rpcrypt_aeropause(buf + 0x11c, crypt->ambassador);
+	int inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_fmt, psn_id);
+	if(inner_header_size < 0 || inner_header_size >= buf_size_val - inner_header_off)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(crypt, 0, buf + inner_header_off, buf + inner_header_off, inner_header_size);
+	*buf_size = inner_header_off + inner_header_size;
+	return err;
+}
 
 static void *regist_thread_func(void *user)
 {
 	ChiakiRegist *regist = user;
 
-	uint8_t nonce[CHIAKI_KEY_BYTES];
-	ChiakiErrorCode err = chiaki_random_bytes_crypt(nonce, sizeof(nonce));
+	uint8_t ambassador[CHIAKI_RPCRYPT_KEY_SIZE];
+	ChiakiErrorCode err = chiaki_random_bytes_crypt(ambassador, sizeof(ambassador));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to generate random nonce");
@@ -108,20 +124,16 @@ static void *regist_thread_func(void *user)
 	}
 
 	ChiakiRPCrypt crypt;
-	chiaki_rpcrypt_init_regist(&crypt, nonce, regist->info.pin);
+	chiaki_rpcrypt_init_regist(&crypt, ambassador, regist->info.pin);
 
 	uint8_t payload[0x400];
-	static const size_t inner_header_off = 0x1e0;
-	memset(payload, 'A', inner_header_off);
-	chiaki_rpcrypt_aeropause(payload + 0x11c, nonce);
-	int inner_header_size = snprintf((char *)payload + inner_header_off, sizeof(payload) - inner_header_off, request_inner_fmt, regist->info.psn_id);
-	if(inner_header_size >= sizeof(payload) - inner_header_off)
+	size_t payload_size = sizeof(payload);
+	err = chiaki_regist_request_payload_format(payload, &payload_size, &crypt, regist->info.psn_id);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to format payload");
 		goto fail;
 	}
-	chiaki_rpcrypt_encrypt(&crypt, 0, payload + inner_header_off, payload + inner_header_off, inner_header_size);
-	size_t payload_size = inner_header_off + inner_header_size;
 
 	char request_header[0x100];
 	int request_header_size = snprintf(request_header, sizeof(request_header), request_fmt, (unsigned long long)payload_size);

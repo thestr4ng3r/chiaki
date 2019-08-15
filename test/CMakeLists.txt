@@ -12,7 +12,8 @@ add_executable(chiaki-unit
 		reorderqueue.c
 		fec.c
 		test_log.c
-		test_log.h)
+		test_log.h
+		regist.c)
 
 target_link_libraries(chiaki-unit chiaki-lib munit)
 

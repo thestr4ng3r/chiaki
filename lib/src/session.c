@@ -584,9 +584,9 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 	if(response.success)
 	{
-		size_t nonce_len = CHIAKI_KEY_BYTES;
+		size_t nonce_len = CHIAKI_RPCRYPT_KEY_SIZE;
 		err = chiaki_base64_decode(response.nonce, strlen(response.nonce), session->nonce, &nonce_len);
-		if(err != CHIAKI_ERR_SUCCESS || nonce_len != CHIAKI_KEY_BYTES)
+		if(err != CHIAKI_ERR_SUCCESS || nonce_len != CHIAKI_RPCRYPT_KEY_SIZE)
 		{
 			CHIAKI_LOGE(session->log, "Nonce invalid");
 			response.success = false;

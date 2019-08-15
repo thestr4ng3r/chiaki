@@ -29,12 +29,12 @@ static MunitResult test_bright_ambassador(const MunitParameter params[], void *u
 	static const uint8_t bright_expected[] = { 0xa4, 0x4e, 0x2a, 0x16, 0x5e, 0x20, 0xd3, 0xf, 0xaa, 0x11, 0x8b, 0xc7, 0x7c, 0xa7, 0xdc, 0x11 };
 	static const uint8_t ambassador_expected[] = { 0x1d, 0xa8, 0xb9, 0x1f, 0x6e, 0x26, 0x64, 0x2e, 0xbc, 0x8, 0x8b, 0x0, 0x4f, 0x1, 0x5b, 0x52 };
 
-	uint8_t bright[CHIAKI_KEY_BYTES];
-	uint8_t ambassador[CHIAKI_KEY_BYTES];
+	uint8_t bright[CHIAKI_RPCRYPT_KEY_SIZE];
+	uint8_t ambassador[CHIAKI_RPCRYPT_KEY_SIZE];
 	chiaki_rpcrypt_bright_ambassador(bright, ambassador, nonce, morning);
 
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, bright, bright_expected);
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, ambassador, ambassador_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, bright, bright_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, ambassador, ambassador_expected);
 
 	return MUNIT_OK;
 }
@@ -49,27 +49,27 @@ static MunitResult test_iv(const MunitParameter params[], void *user)
 
 	chiaki_rpcrypt_init_auth(&rpcrypt, nonce, morning);
 
-	uint8_t iv[CHIAKI_KEY_BYTES];
+	uint8_t iv[CHIAKI_RPCRYPT_KEY_SIZE];
 
 	err = chiaki_rpcrypt_generate_iv(&rpcrypt, iv, 0);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return MUNIT_ERROR;
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, iv, iv_a_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, iv, iv_a_expected);
 
 	err = chiaki_rpcrypt_generate_iv(&rpcrypt, iv, 0);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return MUNIT_ERROR;
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, iv, iv_a_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, iv, iv_a_expected);
 
 	err = chiaki_rpcrypt_generate_iv(&rpcrypt, iv, 0x0102030405060708);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return MUNIT_ERROR;
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, iv, iv_b_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, iv, iv_b_expected);
 
 	err = chiaki_rpcrypt_generate_iv(&rpcrypt, iv, 0x0102030405060708);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return MUNIT_ERROR;
-	munit_assert_memory_equal(CHIAKI_KEY_BYTES, iv, iv_b_expected);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, iv, iv_b_expected);
 
 	return MUNIT_OK;
 }

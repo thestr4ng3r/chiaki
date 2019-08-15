@@ -81,8 +81,8 @@ void RegistDialog::ValidateInput()
 void RegistDialog::accept()
 {
 	ChiakiRegistInfo info = {};
-	QByteArray psn_id = psn_id_edit->text().toUtf8();
-	QByteArray host = host_edit->text().toUtf8();
+	QByteArray psn_id = psn_id_edit->text().trimmed().toUtf8();
+	QByteArray host = host_edit->text().trimmed().toUtf8();
 	info.psn_id = psn_id.data();
 	info.host = host.data();
 	info.pin = (uint32_t)pin_edit->text().toULong();

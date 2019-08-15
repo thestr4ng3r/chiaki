@@ -341,11 +341,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_CTRL_PORT);
 
 
-	uint8_t auth_enc[CHIAKI_KEY_BYTES];
-	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 0, (uint8_t *)session->connect_info.auth, auth_enc, CHIAKI_KEY_BYTES);
+	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 0, (uint8_t *)session->connect_info.auth, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
-	char auth_b64[CHIAKI_KEY_BYTES*2];
+	char auth_b64[CHIAKI_RPCRYPT_KEY_SIZE*2];
 	err = chiaki_base64_encode(auth_enc, sizeof(auth_enc), auth_b64, sizeof(auth_b64));
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;

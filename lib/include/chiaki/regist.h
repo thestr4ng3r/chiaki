@@ -22,6 +22,7 @@
 #include "log.h"
 #include "thread.h"
 #include "stoppipe.h"
+#include "rpcrypt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +62,8 @@ typedef struct chiaki_regist_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, const ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user);
 CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist);
 CHIAKI_EXPORT void chiaki_regist_stop(ChiakiRegist *regist);
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_id);
 
 #ifdef __cplusplus
 }

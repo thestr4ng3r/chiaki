@@ -137,13 +137,13 @@ typedef struct chiaki_session_t
 		char hostname[128];
 		char *regist_key;
 		char *ostype;
-		char auth[CHIAKI_KEY_BYTES];
-		uint8_t morning[CHIAKI_KEY_BYTES];
+		char auth[CHIAKI_RPCRYPT_KEY_SIZE];
+		uint8_t morning[CHIAKI_RPCRYPT_KEY_SIZE];
 		uint8_t did[CHIAKI_RP_DID_SIZE];
 		ChiakiConnectVideoProfile video_profile;
 	} connect_info;
 
-	uint8_t nonce[CHIAKI_KEY_BYTES];
+	uint8_t nonce[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiRPCrypt rpcrypt;
 	char session_id[CHIAKI_SESSION_ID_SIZE_MAX]; // zero-terminated
 	uint8_t handshake_key[CHIAKI_HANDSHAKE_KEY_SIZE];
