@@ -28,6 +28,8 @@
 #include <assert.h>
 
 
+#define SESSION_OSTYPE "Win10.0.0"
+
 #define SESSION_CTRL_PORT 9295
 
 #define CTRL_EXPECT_TIMEOUT 5000
@@ -342,7 +344,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 
 	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
-	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 0, (uint8_t *)session->connect_info.auth, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 0, (uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char auth_b64[CHIAKI_RPCRYPT_KEY_SIZE*2];
@@ -360,10 +362,10 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		goto error;
 
 	uint8_t ostype_enc[128];
-	size_t ostype_len = strlen(session->connect_info.ostype) + 1;
+	size_t ostype_len = strlen(SESSION_OSTYPE) + 1;
 	if(ostype_len > sizeof(ostype_enc))
 		goto error;
-	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 2, (uint8_t *)session->connect_info.ostype, ostype_enc, ostype_len);
+	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, 2, (uint8_t *)SESSION_OSTYPE, ostype_enc, ostype_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char ostype_b64[256];

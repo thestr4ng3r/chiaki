@@ -45,22 +45,18 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_io(nullptr)
 {
 	QByteArray host_str = connect_info.host.toUtf8();
-	QByteArray registkey_str = connect_info.registkey.toUtf8();
-	QByteArray ostype_str = connect_info.ostype.toUtf8();
 
 	ChiakiConnectInfo chiaki_connect_info;
 	chiaki_connect_info.host = host_str.constData();
-	chiaki_connect_info.regist_key = registkey_str.constData();
-	chiaki_connect_info.ostype = ostype_str.constData();
 	chiaki_connect_info.video_profile = connect_info.video_profile;
 
-	QByteArray auth_str = connect_info.auth.toUtf8();
+	QByteArray auth_str = connect_info.regist_key.toUtf8();
 	size_t auth_len = auth_str.length();
-	if(auth_len > sizeof(chiaki_connect_info.auth))
-		auth_len = sizeof(chiaki_connect_info.auth);
-	memcpy(chiaki_connect_info.auth, auth_str.constData(), auth_len);
-	if(auth_len < sizeof(chiaki_connect_info.auth))
-		memset(chiaki_connect_info.auth + auth_len, 0, sizeof(chiaki_connect_info.auth) - auth_len);
+	if(auth_len > sizeof(chiaki_connect_info.regist_key))
+		auth_len = sizeof(chiaki_connect_info.regist_key);
+	memcpy(chiaki_connect_info.regist_key, auth_str.constData(), auth_len);
+	if(auth_len < sizeof(chiaki_connect_info.regist_key))
+		memset(chiaki_connect_info.regist_key + auth_len, 0, sizeof(chiaki_connect_info.regist_key) - auth_len);
 
 	size_t morning_size = sizeof(chiaki_connect_info.morning);
 	QByteArray morning_str = connect_info.morning.toUtf8();

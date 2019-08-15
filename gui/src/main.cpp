@@ -72,12 +72,6 @@ int main(int argc, char *argv[])
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
 
-	QCommandLineOption ostype_option("ostype", "", "ostype", "Win10.0.0");
-	parser.addOption(ostype_option);
-
-	QCommandLineOption auth_option("auth", "", "auth");
-	parser.addOption(auth_option);
-
 	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
@@ -104,9 +98,7 @@ int main(int argc, char *argv[])
 		connect_info.log_file = CreateLogFilename();
 
 		connect_info.host = host;
-		connect_info.registkey = parser.value(regist_key_option);
-		connect_info.ostype = parser.value(ostype_option);
-		connect_info.auth = parser.value(auth_option);
+		connect_info.regist_key = parser.value(regist_key_option);
 		connect_info.morning = parser.value(morning_option);
 		connect_info.did = parser.value(did_option);
 
@@ -114,7 +106,7 @@ int main(int argc, char *argv[])
 				CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
 				CHIAKI_VIDEO_FPS_PRESET_30);
 
-		if(connect_info.registkey.isEmpty() || connect_info.ostype.isEmpty() || connect_info.auth.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
+		if(connect_info.regist_key.isEmpty() || connect_info.morning.isEmpty() || connect_info.did.isEmpty())
 			parser.showHelp(1);
 
 		return RunStream(app, connect_info);

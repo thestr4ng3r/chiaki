@@ -151,23 +151,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 		return CHIAKI_ERR_PARSE_ADDR;
 	}
 
-	session->connect_info.regist_key = strdup(connect_info->regist_key);
-	if(!session->connect_info.regist_key)
-	{
-		chiaki_session_fini(session);
-		return CHIAKI_ERR_MEMORY;
-	}
-
-	session->connect_info.ostype = strdup(connect_info->ostype);
-	if(!session->connect_info.regist_key)
-	{
-		chiaki_session_fini(session);
-		return CHIAKI_ERR_MEMORY;
-	}
-
 	chiaki_controller_state_set_idle(&session->controller_state);
 
-	memcpy(session->connect_info.auth, connect_info->auth, sizeof(session->connect_info.auth));
+	memcpy(session->connect_info.regist_key, connect_info->regist_key, sizeof(session->connect_info.regist_key));
 	memcpy(session->connect_info.morning, connect_info->morning, sizeof(session->connect_info.morning));
 	memcpy(session->connect_info.did, connect_info->did, sizeof(session->connect_info.did));
 
@@ -193,8 +179,6 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
 	chiaki_mutex_fini(&session->state_mutex);
-	free(session->connect_info.regist_key);
-	free(session->connect_info.ostype);
 	freeaddrinfo(session->connect_info.host_addrinfos);
 }
 
@@ -527,9 +511,27 @@ static bool session_thread_request_session(ChiakiSession *session)
 			"Rp-Version: 8.0\r\n"
 			"\r\n";
 
+	size_t regist_key_len = sizeof(session->connect_info.regist_key);
+	for(size_t i=0; i<regist_key_len; i++)
+	{
+		if(!session->connect_info.regist_key[i])
+		{
+			regist_key_len = i;
+			break;
+		}
+	}
+	char regist_key_hex[sizeof(session->connect_info.regist_key) * 2 + 1];
+	ChiakiErrorCode err = format_hex(regist_key_hex, sizeof(regist_key_hex), (uint8_t *)session->connect_info.regist_key, regist_key_len);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		close(session_sock);
+		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
+		return false;
+	}
+
 	char buf[512];
 	int request_len = snprintf(buf, sizeof(buf), session_request_fmt,
-							   session->connect_info.hostname, SESSION_PORT, session->connect_info.regist_key);
+							   session->connect_info.hostname, SESSION_PORT, regist_key_hex);
 	if(request_len < 0 || request_len >= sizeof(buf))
 	{
 		close(session_sock);
@@ -551,7 +553,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 	size_t header_size;
 	size_t received_size;
 	chiaki_mutex_unlock(&session->state_mutex);
-	ChiakiErrorCode err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size, &session->stop_pipe, SESSION_EXPECT_TIMEOUT_MS);
+	err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size, &session->stop_pipe, SESSION_EXPECT_TIMEOUT_MS);
 	ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->state_mutex);
 	assert(mutex_err == CHIAKI_ERR_SUCCESS);
 	if(err != CHIAKI_ERR_SUCCESS)

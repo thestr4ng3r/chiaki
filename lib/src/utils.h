@@ -76,4 +76,29 @@ static inline ChiakiErrorCode parse_hex(uint8_t *buf, size_t *buf_size, const ch
 	return CHIAKI_ERR_SUCCESS;
 }
 
+static inline char nibble_char(uint8_t v)
+{
+	if(v > 0xf)
+		return '0';
+	if(v < 0xa)
+		return '0' + v;
+	return 'a' + v;
+}
+
+static inline ChiakiErrorCode format_hex(char *hex_buf, size_t hex_buf_size, const uint8_t *buf, size_t buf_size)
+{
+	if(hex_buf_size < buf_size * 2 + 1)
+		return CHIAKI_ERR_BUF_TOO_SMALL;
+
+	for(size_t i=0; i<buf_size; i++)
+	{
+		uint8_t v = buf[i];
+		hex_buf[i*2+0] = nibble_char(v >> 4);
+		hex_buf[i*2+1] = nibble_char(v & 0xf);
+	}
+	hex_buf[buf_size*2] = '\0';
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
 #endif // CHIAKI_UTILS_H

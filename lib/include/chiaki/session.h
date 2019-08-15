@@ -70,9 +70,7 @@ CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile
 typedef struct chiaki_connect_info_t
 {
 	const char *host; // null terminated
-	const char *regist_key; // null terminated
-	const char *ostype; // null terminated
-	char auth[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
+	char regist_key[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
 	uint8_t did[CHIAKI_RP_DID_SIZE];
 	ChiakiConnectVideoProfile video_profile;
@@ -137,9 +135,7 @@ typedef struct chiaki_session_t
 		struct addrinfo *host_addrinfos;
 		struct addrinfo *host_addrinfo_selected;
 		char hostname[128];
-		char *regist_key;
-		char *ostype;
-		char auth[CHIAKI_RPCRYPT_KEY_SIZE];
+		char regist_key[CHIAKI_RPCRYPT_KEY_SIZE];
 		uint8_t morning[CHIAKI_RPCRYPT_KEY_SIZE];
 		uint8_t did[CHIAKI_RP_DID_SIZE];
 		ChiakiConnectVideoProfile video_profile;
