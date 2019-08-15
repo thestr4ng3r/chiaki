@@ -4,10 +4,12 @@
 #include <mainwindow.h>
 #include <streamsession.h>
 #include <settings.h>
+#include <registdialog.h>
 
 #include <chiaki-cli.h>
 
 #include <chiaki/session.h>
+#include <chiaki/regist.h>
 #include <chiaki/base64.h>
 
 #include <stdio.h>
@@ -18,6 +20,8 @@
 #include <QAudioFormat>
 #include <QCommandLineParser>
 #include <QMap>
+
+Q_DECLARE_METATYPE(ChiakiLogLevel)
 
 struct CLICommand
 {
@@ -35,6 +39,8 @@ int main(int argc, char *argv[])
 {
 	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<ChiakiQuitReason>();
+	qRegisterMetaType<ChiakiRegistEventType>();
+	qRegisterMetaType<ChiakiLogLevel>();
 
 	QApplication::setOrganizationName("Chiaki");
 	QApplication::setApplicationName("Chiaki");

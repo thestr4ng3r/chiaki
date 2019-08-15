@@ -54,7 +54,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto regist_action = new QAction(tr("Register"), this);
 	tool_bar->addAction(regist_action);
 	connect(regist_action, &QAction::triggered, this, [this]() {
-		RegistDialog dialog(this->settings, this);
+		RegistDialog dialog(this->settings, QString(), this);
 		dialog.exec();
 	});
 
@@ -108,8 +108,15 @@ void MainWindow::ServerItemWidgetTriggered()
 	auto server_item_widget = qobject_cast<ServerItemWidget *>(sender());
 	if(!server_item_widget)
 		return;
+	int index = server_item_widgets.indexOf(server_item_widget);
+	if(index < 0 || index >= display_servers.count())
+		return;
+	const auto &server = display_servers[index];
 
-	// TODO: connect
+	// TODO: check if already registered and connect
+
+	RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+	regist_dialog.exec();
 }
 
 void MainWindow::UpdateDiscoveryEnabled()

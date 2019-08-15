@@ -32,7 +32,7 @@
 static void *regist_thread_func(void *user);
 static int regist_connect(ChiakiRegist *regist);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, const ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user)
 {
 	regist->log = log;
 	regist->info = *info;
@@ -138,17 +138,19 @@ static void *regist_thread_func(void *user)
 		goto fail;
 	}
 
+	CHIAKI_LOGI(regist->log, "Regist connected to %s", regist->info.host);
+
 	int s = send(sock, request_header, request_header_size, 0);
 	if(s < 0)
 	{
-		CHIAKI_LOGE(regist->log, "Regist failed to send request header");
+		CHIAKI_LOGE(regist->log, "Regist failed to send request header: %s", strerror(errno));
 		goto fail_socket;
 	}
 
-	s = send(s, payload, payload_size, 0);
+	s = send(sock, payload, payload_size, 0);
 	if(s < 0)
 	{
-		CHIAKI_LOGE(regist->log, "Regist failed to send payload");
+		CHIAKI_LOGE(regist->log, "Regist failed to send payload: %s", strerror(errno));
 		goto fail_socket;
 	}
 
@@ -158,7 +160,7 @@ rerecv:
 	received = recv(sock, recv_buf, sizeof(recv_buf) - 1, 0);
 	if(received < 0)
 		CHIAKI_LOGE(regist->log, "Failed");
-	else
+	else if(received > 0)
 	{
 		chiaki_log_hexdump(regist->log, CHIAKI_LOG_DEBUG, (uint8_t *)recv_buf, received);
 		goto rerecv;
@@ -183,7 +185,6 @@ static int regist_connect(ChiakiRegist *regist)
 	if(r != 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to getaddrinfo on %s", regist->info.host);
-		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED);
 		return -1;
 	}
 

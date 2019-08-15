@@ -30,6 +30,8 @@ struct DisplayServer
 {
 	DiscoveryHost discovery_host;
 	bool discovered;
+
+	QString GetHostAddr() const { return discovered ? discovery_host.host_addr : QString(); }
 };
 
 class MainWindow : public QMainWindow

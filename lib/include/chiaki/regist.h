@@ -58,7 +58,7 @@ typedef struct chiaki_regist_t
 	ChiakiStopPipe stop_pipe;
 } ChiakiRegist;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLog *log, const ChiakiRegistInfo *info, ChiakiRegistCb cb, void *cb_user);
 CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist);
 CHIAKI_EXPORT void chiaki_regist_stop(ChiakiRegist *regist);
 

@@ -25,6 +25,8 @@
 class Settings;
 
 class QLineEdit;
+class QPlainTextEdit;
+class QDialogButtonBox;
 
 class RegistDialog : public QDialog
 {
@@ -33,16 +35,48 @@ class RegistDialog : public QDialog
 	private:
 		Settings *settings;
 
-		ChiakiRegist regist;
-		bool regist_active;
-
 		QLineEdit *host_edit;
 		QLineEdit *psn_id_edit;
 		QLineEdit *pin_edit;
+		QDialogButtonBox *button_box;
+		QPushButton *register_button;
+
+	private slots:
+		void ValidateInput();
 
 	public:
-		explicit RegistDialog(Settings *settings, QWidget *parent = nullptr);
+		explicit RegistDialog(Settings *settings, QString host = QString(), QWidget *parent = nullptr);
 		~RegistDialog();
+
+	public slots:
+		void accept() override;
 };
+
+class RegistExecuteDialog: public QDialog
+{
+	Q_OBJECT
+
+	friend class RegistExecuteDialogPrivate;
+
+	private:
+		ChiakiLog log;
+		ChiakiRegist regist;
+
+		QPlainTextEdit *log_edit;
+		QDialogButtonBox *button_box;
+
+		void Finished();
+
+	private slots:
+		void Log(ChiakiLogLevel level, QString msg);
+		void Success();
+		void Failed();
+
+	public:
+		explicit RegistExecuteDialog(const ChiakiRegistInfo &regist_info, QWidget *parent = nullptr);
+		~RegistExecuteDialog();
+};
+
+Q_DECLARE_METATYPE(ChiakiRegistEventType)
 
 #endif // CHIAKI_REGISTDIALOG_H
