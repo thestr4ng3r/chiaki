@@ -26,6 +26,7 @@
 #include <QPlainTextEdit>
 #include <QScrollBar>
 #include <QMessageBox>
+#include <QCheckBox>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -51,6 +52,10 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 		host_edit->setText("255.255.255.255");
 	else
 		host_edit->setText(host);
+
+	broadcast_check_box = new QCheckBox(this);
+	form_layout->addRow(tr("Broadcast:"), broadcast_check_box);
+	broadcast_check_box->setChecked(host.isEmpty());
 
 	psn_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN ID (username):"), psn_id_edit);
@@ -90,6 +95,7 @@ void RegistDialog::accept()
 	QByteArray host = host_edit->text().trimmed().toUtf8();
 	info.psn_id = psn_id.data();
 	info.host = host.data();
+	info.broadcast = broadcast_check_box->isChecked();
 	info.pin = (uint32_t)pin_edit->text().toULong();
 
 	RegistExecuteDialog execute_dialog(settings, info, this);

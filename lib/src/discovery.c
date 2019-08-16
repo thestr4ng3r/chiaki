@@ -15,6 +15,8 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "utils.h"
+
 #include <chiaki/discovery.h>
 #include <chiaki/http.h>
 #include <chiaki/log.h>
@@ -61,21 +63,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_srch_response_parse(ChiakiDiscove
 
 	memset(response, 0, sizeof(*response));
 
-	void *addr_src;
-	switch(addr->sa_family)
-	{
-		case AF_INET:
-			addr_src = &((struct sockaddr_in *)addr)->sin_addr;
-			break;
-		case AF_INET6:
-			addr_src = &((struct sockaddr_in6 *)addr)->sin6_addr;
-			break;
-		default:
-			addr_src = NULL;
-			break;
-	}
-	if(addr_src)
-		response->host_addr = inet_ntop(addr->sa_family, addr_src, addr_buf, addr_buf_size);
+	response->host_addr = sockaddr_str(addr, addr_buf, addr_buf_size);
 
 	switch(http_response.code)
 	{

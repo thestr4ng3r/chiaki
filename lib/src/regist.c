@@ -36,8 +36,9 @@
 #define REGIST_REPONSE_TIMEOUT_MS 3000
 
 static void *regist_thread_func(void *user);
-static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos);
-static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int protocol);
+static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *recv_addr, socklen_t *recv_addr_size);
+static int regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *send_addr, socklen_t *send_addr_len);
+static int regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len);
 static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, int sock, ChiakiRPCrypt *rpcrypt);
 static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, ChiakiRegisteredHost *host, char *buf, size_t buf_size);
 
@@ -163,7 +164,10 @@ static void *regist_thread_func(void *user)
 		goto fail;
 	}
 
-	err = regist_search(regist, addrinfos); // TODO: get addr from response
+	struct sockaddr recv_addr = {};
+	socklen_t recv_addr_size;
+	recv_addr_size = sizeof(recv_addr);
+	err = regist_search(regist, addrinfos, &recv_addr, &recv_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_CANCELED)
@@ -180,7 +184,7 @@ static void *regist_thread_func(void *user)
 		goto fail_addrinfos;
 	}
 
-	int sock = regist_connect(regist, addrinfos, IPPROTO_TCP);
+	int sock = regist_request_connect(regist, &recv_addr, recv_addr_size);
 	if(sock < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for request");
@@ -242,10 +246,12 @@ fail:
 	return NULL;
 }
 
-static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos)
+static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *recv_addr, socklen_t *recv_addr_size)
 {
 	CHIAKI_LOGI(regist->log, "Regist starting search");
-	int sock = regist_connect(regist, addrinfos, IPPROTO_UDP);
+	struct sockaddr send_addr;
+	socklen_t send_addr_len = sizeof(send_addr);
+	int sock = regist_search_connect(regist, addrinfos, &send_addr, &send_addr_len);
 	if(sock < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for search");
@@ -255,10 +261,11 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
 	CHIAKI_LOGI(regist->log, "Regist sending search packet");
-	int r = send(sock, "SRC2", 4, 0);
+	int r = sendto(sock, "SRC2", 4, 0, &send_addr, send_addr_len);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to send search: %s", strerror(errno));
+		err = CHIAKI_ERR_NETWORK;
 		goto done;
 	}
 
@@ -278,10 +285,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 		}
 
 		uint8_t buf[0x100];
-		struct sockaddr recv_addr;
-		socklen_t recv_addr_size;
-		recv_addr_size = sizeof(recv_addr);
-		ssize_t n = recvfrom(sock, buf, sizeof(buf) - 1, 0, &recv_addr, &recv_addr_size);
+		ssize_t n = recvfrom(sock, buf, sizeof(buf) - 1, 0, recv_addr, recv_addr_size);
 		if(n <= 0)
 		{
 			if(n < 0)
@@ -297,7 +301,9 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 
 		if(n >= 4 && memcmp(buf, "RES2", 4) == 0)
 		{
-			CHIAKI_LOGI(regist->log, "Regist received search response"); // TODO: print from <addr>
+			char addr[64];
+			const char *addr_str = sockaddr_str(recv_addr, addr, sizeof(addr));
+			CHIAKI_LOGI(regist->log, "Regist received search response from %s", addr_str ? addr_str : "");
 			break;
 		}
 	}
@@ -307,42 +313,82 @@ done:
 	return err;
 }
 
-static int regist_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, int protocol)
+static int regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *send_addr, socklen_t *send_addr_len)
 {
 	int sock = -1;
 	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
 	{
-		if(ai->ai_protocol != protocol)
+		if(ai->ai_protocol != IPPROTO_UDP)
 			continue;
 
 		if(ai->ai_addr->sa_family != AF_INET) // TODO: support IPv6
 			continue;
 
-		struct sockaddr *sa = malloc(ai->ai_addrlen);
-		if(!sa)
+		if(ai->ai_addrlen > *send_addr_len)
 			continue;
-		memcpy(sa, ai->ai_addr, ai->ai_addrlen);
+		memcpy(send_addr, ai->ai_addr, ai->ai_addrlen);
+		*send_addr_len = ai->ai_addrlen;
 
-		set_port(sa, htons(REGIST_PORT));
+		set_port(send_addr, htons(REGIST_PORT));
 
 		sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if(sock < 0)
-		{
-			free(sa);
 			continue;
-		}
-		int r = connect(sock, sa, ai->ai_addrlen);
-		if(r < 0)
+
+		if(regist->info.broadcast)
 		{
-			int errsv = errno;
-			CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
-			close(sock);
-			sock = -1;
-			free(sa);
-			continue;
+			const int broadcast = 1;
+			int r = setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+			if(r < 0)
+			{
+				CHIAKI_LOGE(regist->log, "Regist failed to setsockopt SO_BROADCAST");
+				goto connect_fail;
+			}
+
+			in_addr_t ip = ((struct sockaddr_in *)send_addr)->sin_addr.s_addr;
+			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = INADDR_ANY;
+			r = bind(sock, send_addr, *send_addr_len);
+			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = ip;
+			if(r < 0)
+			{
+				CHIAKI_LOGE(regist->log, "Regist failed to bind socket");
+				goto connect_fail;
+			}
 		}
-		free(sa);
+		else
+		{
+			int r = connect(sock, send_addr, *send_addr_len);
+			if(r < 0)
+			{
+				int errsv = errno;
+				CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
+				goto connect_fail;
+			}
+		}
 		break;
+
+connect_fail:
+		close(sock);
+		sock = -1;
+	}
+
+	return sock;
+}
+
+static int regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len)
+{
+	int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if(sock < 0)
+	{
+		return -1;
+	}
+
+	int r = connect(sock, addr, addr_len);
+	if(r < 0)
+	{
+		int errsv = errno;
+		CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
+		close(sock);
 	}
 
 	return sock;

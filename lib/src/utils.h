@@ -20,6 +20,7 @@
 
 #include <chiaki/common.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 static inline ChiakiErrorCode set_port(struct sockaddr *sa, in_port_t port)
 {
@@ -30,6 +31,26 @@ static inline ChiakiErrorCode set_port(struct sockaddr *sa, in_port_t port)
 	else
 		return CHIAKI_ERR_INVALID_DATA;
 	return CHIAKI_ERR_SUCCESS;
+}
+
+static inline const char *sockaddr_str(struct sockaddr *addr, char *addr_buf, size_t addr_buf_size)
+{
+	void *addr_src;
+	switch(addr->sa_family)
+	{
+		case AF_INET:
+			addr_src = &((struct sockaddr_in *)addr)->sin_addr;
+			break;
+		case AF_INET6:
+			addr_src = &((struct sockaddr_in6 *)addr)->sin6_addr;
+			break;
+		default:
+			addr_src = NULL;
+			break;
+	}
+	if(addr_src)
+		return inet_ntop(addr->sa_family, addr_src, addr_buf, addr_buf_size);
+	return NULL;
 }
 
 static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)

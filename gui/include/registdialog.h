@@ -29,6 +29,7 @@ class Settings;
 class QLineEdit;
 class QPlainTextEdit;
 class QDialogButtonBox;
+class QCheckBox;
 
 class RegistDialog : public QDialog
 {
@@ -38,6 +39,7 @@ class RegistDialog : public QDialog
 		Settings *settings;
 
 		QLineEdit *host_edit;
+		QCheckBox *broadcast_check_box;
 		QLineEdit *psn_id_edit;
 		QLineEdit *pin_edit;
 		QDialogButtonBox *button_box;
