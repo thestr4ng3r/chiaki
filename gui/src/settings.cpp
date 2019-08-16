@@ -25,6 +25,14 @@ Settings::Settings(QObject *parent) : QObject(parent)
 	LoadRegisteredHosts();
 }
 
+uint32_t Settings::GetLogLevelMask()
+{
+	uint32_t mask = CHIAKI_LOG_ALL;
+	if(!GetLogVerbose())
+		mask &= ~CHIAKI_LOG_VERBOSE;
+	return mask;
+}
+
 static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p"},
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p"},

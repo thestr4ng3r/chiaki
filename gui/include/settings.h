@@ -39,8 +39,12 @@ class Settings : public QObject
 	public:
 		explicit Settings(QObject *parent = nullptr);
 
-		bool GetDiscoveryEnabled()				{ return settings.value("settings/auto_discovery", true).toBool(); }
+		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
+		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
+		uint32_t GetLogLevelMask();
 
 		ChiakiVideoResolutionPreset GetResolution() const;
 		void SetResolution(ChiakiVideoResolutionPreset resolution);

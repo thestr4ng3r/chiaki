@@ -34,6 +34,7 @@ class QGamepad;
 class QAudioOutput;
 class QIODevice;
 class QKeyEvent;
+class Settings;
 
 class ChiakiException: public Exception
 {
@@ -49,6 +50,9 @@ struct StreamSessionConnectInfo
 	QByteArray regist_key;
 	QByteArray morning;
 	ChiakiConnectVideoProfile video_profile;
+
+	StreamSessionConnectInfo();
+	StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning);
 };
 
 class StreamSession : public QObject

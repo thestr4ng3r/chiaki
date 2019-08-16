@@ -18,6 +18,7 @@
 #include <settingsdialog.h>
 #include <settings.h>
 #include <registdialog.h>
+#include <sessionlog.h>
 
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
@@ -28,6 +29,8 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QMap>
+#include <QCheckBox>
+#include <QLineEdit>
 
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
@@ -35,6 +38,26 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	auto layout = new QVBoxLayout(this);
 	setLayout(layout);
+
+
+	// General
+
+	auto general_group_box = new QGroupBox(tr("General"));
+	layout->addWidget(general_group_box);
+
+	auto general_layout = new QFormLayout();
+	general_group_box->setLayout(general_layout);
+	if(general_layout->spacing() < 16)
+		general_layout->setSpacing(16);
+
+	log_verbose_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("Verbose Logging:\nWarning: This logs A LOT!\nDon't enable for regular use."), log_verbose_check_box);
+	log_verbose_check_box->setChecked(settings->GetLogVerbose());
+	connect(log_verbose_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::LogVerboseChanged);
+
+	auto log_directory_label = new QLineEdit(GetLogBaseDir(), this);
+	log_directory_label->setReadOnly(true);
+	general_layout->addRow(tr("Log Directory:"), log_directory_label);
 
 
 	// Stream Settings
@@ -116,6 +139,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 void SettingsDialog::ResolutionSelected()
 {
 	settings->SetResolution((ChiakiVideoResolutionPreset)resolution_combo_box->currentData().toInt());
+}
+
+void SettingsDialog::LogVerboseChanged()
+{
+	settings->SetLogVerbose(log_verbose_check_box->isChecked());
 }
 
 void SettingsDialog::FPSSelected()

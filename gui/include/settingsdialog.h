@@ -23,6 +23,7 @@
 class Settings;
 class QListWidget;
 class QComboBox;
+class QCheckBox;
 
 class SettingsDialog : public QDialog
 {
@@ -31,6 +32,8 @@ class SettingsDialog : public QDialog
 	private:
 		Settings *settings;
 
+		QCheckBox *log_verbose_check_box;
+
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
 
@@ -38,6 +41,8 @@ class SettingsDialog : public QDialog
 		QPushButton *delete_registered_host_button;
 
 	private slots:
+		void LogVerboseChanged();
+
 		void ResolutionSelected();
 		void FPSSelected();
 

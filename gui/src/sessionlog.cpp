@@ -90,12 +90,8 @@ static void LogCb(ChiakiLogLevel level, const char *msg, void *user)
 
 #define KEEP_LOG_FILES_COUNT 5
 
-QString CreateLogFilename()
+QString GetLogBaseDir()
 {
-	static const QString date_format = "yyyy-MM-dd_HH-mm-ss-zzzzzz";
-	static const QString session_log_wildcard = "chiaki_session_*.log";
-	static const QRegularExpression session_log_regex("chiaki_session_(.*).log");
-
 	auto base_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 	if(base_dir.isEmpty())
 		return QString();
@@ -105,6 +101,20 @@ QString CreateLogFilename()
 		return QString();
 	if(!dir.cd("log"))
 		return QString();
+
+	return dir.absolutePath();
+}
+
+QString CreateLogFilename()
+{
+	static const QString date_format = "yyyy-MM-dd_HH-mm-ss-zzzzzz";
+	static const QString session_log_wildcard = "chiaki_session_*.log";
+	static const QRegularExpression session_log_regex("chiaki_session_(.*).log");
+
+	QString dir_str = GetLogBaseDir();
+	if(dir_str.isEmpty())
+		return QString();
+	QDir dir = QDir(dir_str);
 
 	dir.setNameFilters({ session_log_wildcard });
 	auto existing_files = dir.entryList();

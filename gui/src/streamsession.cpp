@@ -16,6 +16,7 @@
  */
 
 #include <streamsession.h>
+#include <settings.h>
 
 #include <chiaki/base64.h>
 
@@ -28,6 +29,22 @@
 #include <QAudioOutput>
 
 #include <cstring>
+
+StreamSessionConnectInfo::StreamSessionConnectInfo()
+{
+	log_level_mask = CHIAKI_LOG_ALL;
+	std::memset(&video_profile, 0, sizeof(video_profile));
+}
+
+StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
+{
+	log_level_mask = settings->GetLogLevelMask();
+	log_file = CreateLogFilename();
+	chiaki_connect_video_profile_preset(&video_profile, settings->GetResolution(), settings->GetFPS());
+	this->host = host;
+	this->regist_key = regist_key;
+	this->morning = morning;
+}
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);

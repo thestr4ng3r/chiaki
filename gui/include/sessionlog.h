@@ -21,6 +21,7 @@
 #include <chiaki/log.h>
 
 #include <QString>
+#include <QDir>
 #include <QMutex>
 
 class QFile;
@@ -45,6 +46,7 @@ class SessionLog
 		ChiakiLog *GetChiakiLog()	{ return &log; }
 };
 
+QString GetLogBaseDir();
 QString CreateLogFilename();
 
 #endif //CHIAKI_SESSIONLOG_H

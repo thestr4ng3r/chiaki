@@ -89,32 +89,25 @@ int main(int argc, char *argv[])
 
 		QString host = args[1];
 
-		StreamSessionConnectInfo connect_info;
+		if(parser.value(regist_key_option).isEmpty() || parser.value(morning_option).isEmpty())
+			parser.showHelp(1);
 
-		connect_info.log_level_mask = CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE;
-		connect_info.log_file = CreateLogFilename();
-
-		connect_info.host = host;
-
-		connect_info.regist_key = parser.value(regist_key_option).toUtf8();
-		if(connect_info.regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
+		QByteArray regist_key = parser.value(regist_key_option).toUtf8();
+		if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
 		{
 			printf("Given regist key is too long.\n");
 			return 1;
 		}
-		connect_info.regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - connect_info.regist_key.length(), 0);
+		regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - regist_key.length(), 0);
 
-		connect_info.morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
-		if(connect_info.morning.length() != sizeof(ChiakiConnectInfo::morning))
+		QByteArray morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
+		if(morning.length() != sizeof(ChiakiConnectInfo::morning))
 		{
 			printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
 			return 1;
 		}
 
-		chiaki_connect_video_profile_preset(&connect_info.video_profile, settings.GetResolution(), settings.GetFPS());
-
-		if(connect_info.regist_key.isEmpty() || connect_info.morning.isEmpty())
-			parser.showHelp(1);
+		StreamSessionConnectInfo connect_info(&settings, host, regist_key, morning);
 
 		return RunStream(app, connect_info);
 	}
