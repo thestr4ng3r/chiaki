@@ -31,6 +31,57 @@
 #include <QToolBar>
 #include <QDebug>
 #include <QMessageBox>
+#include <QPainter>
+#include <QIconEngine>
+#include <QSvgRenderer>
+#include <QApplication>
+
+class IconEngine : public QIconEngine
+{
+	private:
+		QString filename;
+		QSvgRenderer renderer;
+
+	public:
+		IconEngine(const QString &filename) : filename(filename), renderer(filename) {};
+
+		QIconEngine *clone() const override	{ return new IconEngine(filename); }
+
+		QPixmap pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state) override
+		{
+			auto r = QPixmap(size);
+			r.fill(Qt::transparent);
+			QPainter painter(&r);
+			paint(&painter, r.rect(), mode, state);
+			painter.end();
+			return r;
+		}
+
+		void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) override
+		{
+			painter->setCompositionMode(QPainter::CompositionMode::CompositionMode_Source);
+			renderer.render(painter, rect);
+			painter->setCompositionMode(QPainter::CompositionMode::CompositionMode_SourceAtop);
+
+			QPalette::ColorGroup color_group = QPalette::ColorGroup::Normal;
+			switch(mode)
+			{
+				case QIcon::Mode::Disabled:
+					color_group = QPalette::ColorGroup::Disabled;
+					break;
+				case QIcon::Mode::Active:
+					color_group = QPalette::ColorGroup::Active;
+					break;
+				case QIcon::Mode::Normal:
+					color_group = QPalette::ColorGroup::Normal;
+					break;
+				case QIcon::Mode::Selected:
+					color_group = QPalette::ColorGroup::Normal;
+					break;
+			}
+			painter->fillRect(rect, qApp->palette().brush(color_group, QPalette::ColorRole::ButtonText));
+		}
+};
 
 MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	: QMainWindow(parent),
@@ -42,11 +93,16 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	setCentralWidget(main_widget);
 	layout->setMargin(0);
 
+	auto LoadIcon = [this](const QString &filename) {
+		return QIcon(new IconEngine(filename));
+	};
+
 	auto tool_bar = new QToolBar(this);
 	tool_bar->setMovable(false);
 	addToolBar(tool_bar);
 
 	discover_action = new QAction(tr("Automatically Search for Consoles"), this);
+	discover_action->setIcon(LoadIcon(":/icons/discover-24px.svg"));
 	discover_action->setCheckable(true);
 	discover_action->setChecked(settings->GetDiscoveryEnabled());
 	tool_bar->addAction(discover_action);
@@ -56,14 +112,16 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
 	tool_bar->addWidget(tool_bar_spacer);
 
-	auto regist_action = new QAction(tr("Add Console manually"), this);
-	tool_bar->addAction(regist_action);
-	connect(regist_action, &QAction::triggered, this, [this]() {
+	auto add_manual_action = new QAction(tr("Add Console manually"), this);
+	add_manual_action->setIcon(LoadIcon(":/icons/add-24px.svg"));
+	tool_bar->addAction(add_manual_action);
+	connect(add_manual_action, &QAction::triggered, this, [this]() {
 		ManualHostDialog dialog(this->settings, -1, this);
 		dialog.exec();
 	});
 
 	auto settings_action = new QAction(tr("Settings"), this);
+	settings_action->setIcon(LoadIcon(":/icons/settings-20px.svg"));
 	tool_bar->addAction(settings_action);
 	connect(settings_action, &QAction::triggered, this, &MainWindow::ShowSettings);
 

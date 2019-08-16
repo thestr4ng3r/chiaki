@@ -3,9 +3,8 @@ option(CHIAKI_GUI_ENABLE_QT_GAMEPAD "Use QtGamepad for Input" ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL Svg)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	find_package(Qt5 REQUIRED COMPONENTS Gamepad)
 endif()
@@ -46,12 +45,13 @@ add_executable(chiaki
 		include/settingsdialog.h
 		src/settingsdialog.cpp
 		include/manualhostdialog.h
-		src/manualhostdialog.cpp)
+		src/manualhostdialog.cpp
+		res/resources.qrc)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
 target_link_libraries(chiaki FFMPEG::avcodec)
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	target_link_libraries(chiaki Qt5::Gamepad)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_GAMEPAD)
