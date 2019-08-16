@@ -158,6 +158,19 @@ void MainWindow::UpdateDisplayServers()
 {
 	display_servers.clear();
 
+	for(const auto &host : discovery_manager.GetHosts())
+	{
+		DisplayServer server;
+		server.discovered = true;
+		server.discovery_host = host;
+
+		server.registered = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+		if(server.registered)
+			server.registered_host = settings->GetRegisteredHost(host.GetHostMAC());
+
+		display_servers.append(server);
+	}
+
 	for(const auto &host : settings->GetManualHosts())
 	{
 		DisplayServer server;
@@ -170,19 +183,6 @@ void MainWindow::UpdateDisplayServers()
 			server.registered = true;
 			server.registered_host = settings->GetRegisteredHost(host.GetMAC());
 		}
-
-		display_servers.append(server);
-	}
-	
-	for(const auto &host : discovery_manager.GetHosts())
-	{
-		DisplayServer server;
-		server.discovered = true;
-		server.discovery_host = host;
-
-		server.registered = settings->GetRegisteredHostRegistered(host.GetHostMAC());
-		if(server.registered)
-			server.registered_host = settings->GetRegisteredHost(host.GetHostMAC());
 
 		display_servers.append(server);
 	}

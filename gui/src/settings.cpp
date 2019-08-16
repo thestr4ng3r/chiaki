@@ -157,6 +157,7 @@ int Settings::SetManualHost(const ManualHost &host)
 	ManualHost save_host(id, host);
 	manual_hosts[id] = save_host;
 	SaveManualHosts();
+	emit ManualHostsUpdated();
 	return id;
 }
 

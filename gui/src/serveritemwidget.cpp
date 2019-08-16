@@ -73,7 +73,7 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 
 	if(display_server.discovered || display_server.registered)
 	{
-		top_text += display_server.discovered ? display_server.discovery_host.host_name : display_server.registered_host.GetPS4Nickname() + "\n";
+		top_text += (display_server.discovered ? display_server.discovery_host.host_name : display_server.registered_host.GetPS4Nickname()) + "\n";
 	}
 
 	top_text += tr("Address: %1").arg(display_server.GetHostAddr());
