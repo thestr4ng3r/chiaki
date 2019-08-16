@@ -21,6 +21,7 @@
 #include <chiaki/rpcrypt.h>
 #include <chiaki/http.h>
 #include <chiaki/random.h>
+#include <chiaki/time.h>
 
 #include <string.h>
 #include <errno.h>
@@ -31,6 +32,7 @@
 #define REGIST_PORT 9295
 
 #define SEARCH_REQUEST_SLEEP_MS 100
+#define REGIST_SEARCH_TIMEOUT_MS 3000
 #define REGIST_REPONSE_TIMEOUT_MS 3000
 
 static void *regist_thread_func(void *user);
@@ -164,14 +166,16 @@ static void *regist_thread_func(void *user)
 	err = regist_search(regist, addrinfos); // TODO: get addr from response
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(regist->log, "Regist search failed");
+		if(err == CHIAKI_ERR_CANCELED)
+			canceled = true;
+		else
+			CHIAKI_LOGE(regist->log, "Regist search failed");
 		goto fail_addrinfos;
 	}
 
 	err = chiaki_stop_pipe_sleep(&regist->stop_pipe, SEARCH_REQUEST_SLEEP_MS); // PS4 doesn't accept requests immediately
 	if(err != CHIAKI_ERR_TIMEOUT)
 	{
-		CHIAKI_LOGI(regist->log, "Regist canceled");
 		canceled = true;
 		goto fail_addrinfos;
 	}
@@ -205,7 +209,10 @@ static void *regist_thread_func(void *user)
 	err = regist_recv_response(regist, &host, sock, &crypt);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(regist->log, "Regist eventually failed");
+		if(err == CHIAKI_ERR_CANCELED)
+			canceled = true;
+		else
+			CHIAKI_LOGE(regist->log, "Regist eventually failed");
 		goto fail_socket;
 	}
 
@@ -219,7 +226,10 @@ fail_addrinfos:
 	freeaddrinfo(addrinfos);
 fail:
 	if(canceled)
+	{
+		CHIAKI_LOGI(regist->log, "Regist canceled");
 		regist_event_simple(regist, CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED);
+	}
 	else if(success)
 	{
 		ChiakiRegistEvent event = { 0 };
@@ -252,33 +262,45 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 		goto done;
 	}
 
-	// TODO: stop pipe and loop
-	uint8_t buf[0x100];
-	struct sockaddr recv_addr;
-	socklen_t recv_addr_size;
-rerecv:
-	recv_addr_size = sizeof(recv_addr);
-	ssize_t n = recvfrom(sock, buf, sizeof(buf) - 1, 0, &recv_addr, &recv_addr_size);
-	if(n <= 0)
+	uint64_t timeout_abs_ms = chiaki_time_now_monotonic_ms() + REGIST_SEARCH_TIMEOUT_MS;
+	while(true)
 	{
-		if(n < 0)
-			CHIAKI_LOGE(regist->log, "Regist failed to receive search response: %s", strerror(errno));
+		uint64_t now_ms = chiaki_time_now_monotonic_ms();
+		if(now_ms > timeout_abs_ms)
+			err = CHIAKI_ERR_TIMEOUT;
 		else
-			CHIAKI_LOGE(regist->log, "Regist failed to receive search response");
-		err = CHIAKI_ERR_NETWORK;
-		goto done;
+			err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, timeout_abs_ms - now_ms);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			if(err == CHIAKI_ERR_TIMEOUT)
+				CHIAKI_LOGE(regist->log, "Regist timed out waiting for search response");
+			break;
+		}
+
+		uint8_t buf[0x100];
+		struct sockaddr recv_addr;
+		socklen_t recv_addr_size;
+		recv_addr_size = sizeof(recv_addr);
+		ssize_t n = recvfrom(sock, buf, sizeof(buf) - 1, 0, &recv_addr, &recv_addr_size);
+		if(n <= 0)
+		{
+			if(n < 0)
+				CHIAKI_LOGE(regist->log, "Regist failed to receive search response: %s", strerror(errno));
+			else
+				CHIAKI_LOGE(regist->log, "Regist failed to receive search response");
+			err = CHIAKI_ERR_NETWORK;
+			goto done;
+		}
+
+		CHIAKI_LOGV(regist->log, "Regist received packet:");
+		chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
+
+		if(n >= 4 && memcmp(buf, "RES2", 4) == 0)
+		{
+			CHIAKI_LOGI(regist->log, "Regist received search response"); // TODO: print from <addr>
+			break;
+		}
 	}
-
-	CHIAKI_LOGV(regist->log, "Regist received packet:");
-	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
-
-	if(n >= 4 && memcmp(buf, "RES2", 4) == 0)
-	{
-		CHIAKI_LOGI(regist->log, "Regist received search response"); // TODO: print from <addr>
-		goto done;
-	}
-
-	goto rerecv;
 
 done:
 	close(sock);
@@ -383,7 +405,14 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 
 	while(buf_filled_size < content_size + header_size)
 	{
-		// TODO: stop pipe
+		err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, REGIST_REPONSE_TIMEOUT_MS);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			if(err == CHIAKI_ERR_TIMEOUT)
+				CHIAKI_LOGE(regist->log, "Regist timed out receiving response content");
+			return err;
+		}
+
 		ssize_t received = recv(sock, buf + buf_filled_size, (content_size + header_size) - buf_filled_size, 0);
 		if(received <= 0)
 		{
