@@ -25,6 +25,9 @@
 #include <QPushButton>
 #include <QGroupBox>
 #include <QMessageBox>
+#include <QComboBox>
+#include <QFormLayout>
+#include <QMap>
 
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
@@ -32,6 +35,50 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	auto layout = new QVBoxLayout(this);
 	setLayout(layout);
+
+
+	// Stream Settings
+
+	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
+	layout->addWidget(stream_settings_group_box);
+
+	auto stream_settings_layout = new QFormLayout();
+	stream_settings_group_box->setLayout(stream_settings_layout);
+
+	resolution_combo_box = new QComboBox(this);
+	static const QList<QPair<ChiakiVideoResolutionPreset, const char *>> resolution_strings = {
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p"},
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p"},
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_720p, "720p"},
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p"}
+	};
+	auto current_res = settings->GetResolution();
+	for(const auto &p : resolution_strings)
+	{
+		resolution_combo_box->addItem(tr(p.second), (int)p.first);
+		if(current_res == p.first)
+			resolution_combo_box->setCurrentIndex(resolution_combo_box->count() - 1);
+	}
+	connect(resolution_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(ResolutionSelected()));
+	stream_settings_layout->addRow(tr("Resolution:"), resolution_combo_box);
+
+	fps_combo_box = new QComboBox(this);
+	static const QList<QPair<ChiakiVideoFPSPreset, QString>> fps_strings = {
+		{ CHIAKI_VIDEO_FPS_PRESET_30, "30" },
+		{ CHIAKI_VIDEO_FPS_PRESET_60, "60" }
+	};
+	auto current_fps = settings->GetFPS();
+	for(const auto &p : fps_strings)
+	{
+		fps_combo_box->addItem(p.second, (int)p.first);
+		if(current_fps == p.first)
+			fps_combo_box->setCurrentIndex(fps_combo_box->count() - 1);
+	}
+	connect(fps_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(FPSSelected()));
+	stream_settings_layout->addRow(tr("FPS:"), fps_combo_box);
+
+
+	// Registered Consoles
 
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
 	layout->addWidget(registered_hosts_group_box);
@@ -64,6 +111,16 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &SettingsDialog::UpdateRegisteredHosts);
 	connect(registered_hosts_list_widget, &QListWidget::itemSelectionChanged, this, &SettingsDialog::UpdateRegisteredHostsButtons);
+}
+
+void SettingsDialog::ResolutionSelected()
+{
+	settings->SetResolution((ChiakiVideoResolutionPreset)resolution_combo_box->currentData().toInt());
+}
+
+void SettingsDialog::FPSSelected()
+{
+	settings->SetFPS((ChiakiVideoFPSPreset)fps_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::UpdateRegisteredHosts()

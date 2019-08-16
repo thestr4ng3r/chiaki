@@ -20,6 +20,8 @@
 
 #include "host.h"
 
+#include <chiaki/session.h>
+
 #include <QSettings>
 
 class Settings : public QObject
@@ -39,6 +41,12 @@ class Settings : public QObject
 
 		bool GetDiscoveryEnabled()				{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		ChiakiVideoResolutionPreset GetResolution() const;
+		void SetResolution(ChiakiVideoResolutionPreset resolution);
+
+		ChiakiVideoFPSPreset GetFPS() const;
+		void SetFPS(ChiakiVideoFPSPreset fps);
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);

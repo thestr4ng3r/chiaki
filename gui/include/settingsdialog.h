@@ -22,6 +22,7 @@
 
 class Settings;
 class QListWidget;
+class QComboBox;
 
 class SettingsDialog : public QDialog
 {
@@ -30,10 +31,16 @@ class SettingsDialog : public QDialog
 	private:
 		Settings *settings;
 
+		QComboBox *resolution_combo_box;
+		QComboBox *fps_combo_box;
+
 		QListWidget *registered_hosts_list_widget;
 		QPushButton *delete_registered_host_button;
 
 	private slots:
+		void ResolutionSelected();
+		void FPSSelected();
+
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();
 		void RegisterNewHost();

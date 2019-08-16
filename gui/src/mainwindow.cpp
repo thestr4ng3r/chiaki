@@ -21,6 +21,7 @@
 #include <settings.h>
 #include <registdialog.h>
 #include <settingsdialog.h>
+#include <streamsession.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
