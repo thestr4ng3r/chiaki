@@ -36,6 +36,8 @@ class ServerItemWidget : public QFrame
 		QLabel *bottom_label;
 		ServerIconWidget *icon_widget;
 
+		QAction *delete_action;
+
 	protected:
 		void mousePressEvent(QMouseEvent *event) override;
 		void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -51,6 +53,8 @@ class ServerItemWidget : public QFrame
 	signals:
 		void Selected();
 		void Triggered();
+		void DeleteTriggered();
+		void WakeTriggered();
 };
 
 #endif //CHIAKI_CONSOLEITEMWIDGET_H

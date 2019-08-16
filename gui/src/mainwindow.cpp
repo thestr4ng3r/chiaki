@@ -110,20 +110,27 @@ void MainWindow::ServerItemWidgetSelected()
 	server_item_widget->SetSelected(true);
 }
 
-void MainWindow::ServerItemWidgetTriggered()
+DisplayServer *MainWindow::DisplayServerFromSender()
 {
 	auto server_item_widget = qobject_cast<ServerItemWidget *>(sender());
 	if(!server_item_widget)
-		return;
+		return nullptr;
 	int index = server_item_widgets.indexOf(server_item_widget);
 	if(index < 0 || index >= display_servers.count())
-		return;
-	const auto &server = display_servers[index];
+		return nullptr;
+	return &display_servers[index];
+}
 
-	if(server.registered)
+void MainWindow::ServerItemWidgetTriggered()
+{
+	auto server = DisplayServerFromSender();
+	if(!server)
+		return;
+
+	if(server->registered)
 	{
-		QString host = server.GetHostAddr();
-		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey());
+		QString host = server->GetHostAddr();
+		StreamSessionConnectInfo info(settings, host, server->registered_host.GetRPRegistKey(), server->registered_host.GetRPKey());
 		try
 		{
 			auto stream_window = new StreamWindow(info);
@@ -136,9 +143,31 @@ void MainWindow::ServerItemWidgetTriggered()
 	}
 	else
 	{
-		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+		RegistDialog regist_dialog(settings, server->GetHostAddr(), this);
 		regist_dialog.exec();
 	}
+}
+
+void MainWindow::ServerItemWidgetDeleteTriggered()
+{
+	auto server = DisplayServerFromSender();
+	if(!server)
+		return;
+
+	if(server->discovered)
+		return;
+
+	settings->RemoveManualHost(server->manual_host.GetID());
+}
+
+void MainWindow::ServerItemWidgetWakeTriggered()
+{
+	auto server = DisplayServerFromSender();
+	if(!server)
+		return;
+
+	// TODO
+	printf("TODO: Wakeup\n");
 }
 
 void MainWindow::UpdateDiscoveryEnabled()
@@ -206,6 +235,8 @@ void MainWindow::UpdateServerWidgets()
 		auto widget = new ServerItemWidget(grid_widget);
 		connect(widget, &ServerItemWidget::Selected, this, &MainWindow::ServerItemWidgetSelected);
 		connect(widget, &ServerItemWidget::Triggered, this, &MainWindow::ServerItemWidgetTriggered);
+		connect(widget, &ServerItemWidget::DeleteTriggered, this, &MainWindow::ServerItemWidgetDeleteTriggered, Qt::QueuedConnection);
+		connect(widget, &ServerItemWidget::WakeTriggered, this, &MainWindow::ServerItemWidgetWakeTriggered);
 		server_item_widgets.append(widget);
 		grid_widget->AddWidget(widget);
 	}

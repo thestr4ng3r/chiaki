@@ -55,9 +55,13 @@ class MainWindow : public QMainWindow
 
 		QList<DisplayServer> display_servers;
 
+		DisplayServer *DisplayServerFromSender();
+
 	private slots:
 		void ServerItemWidgetSelected();
 		void ServerItemWidgetTriggered();
+		void ServerItemWidgetDeleteTriggered();
+		void ServerItemWidgetWakeTriggered();
 
 		void UpdateDiscoveryEnabled();
 		void ShowSettings();
