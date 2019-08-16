@@ -46,8 +46,8 @@ struct StreamSessionConnectInfo
 	uint32_t log_level_mask;
 	QString log_file;
 	QString host;
-	QString regist_key;
-	QString morning;
+	QByteArray regist_key;
+	QByteArray morning;
 	ChiakiConnectVideoProfile video_profile;
 };
 

@@ -95,12 +95,23 @@ int main(int argc, char *argv[])
 		connect_info.log_file = CreateLogFilename();
 
 		connect_info.host = host;
-		connect_info.regist_key = parser.value(regist_key_option);
-		connect_info.morning = parser.value(morning_option);
 
-		chiaki_connect_video_profile_preset(&connect_info.video_profile,
-				CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
-				CHIAKI_VIDEO_FPS_PRESET_30);
+		connect_info.regist_key = parser.value(regist_key_option).toUtf8();
+		if(connect_info.regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
+		{
+			printf("Given regist key is too long.\n");
+			return 1;
+		}
+		connect_info.regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - connect_info.regist_key.length(), 0);
+
+		connect_info.morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
+		if(connect_info.morning.length() != sizeof(ChiakiConnectInfo::morning))
+		{
+			printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
+			return 1;
+		}
+
+		chiaki_connect_video_profile_preset(&connect_info.video_profile, settings.GetResolution(), settings.GetFPS());
 
 		if(connect_info.regist_key.isEmpty() || connect_info.morning.isEmpty())
 			parser.showHelp(1);
@@ -142,9 +153,7 @@ int RunMain(QApplication &app, Settings *settings)
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
 {
 	StreamWindow window(connect_info);
-	window.resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	window.show();
-
 	app.setQuitOnLastWindowClosed(true);
 	return app.exec();
 }

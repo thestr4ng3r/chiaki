@@ -35,6 +35,8 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	grabKeyboard();
 
 	session->Start();
+
+	resize(connect_info.video_profile.width, connect_info.video_profile.height);
 }
 
 StreamWindow::~StreamWindow()

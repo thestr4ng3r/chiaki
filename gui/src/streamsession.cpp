@@ -50,23 +50,17 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.host = host_str.constData();
 	chiaki_connect_info.video_profile = connect_info.video_profile;
 
-	QByteArray auth_str = connect_info.regist_key.toUtf8();
-	size_t auth_len = auth_str.length();
-	if(auth_len > sizeof(chiaki_connect_info.regist_key))
-		auth_len = sizeof(chiaki_connect_info.regist_key);
-	memcpy(chiaki_connect_info.regist_key, auth_str.constData(), auth_len);
-	if(auth_len < sizeof(chiaki_connect_info.regist_key))
-		memset(chiaki_connect_info.regist_key + auth_len, 0, sizeof(chiaki_connect_info.regist_key) - auth_len);
+	if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
+		throw ChiakiException("RegistKey invalid");
+	memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
 
-	size_t morning_size = sizeof(chiaki_connect_info.morning);
-	QByteArray morning_str = connect_info.morning.toUtf8();
-	ChiakiErrorCode err = chiaki_base64_decode(morning_str.constData(), morning_str.length(), chiaki_connect_info.morning, &morning_size);
-	if(err != CHIAKI_ERR_SUCCESS || morning_size != sizeof(chiaki_connect_info.morning))
+	if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
 		throw ChiakiException("Morning invalid");
+	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
 
 	memset(&keyboard_state, 0, sizeof(keyboard_state));
 
-	err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
+	ChiakiErrorCode err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 
