@@ -30,12 +30,13 @@ class Settings;
 struct DisplayServer
 {
 	DiscoveryHost discovery_host;
+	ManualHost manual_host;
 	bool discovered;
 
 	RegisteredHost registered_host;
 	bool registered;
 
-	QString GetHostAddr() const { return discovered ? discovery_host.host_addr : QString(); }
+	QString GetHostAddr() const { return discovered ? discovery_host.host_addr : manual_host.GetHost(); }
 };
 
 class MainWindow : public QMainWindow

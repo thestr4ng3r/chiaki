@@ -30,6 +30,7 @@
 #include <QScrollArea>
 #include <QToolBar>
 #include <QDebug>
+#include <QMessageBox>
 
 MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	: QMainWindow(parent),
@@ -85,6 +86,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
+	connect(settings, &Settings::ManualHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 
 	UpdateDisplayServers();
 	UpdateDiscoveryEnabled();
@@ -120,10 +122,17 @@ void MainWindow::ServerItemWidgetTriggered()
 
 	if(server.registered)
 	{
-		QString host = server.discovery_host.host_addr; // TODO: check manual
+		QString host = server.GetHostAddr();
 		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey());
-		auto stream_window = new StreamWindow(info);
-		stream_window->show();
+		try
+		{
+			auto stream_window = new StreamWindow(info);
+			stream_window->show();
+		}
+		catch(const ChiakiException &e)
+		{
+			QMessageBox::critical(this, tr("Stream failed"), e.what());
+		}
 	}
 	else
 	{
@@ -149,6 +158,22 @@ void MainWindow::UpdateDisplayServers()
 {
 	display_servers.clear();
 
+	for(const auto &host : settings->GetManualHosts())
+	{
+		DisplayServer server;
+		server.discovered = false;
+		server.manual_host = host;
+
+		server.registered = false;
+		if(host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC()))
+		{
+			server.registered = true;
+			server.registered_host = settings->GetRegisteredHost(host.GetMAC());
+		}
+
+		display_servers.append(server);
+	}
+	
 	for(const auto &host : discovery_manager.GetHosts())
 	{
 		DisplayServer server;

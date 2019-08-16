@@ -67,21 +67,31 @@ void ServerItemWidget::SetSelected(bool selected)
 
 void ServerItemWidget::Update(const DisplayServer &display_server)
 {
+	icon_widget->SetState(display_server.discovered ? display_server.discovery_host.state : CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
+
+	QString top_text = "";
+
+	if(display_server.discovered || display_server.registered)
+	{
+		top_text += display_server.discovered ? display_server.discovery_host.host_name : display_server.registered_host.GetPS4Nickname() + "\n";
+	}
+
+	top_text += tr("Address: %1").arg(display_server.GetHostAddr());
+
+	if(display_server.discovered || display_server.registered)
+	{
+		top_text += "\n" + tr("ID: %1 (%2)").arg(
+				display_server.discovered ? display_server.discovery_host.GetHostMAC().ToString() : display_server.registered_host.GetPS4MAC().ToString(),
+				display_server.registered ? tr("registered") : tr("unregistered"));
+	}
+
+	top_text += "\n" + (display_server.discovered ? tr("discovered") : tr("manual")),
+
+	top_label->setText(top_text);
+
 	if(display_server.discovered)
 	{
-		icon_widget->SetState(display_server.discovery_host.state);
-		top_label->setText(tr("%1\nID: %2\nAddress: %3").arg(
-				display_server.discovery_host.host_name,
-				display_server.discovery_host.GetHostMAC().ToString(),
-				display_server.discovery_host.host_addr));
-		bottom_label->setText(tr("State: %1\n%2").arg(
-				chiaki_discovery_host_state_string(display_server.discovery_host.state),
-				display_server.registered ? tr("registered") : tr("unregistered")));
-	}
-	else
-	{
-		icon_widget->SetState(CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
-		top_label->setText("");
-		bottom_label->setText("");
+		bottom_label->setText(tr("State: %1").arg(
+				chiaki_discovery_host_state_string(display_server.discovery_host.state)));
 	}
 }
