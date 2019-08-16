@@ -22,6 +22,7 @@
 #include <registdialog.h>
 #include <settingsdialog.h>
 #include <streamsession.h>
+#include <streamwindow.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -118,7 +119,10 @@ void MainWindow::ServerItemWidgetTriggered()
 
 	if(server.registered)
 	{
-		// TODO: connect
+		QString host = server.discovery_host.host_addr; // TODO: check manual
+		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey());
+		auto stream_window = new StreamWindow(info);
+		stream_window->show();
 	}
 	else
 	{
