@@ -36,6 +36,7 @@ class SettingsDialog : public QDialog
 	private slots:
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();
+		void RegisterNewHost();
 		void DeleteRegisteredHost();
 
 	public:

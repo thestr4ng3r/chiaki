@@ -17,6 +17,7 @@
 
 #include <settingsdialog.h>
 #include <settings.h>
+#include <registdialog.h>
 
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
@@ -46,6 +47,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	auto register_new_button = new QPushButton(tr("Register New"), this);
 	registered_hosts_buttons_layout->addWidget(register_new_button);
+	connect(register_new_button, &QPushButton::clicked, this, &SettingsDialog::RegisterNewHost);
 
 	delete_registered_host_button = new QPushButton(tr("Delete"), this);
 	registered_hosts_buttons_layout->addWidget(delete_registered_host_button);
@@ -79,6 +81,12 @@ void SettingsDialog::UpdateRegisteredHosts()
 void SettingsDialog::UpdateRegisteredHostsButtons()
 {
 	delete_registered_host_button->setEnabled(registered_hosts_list_widget->currentIndex().isValid());
+}
+
+void SettingsDialog::RegisterNewHost()
+{
+	RegistDialog dialog(settings, QString(), this);
+	dialog.exec();
 }
 
 void SettingsDialog::DeleteRegisteredHost()

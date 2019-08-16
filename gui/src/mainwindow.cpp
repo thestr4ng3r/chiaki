@@ -115,10 +115,15 @@ void MainWindow::ServerItemWidgetTriggered()
 		return;
 	const auto &server = display_servers[index];
 
-	// TODO: check if already registered and connect
-
-	RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
-	regist_dialog.exec();
+	if(server.registered)
+	{
+		// TODO: connect
+	}
+	else
+	{
+		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+		regist_dialog.exec();
+	}
 }
 
 void MainWindow::UpdateDiscoveryEnabled()

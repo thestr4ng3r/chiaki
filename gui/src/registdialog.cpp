@@ -33,7 +33,7 @@ Q_DECLARE_METATYPE(ChiakiLogLevel)
 
 static const QRegularExpression pin_re(QString("[0-9]").repeated(PIN_LENGTH));
 
-RegistDialog::RegistDialog(Settings *settings, QString host, QWidget *parent)
+RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *parent)
 	: QDialog(parent),
 	settings(settings)
 {
@@ -47,7 +47,10 @@ RegistDialog::RegistDialog(Settings *settings, QString host, QWidget *parent)
 
 	host_edit = new QLineEdit(this);
 	form_layout->addRow(tr("Host:"), host_edit);
-	host_edit->setText(host);
+	if(host.isEmpty())
+		host_edit->setText("255.255.255.255");
+	else
+		host_edit->setText(host);
 
 	psn_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN ID (username):"), psn_id_edit);

@@ -47,7 +47,7 @@ class RegistDialog : public QDialog
 		void ValidateInput();
 
 	public:
-		explicit RegistDialog(Settings *settings, QString host = QString(), QWidget *parent = nullptr);
+		explicit RegistDialog(Settings *settings, const QString &host = QString(), QWidget *parent = nullptr);
 		~RegistDialog();
 
 	public slots:
