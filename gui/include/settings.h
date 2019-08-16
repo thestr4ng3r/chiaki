@@ -32,9 +32,14 @@ class Settings : public QObject
 		QSettings settings;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
+		QMap<int, ManualHost> manual_hosts;
+		int manual_hosts_id_next;
 
 		void LoadRegisteredHosts();
 		void SaveRegisteredHosts();
+
+		void LoadManualHosts();
+		void SaveManualHosts();
 
 	public:
 		explicit Settings(QObject *parent = nullptr);
@@ -58,8 +63,15 @@ class Settings : public QObject
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
 
+		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
+		int SetManualHost(const ManualHost &host);
+		void RemoveManualHost(int id);
+		bool GetManualHostExists(int id)							{ return manual_hosts.contains(id); }
+		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
+
 	signals:
 		void RegisteredHostsUpdated();
+		void ManualHostsUpdated();
 };
 
 #endif // CHIAKI_SETTINGS_H

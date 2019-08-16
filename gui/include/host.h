@@ -78,7 +78,30 @@ class RegisteredHost
 		static RegisteredHost LoadFromSettings(QSettings *settings);
 };
 
-Q_DECLARE_METATYPE(RegisteredHost)
+class ManualHost
+{
+	private:
+		int id;
+		QString host;
+		bool registered;
+		HostMAC registered_mac;
+
+	public:
+		ManualHost();
+		ManualHost(int id, const QString &host, bool registered, const HostMAC &registered_mac);
+		ManualHost(int id, const ManualHost &o);
+
+		int GetID() const 			{ return id; }
+		QString GetHost() const 	{ return host; }
+		bool GetRegistered() const	{ return registered; }
+		HostMAC GetMAC() const 		{ return registered_mac; }
+
+		void SaveToSettings(QSettings *settings) const;
+		static ManualHost LoadFromSettings(QSettings *settings);
+};
+
 Q_DECLARE_METATYPE(HostMAC)
+Q_DECLARE_METATYPE(RegisteredHost)
+Q_DECLARE_METATYPE(ManualHost)
 
 #endif //CHIAKI_HOST_H

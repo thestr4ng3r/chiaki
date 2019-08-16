@@ -21,8 +21,10 @@
 
 Settings::Settings(QObject *parent) : QObject(parent)
 {
+	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
+	LoadManualHosts();
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -113,4 +115,54 @@ void Settings::RemoveRegisteredHost(const HostMAC &mac)
 	registered_hosts.remove(mac);
 	SaveRegisteredHosts();
 	emit RegisteredHostsUpdated();
+}
+
+void Settings::LoadManualHosts()
+{
+	manual_hosts.clear();
+
+	int count = settings.beginReadArray("manual_hosts");
+	for(int i=0; i<count; i++)
+	{
+		settings.setArrayIndex(i);
+		ManualHost host = ManualHost::LoadFromSettings(&settings);
+		if(host.GetID() < 0)
+			continue;
+		if(manual_hosts_id_next <= host.GetID())
+			manual_hosts_id_next = host.GetID();
+		manual_hosts[host.GetID()] = host;
+	}
+	settings.endArray();
+
+}
+
+void Settings::SaveManualHosts()
+{
+	settings.beginWriteArray("manual_hosts");
+	int i=0;
+	for(const auto &host : manual_hosts)
+	{
+		settings.setArrayIndex(i);
+		host.SaveToSettings(&settings);
+		i++;
+	}
+	settings.endArray();
+}
+
+int Settings::SetManualHost(const ManualHost &host)
+{
+	int id = host.GetID();
+	if(id < 0)
+		id = manual_hosts_id_next++;
+	ManualHost save_host(id, host);
+	manual_hosts[id] = save_host;
+	SaveManualHosts();
+	return id;
+}
+
+void Settings::RemoveManualHost(int id)
+{
+	manual_hosts.remove(id);
+	SaveManualHosts();
+	emit ManualHostsUpdated();
 }

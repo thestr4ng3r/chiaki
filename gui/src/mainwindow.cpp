@@ -23,6 +23,7 @@
 #include <settingsdialog.h>
 #include <streamsession.h>
 #include <streamwindow.h>
+#include <manualhostdialog.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -54,10 +55,10 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
 	tool_bar->addWidget(tool_bar_spacer);
 
-	auto regist_action = new QAction(tr("Register"), this);
+	auto regist_action = new QAction(tr("Add Console manually"), this);
 	tool_bar->addAction(regist_action);
 	connect(regist_action, &QAction::triggered, this, [this]() {
-		RegistDialog dialog(this->settings, QString(), this);
+		ManualHostDialog dialog(this->settings, -1, this);
 		dialog.exec();
 	});
 

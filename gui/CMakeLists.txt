@@ -44,7 +44,9 @@ add_executable(chiaki
 		include/host.h
 		src/host.cpp
 		include/settingsdialog.h
-		src/settingsdialog.cpp)
+		src/settingsdialog.cpp
+		include/manualhostdialog.h
+		src/manualhostdialog.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
