@@ -35,13 +35,15 @@ extern "C" {
 
 typedef enum chiaki_discovery_cmd_t
 {
-	CHIAKI_DISCOVERY_CMD_SRCH
+	CHIAKI_DISCOVERY_CMD_SRCH,
+	CHIAKI_DISCOVERY_CMD_WAKEUP
 } ChiakiDiscoveryCmd;
 
 typedef struct chiaki_discovery_packet_t
 {
 	ChiakiDiscoveryCmd cmd;
 	char *protocol_version;
+	uint64_t user_credential; // for wakeup, this is just the regist key interpreted as hex
 } ChiakiDiscoveryPacket;
 
 typedef enum chiaki_discovery_host_state_t

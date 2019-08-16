@@ -59,6 +59,8 @@ class DiscoveryManager : public QObject
 
 		void SetActive(bool active);
 
+		void SendWakeup(const QString &host, const QByteArray &regist_key);
+
 		const QList<DiscoveryHost> GetHosts() const { return hosts; }
 
 	signals:

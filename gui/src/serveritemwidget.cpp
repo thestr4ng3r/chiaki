@@ -51,7 +51,7 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 	addAction(delete_action);
 	connect(delete_action, &QAction::triggered, this, [this]{ emit DeleteTriggered(); });
 
-	auto wake_action = new QAction(tr("Send Wakeup Packet"), this);
+	wake_action = new QAction(tr("Send Wakeup Packet"), this);
 	addAction(wake_action);
 	connect(wake_action, &QAction::triggered, this, [this]{ emit WakeTriggered(); });
 
@@ -83,6 +83,7 @@ void ServerItemWidget::SetSelected(bool selected)
 void ServerItemWidget::Update(const DisplayServer &display_server)
 {
 	delete_action->setEnabled(!display_server.discovered);
+	wake_action->setEnabled(display_server.registered);
 
 	icon_widget->SetState(display_server.discovered ? display_server.discovery_host.state : CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
 

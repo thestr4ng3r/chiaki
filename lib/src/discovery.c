@@ -26,6 +26,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <arpa/inet.h>
 
 const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state)
@@ -49,6 +50,16 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 		case CHIAKI_DISCOVERY_CMD_SRCH:
 			return snprintf(buf, buf_size, "SRCH * HTTP/1.1\ndevice-discovery-protocol-version:%s\n",
 							version_str);
+		case CHIAKI_DISCOVERY_CMD_WAKEUP:
+			return snprintf(buf, buf_size,
+				"WAKEUP * HTTP/1.1\n"
+				"client-type:vr\n"
+				"auth-type:R\n"
+				"model:w\n"
+				"app-type:r\n"
+				"user-credential:%llu\n"
+				"device-discovery-protocol-version:%s\n",
+				(unsigned long long)packet->user_credential, version_str);
 		default:
 			return -1;
 	}
@@ -169,7 +180,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 
 	ssize_t rc = sendto(discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
 	if(rc < 0)
+	{
+		CHIAKI_LOGE(discovery->log, "Discovery failed to send: %s", strerror(errno));
 		return CHIAKI_ERR_NETWORK;
+	}
 
 	return CHIAKI_ERR_SUCCESS;
 }

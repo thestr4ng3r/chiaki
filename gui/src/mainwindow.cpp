@@ -121,6 +121,24 @@ DisplayServer *MainWindow::DisplayServerFromSender()
 	return &display_servers[index];
 }
 
+void MainWindow::SendWakeup(const DisplayServer *server)
+{
+	if(!server->registered)
+		return;
+
+	try
+	{
+		discovery_manager.SendWakeup(server->GetHostAddr(), server->registered_host.GetRPRegistKey());
+	}
+	catch(const Exception &e)
+	{
+		QMessageBox::critical(this, tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
+		return;
+	}
+
+	QMessageBox::information(this, tr("Wakeup"), tr("Wakeup packet sent."));
+}
+
 void MainWindow::ServerItemWidgetTriggered()
 {
 	auto server = DisplayServerFromSender();
@@ -129,6 +147,21 @@ void MainWindow::ServerItemWidgetTriggered()
 
 	if(server->registered)
 	{
+		if(server->discovered && server->discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+		{
+			int r = QMessageBox::question(this,
+					tr("Start Stream"),
+					tr("The Console is currently in standby mode.\nShould we send a Wakeup packet instead of trying to connect immediately?"),
+					QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+			if(r == QMessageBox::Yes)
+			{
+				SendWakeup(server);
+				return;
+			}
+			else if(r == QMessageBox::Cancel)
+				return;
+		}
+
 		QString host = server->GetHostAddr();
 		StreamSessionConnectInfo info(settings, host, server->registered_host.GetRPRegistKey(), server->registered_host.GetRPKey());
 		try
@@ -165,9 +198,7 @@ void MainWindow::ServerItemWidgetWakeTriggered()
 	auto server = DisplayServerFromSender();
 	if(!server)
 		return;
-
-	// TODO
-	printf("TODO: Wakeup\n");
+	SendWakeup(server);
 }
 
 void MainWindow::UpdateDiscoveryEnabled()

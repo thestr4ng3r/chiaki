@@ -37,6 +37,7 @@ class ServerItemWidget : public QFrame
 		ServerIconWidget *icon_widget;
 
 		QAction *delete_action;
+		QAction *wake_action;
 
 	protected:
 		void mousePressEvent(QMouseEvent *event) override;

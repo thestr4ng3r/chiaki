@@ -346,7 +346,7 @@ static int regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfo
 			}
 
 			in_addr_t ip = ((struct sockaddr_in *)send_addr)->sin_addr.s_addr;
-			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = INADDR_ANY;
+			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = htonl(INADDR_ANY);
 			r = bind(sock, send_addr, *send_addr_len);
 			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = ip;
 			if(r < 0)
