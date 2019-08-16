@@ -81,6 +81,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	resize(800, 600);
 	
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
+	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 
 	UpdateDisplayServers();
 	UpdateDiscoveryEnabled();
@@ -142,6 +143,11 @@ void MainWindow::UpdateDisplayServers()
 		DisplayServer server;
 		server.discovered = true;
 		server.discovery_host = host;
+
+		server.registered = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+		if(server.registered)
+			server.registered_host = settings->GetRegisteredHost(host.GetHostMAC());
+
 		display_servers.append(server);
 	}
 	

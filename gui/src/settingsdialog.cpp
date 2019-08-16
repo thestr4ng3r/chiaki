@@ -16,12 +16,14 @@
  */
 
 #include <settingsdialog.h>
+#include <settings.h>
 
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QListWidget>
 #include <QPushButton>
 #include <QGroupBox>
+#include <QMessageBox>
 
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
@@ -45,12 +47,51 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	auto register_new_button = new QPushButton(tr("Register New"), this);
 	registered_hosts_buttons_layout->addWidget(register_new_button);
 
-	auto delete_host_button = new QPushButton(tr("Delete"), this);
-	registered_hosts_buttons_layout->addWidget(delete_host_button);
+	delete_registered_host_button = new QPushButton(tr("Delete"), this);
+	registered_hosts_buttons_layout->addWidget(delete_registered_host_button);
+	connect(delete_registered_host_button, &QPushButton::clicked, this, &SettingsDialog::DeleteRegisteredHost);
 
 	registered_hosts_buttons_layout->addStretch();
 
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
 	layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+	UpdateRegisteredHosts();
+	UpdateRegisteredHostsButtons();
+
+	connect(settings, &Settings::RegisteredHostsUpdated, this, &SettingsDialog::UpdateRegisteredHosts);
+	connect(registered_hosts_list_widget, &QListWidget::itemSelectionChanged, this, &SettingsDialog::UpdateRegisteredHostsButtons);
+}
+
+void SettingsDialog::UpdateRegisteredHosts()
+{
+	registered_hosts_list_widget->clear();
+	auto hosts = settings->GetRegisteredHosts();
+	for(const auto &host : hosts)
+	{
+		auto item = new QListWidgetItem(QString("%1 (%2)").arg(host.GetPS4MAC().ToString(), host.GetPS4Nickname()));
+		item->setData(Qt::UserRole, QVariant::fromValue(host.GetPS4MAC()));
+		registered_hosts_list_widget->addItem(item);
+	}
+}
+
+void SettingsDialog::UpdateRegisteredHostsButtons()
+{
+	delete_registered_host_button->setEnabled(registered_hosts_list_widget->currentIndex().isValid());
+}
+
+void SettingsDialog::DeleteRegisteredHost()
+{
+	auto item = registered_hosts_list_widget->currentItem();
+	if(!item)
+		return;
+	auto mac = item->data(Qt::UserRole).value<HostMAC>();
+
+	int r = QMessageBox::question(this, tr("Delete registered Console"),
+			tr("Are you sure you want to delete the registered console with ID %1?").arg(mac.ToString()));
+	if(r != QMessageBox::Yes)
+		return;
+
+	settings->RemoveRegisteredHost(mac);
 }

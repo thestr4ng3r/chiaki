@@ -61,6 +61,8 @@ class RegistExecuteDialog: public QDialog
 	friend class RegistExecuteDialogPrivate;
 
 	private:
+		Settings *settings;
+
 		ChiakiLog log;
 		ChiakiRegist regist;
 
@@ -75,7 +77,7 @@ class RegistExecuteDialog: public QDialog
 		void Failed();
 
 	public:
-		explicit RegistExecuteDialog(const ChiakiRegistInfo &regist_info, QWidget *parent = nullptr);
+		explicit RegistExecuteDialog(Settings *settings, const ChiakiRegistInfo &regist_info, QWidget *parent = nullptr);
 		~RegistExecuteDialog();
 };
 

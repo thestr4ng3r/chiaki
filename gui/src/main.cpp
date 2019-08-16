@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
 {
 	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<RegisteredHost>();
+	qRegisterMetaType<HostMAC>();
 	qRegisterMetaType<ChiakiQuitReason>();
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();

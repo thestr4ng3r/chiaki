@@ -74,7 +74,9 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 				display_server.discovery_host.host_name,
 				display_server.discovery_host.GetHostMAC().ToString(),
 				display_server.discovery_host.host_addr));
-		bottom_label->setText(tr("State: %1").arg(chiaki_discovery_host_state_string(display_server.discovery_host.state)));
+		bottom_label->setText(tr("State: %1\n%2").arg(
+				chiaki_discovery_host_state_string(display_server.discovery_host.state),
+				display_server.registered ? tr("registered") : tr("unregistered")));
 	}
 	else
 	{

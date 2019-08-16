@@ -21,6 +21,7 @@
 #include <QMainWindow>
 
 #include "discoverymanager.h"
+#include "host.h"
 
 class DynamicGridWidget;
 class ServerItemWidget;
@@ -30,6 +31,9 @@ struct DisplayServer
 {
 	DiscoveryHost discovery_host;
 	bool discovered;
+
+	RegisteredHost registered_host;
+	bool registered;
 
 	QString GetHostAddr() const { return discovered ? discovery_host.host_addr : QString(); }
 };

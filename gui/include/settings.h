@@ -18,18 +18,36 @@
 #ifndef CHIAKI_SETTINGS_H
 #define CHIAKI_SETTINGS_H
 
+#include "host.h"
+
 #include <QSettings>
 
-class Settings
+class Settings : public QObject
 {
+	Q_OBJECT
+
 	private:
 		QSettings settings;
 
+		QMap<HostMAC, RegisteredHost> registered_hosts;
+
+		void LoadRegisteredHosts();
+		void SaveRegisteredHosts();
+
 	public:
-		Settings();
+		explicit Settings(QObject *parent = nullptr);
 
 		bool GetDiscoveryEnabled()				{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
+		void AddRegisteredHost(const RegisteredHost &host);
+		void RemoveRegisteredHost(const HostMAC &mac);
+		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
+		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+
+	signals:
+		void RegisteredHostsUpdated();
 };
 
 #endif // CHIAKI_SETTINGS_H

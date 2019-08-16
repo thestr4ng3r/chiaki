@@ -16,6 +16,7 @@
  */
 
 #include <registdialog.h>
+#include <settings.h>
 
 #include <QFormLayout>
 #include <QLineEdit>
@@ -24,6 +25,7 @@
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QScrollBar>
+#include <QMessageBox>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -87,19 +89,19 @@ void RegistDialog::accept()
 	info.host = host.data();
 	info.pin = (uint32_t)pin_edit->text().toULong();
 
-	RegistExecuteDialog execute_dialog(info, this);
+	RegistExecuteDialog execute_dialog(settings, info, this);
 	int r = execute_dialog.exec();
-	// TODO: check r
-	//close();
+	if(r == QDialog::Accepted)
+		close();
 }
 
 static void RegistExecuteDialogLogCb(ChiakiLogLevel level, const char *msg, void *user);
 static void RegistExecuteDialogRegistCb(ChiakiRegistEvent *event, void *user);
 
-RegistExecuteDialog::RegistExecuteDialog(const ChiakiRegistInfo &regist_info, QWidget *parent)
+RegistExecuteDialog::RegistExecuteDialog(Settings *settings, const ChiakiRegistInfo &regist_info, QWidget *parent)
 	: QDialog(parent)
 {
-	setWindowTitle(tr("Register Console"));
+	this->settings = settings;
 
 	auto layout = new QVBoxLayout(this);
 	setLayout(layout);
@@ -117,6 +119,7 @@ RegistExecuteDialog::RegistExecuteDialog(const ChiakiRegistInfo &regist_info, QW
 	chiaki_log_init(&log, CHIAKI_LOG_ALL/* & ~CHIAKI_LOG_VERBOSE*/, RegistExecuteDialogLogCb, this);
 	chiaki_regist_start(&regist, &log, &regist_info, RegistExecuteDialogRegistCb, this);
 
+	setWindowTitle(tr("Register Console"));
 	resize(600, 400);
 }
 
@@ -144,7 +147,24 @@ void RegistExecuteDialog::Finished()
 void RegistExecuteDialog::Success(RegisteredHost host)
 {
 	CHIAKI_LOGI(&log, "Successfully registered %s", host.GetPS4Nickname().toLocal8Bit().constData());
-	Finished();
+
+	if(settings->GetRegisteredHostRegistered(host.GetPS4MAC()))
+	{
+		int r = QMessageBox::question(this,
+				tr("Console already registered"),
+				tr("The console with ID %1 has already been registered. Should the previous record be overwritten?").arg(host.GetPS4MAC().ToString()));
+		if(r == QMessageBox::No)
+		{
+			accept();
+			return;
+		}
+	}
+
+	settings->AddRegisteredHost(host);
+
+	QMessageBox::information(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered!").arg(host.GetPS4Nickname(), host.GetPS4MAC().ToString()));
+
+	accept();
 }
 
 void RegistExecuteDialog::Failed()

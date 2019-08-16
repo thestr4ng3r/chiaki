@@ -31,6 +31,12 @@ class SettingsDialog : public QDialog
 		Settings *settings;
 
 		QListWidget *registered_hosts_list_widget;
+		QPushButton *delete_registered_host_button;
+
+	private slots:
+		void UpdateRegisteredHosts();
+		void UpdateRegisteredHostsButtons();
+		void DeleteRegisteredHost();
 
 	public:
 		SettingsDialog(Settings *settings, QWidget *parent = nullptr);
