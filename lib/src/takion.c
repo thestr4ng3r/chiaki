@@ -241,6 +241,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_sock;
 	}
 
+#if __APPLE__
+	CHIAKI_LOGW(takion->log, "Don't fragment is not supported on macOS, MTU values may be incorrect.");
+#else
 	const int mtu_discover_val = IP_PMTUDISC_DO;
 	r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_discover_val, sizeof(mtu_discover_val));
 	if(r < 0)
@@ -249,6 +252,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		ret = CHIAKI_ERR_NETWORK;
 		goto error_sock;
 	}
+#endif
 
 	r = connect(takion->sock, info->sa, info->sa_len);
 	if(r < 0)
