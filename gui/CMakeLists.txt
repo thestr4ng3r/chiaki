@@ -59,3 +59,11 @@ if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	target_link_libraries(chiaki Qt5::Gamepad)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 endif()
+
+set_target_properties(chiaki PROPERTIES
+		MACOSX_BUNDLE TRUE
+		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
+		MACOSX_BUNDLE_BUNDLE_NAME Chiaki
+		MACOSX_BUNDLE_BUNDLE_VERSION ${CHIAKI_VERSION}
+		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (GPLv3)"
+		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki.chiaki")

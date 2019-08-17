@@ -2,3 +2,4 @@
 .idea
 build
 cmake-build-*
+.DS_store
