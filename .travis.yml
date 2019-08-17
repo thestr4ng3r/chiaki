@@ -20,15 +20,16 @@ matrix:
             - qt512svg
             - libgl1-mesa-dev
             - libavcodec-dev
+            - libavcodec-extra
       env:
         - CMAKE_PREFIX_PATH="/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
+        - DEPLOY_FILE="Chiaki-x86_64.AppImage"
       after_success:
         - make install DESTDIR=../appdir
         - cd ..
         - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x linuxdeploy-x86_64.AppImage
         - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-        #- export QMAKE=/opt/qt512/bin/qmake
         - source /opt/qt512/bin/qt512-env.sh
         - ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage
         - mv Chiaki-*-x86_64.AppImage Chiaki-x86_64.AppImage
@@ -45,6 +46,7 @@ matrix:
       env:
         - CMAKE_PREFIX_PATH="/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
         - CMAKE_EXTRA_ARGS=""
+        - DEPLOY_FILE="""
 
 script:
   - mkdir build && cd build
@@ -58,3 +60,4 @@ script:
       ..
   - make -j4
   - test/chiaki-unit
+
