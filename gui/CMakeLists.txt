@@ -9,6 +9,12 @@ endif()
 
 find_package(FFMPEG REQUIRED COMPONENTS avcodec)
 
+set(RESOURCE_FILES "")
+
+if(APPLE)
+	list(APPEND RESOURCE_FILES "chiaki.icns")
+endif()
+
 add_executable(chiaki
 		include/exception.h
 		src/main.cpp
@@ -44,7 +50,8 @@ add_executable(chiaki
 		src/settingsdialog.cpp
 		include/manualhostdialog.h
 		src/manualhostdialog.cpp
-		res/resources.qrc)
+		res/resources.qrc
+		${RESOURCE_FILES})
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
@@ -66,4 +73,6 @@ set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_BUNDLE_NAME Chiaki
 		MACOSX_BUNDLE_BUNDLE_VERSION ${CHIAKI_VERSION}
 		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (GPLv3)"
-		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki.chiaki")
+		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki.chiaki"
+		MACOSX_BUNDLE_ICON_FILE chiaki.icns
+		RESOURCE "${RESOURCE_FILES}")
