@@ -79,7 +79,7 @@ class IconEngine : public QIconEngine
 					color_group = QPalette::ColorGroup::Normal;
 					break;
 			}
-			painter->fillRect(rect, qApp->palette().brush(color_group, QPalette::ColorRole::ButtonText));
+			painter->fillRect(rect, qApp->palette().brush(color_group, QPalette::ColorRole::Text));
 		}
 };
 
@@ -87,6 +87,8 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	: QMainWindow(parent),
 	settings(settings)
 {
+	setWindowTitle(qApp->applicationName());
+
 	auto main_widget = new QWidget(this);
 	auto layout = new QVBoxLayout();
 	main_widget->setLayout(layout);
@@ -100,6 +102,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto tool_bar = new QToolBar(this);
 	tool_bar->setMovable(false);
 	addToolBar(tool_bar);
+	setUnifiedTitleAndToolBarOnMac(true);
 
 	discover_action = new QAction(tr("Automatically Search for Consoles"), this);
 	discover_action->setIcon(LoadIcon(":/icons/discover-24px.svg"));

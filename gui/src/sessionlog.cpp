@@ -23,6 +23,8 @@
 #include <QRegularExpression>
 #include <QDateTime>
 #include <QFile>
+#include <QPair>
+#include <QVector>
 
 
 static void LogCb(ChiakiLogLevel level, const char *msg, void *user);

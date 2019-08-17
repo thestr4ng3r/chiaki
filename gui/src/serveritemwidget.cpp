@@ -27,7 +27,7 @@
 
 ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 {
-	setFrameStyle(QFrame::Panel | QFrame::Raised);
+	setFrameStyle(QFrame::Panel);
 
 	auto layout = new QVBoxLayout(this);
 	this->setLayout(layout);
