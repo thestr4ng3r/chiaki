@@ -6,6 +6,7 @@
 #include <settings.h>
 #include <registdialog.h>
 #include <host.h>
+#include <avopenglwidget.h>
 
 #include <chiaki-cli.h>
 
@@ -21,6 +22,7 @@
 #include <QAudioFormat>
 #include <QCommandLineParser>
 #include <QMap>
+#include <QSurfaceFormat>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -55,9 +57,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
+
 	QApplication app(argc, argv);
 
-	QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 	Settings settings;
 

@@ -60,6 +60,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 		QThread *frame_uploader_thread;
 
 	public:
+		static QSurfaceFormat CreateSurfaceFormat();
+
 		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);
 		~AVOpenGLWidget() override;
 

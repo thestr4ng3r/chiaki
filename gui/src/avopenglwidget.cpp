@@ -54,9 +54,9 @@ out vec4 out_color;
 void main()
 {
 	vec3 yuv = vec3(
-		texture2D(tex_y, uv_var).r,
-		texture2D(tex_u, uv_var).r - 0.5,
-		texture2D(tex_v, uv_var).r - 0.5);
+		texture(tex_y, uv_var).r,
+		texture(tex_u, uv_var).r - 0.5,
+		texture(tex_v, uv_var).r - 0.5);
 	vec3 rgb = mat3(
 		1.0,		1.0,		1.0,
 		0.0,		-0.39393,	2.02839,
@@ -72,9 +72,8 @@ static const float vert_pos[] = {
 	1.0f, 1.0f
 };
 
-AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
-	: QOpenGLWidget(parent),
-	decoder(decoder)
+
+QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
 {
 	QSurfaceFormat format;
 	format.setDepthBufferSize(0);
@@ -84,7 +83,14 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 #ifdef DEBUG_OPENGL
 	format.setOption(QSurfaceFormat::DebugContext, true);
 #endif
-	setFormat(format);
+	return format;
+}
+
+AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
+	: QOpenGLWidget(parent),
+	decoder(decoder)
+{
+	setFormat(CreateSurfaceFormat());
 
 	frame_uploader_context = nullptr;
 	frame_uploader = nullptr;
@@ -165,6 +171,9 @@ void AVOpenGLWidget::initializeGL()
 {
 	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
+	const char *gl_version = (const char *)f->glGetString(GL_VERSION);
+	CHIAKI_LOGI(decoder->GetChiakiLog(), "OpenGL initialized with version \"%s\"", gl_version ? gl_version : "(null)");
+
 #ifdef DEBUG_OPENGL
 	auto logger = new QOpenGLDebugLogger(this);
 	logger->initialize();
@@ -174,13 +183,28 @@ void AVOpenGLWidget::initializeGL()
 	logger->startLogging();
 #endif
 
+	auto CheckShaderCompiled = [&](GLuint shader) {
+		GLint compiled = 0;
+		f->glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if(compiled == GL_TRUE)
+			return;
+		GLint info_log_size = 0;
+		f->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &info_log_size);
+		QVector<GLchar> info_log(info_log_size);
+		f->glGetShaderInfoLog(shader, info_log_size, &info_log_size, info_log.data());
+		f->glDeleteShader(shader);
+		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to Compile Shader:\n%s", info_log.data());
+	};
+
 	GLuint shader_vert = f->glCreateShader(GL_VERTEX_SHADER);
 	f->glShaderSource(shader_vert, 1, &shader_vert_glsl, nullptr);
 	f->glCompileShader(shader_vert);
+	CheckShaderCompiled(shader_vert);
 
 	GLuint shader_frag = f->glCreateShader(GL_FRAGMENT_SHADER);
 	f->glShaderSource(shader_frag, 1, &shader_frag_glsl, nullptr);
 	f->glCompileShader(shader_frag);
+	CheckShaderCompiled(shader_frag);
 
 	program = f->glCreateProgram();
 	f->glAttachShader(program, shader_vert);
@@ -194,7 +218,7 @@ void AVOpenGLWidget::initializeGL()
 	{
 		GLint info_log_size = 0;
 		f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &info_log_size);
-		std::vector<GLchar> info_log(info_log_size);
+		QVector<GLchar> info_log(info_log_size);
 		f->glGetProgramInfoLog(program, info_log_size, &info_log_size, info_log.data());
 		f->glDeleteProgram(program);
 		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to Link Shader Program:\n%s", info_log.data());
@@ -264,31 +288,34 @@ void AVOpenGLWidget::paintGL()
 
 	f->glClear(GL_COLOR_BUFFER_BIT);
 
+	int widget_width = (int)(width() * devicePixelRatioF());
+	int widget_height = (int)(height() * devicePixelRatioF());
+
 	QMutexLocker lock(&frames_mutex);
 	AVOpenGLFrame *frame = &frames[frame_fg];
 
 	GLsizei vp_width, vp_height;
 	if(!frame->width || !frame->height)
 	{
-		vp_width = width();
-		vp_height = height();
+		vp_width = widget_width;
+		vp_height = widget_height;
 	}
 	else
 	{
 		float aspect = (float)frame->width / (float)frame->height;
-		if(aspect < (float)width() / (float)height())
+		if(aspect < (float)widget_width / (float)widget_height)
 		{
-			vp_height = height();
+			vp_height = widget_height;
 			vp_width = (GLsizei)(vp_height * aspect);
 		}
 		else
 		{
-			vp_width = width();
+			vp_width = widget_width;
 			vp_height = (GLsizei)(vp_width / aspect);
 		}
 	}
 
-	f->glViewport((width() - vp_width) / 2, (height() - vp_height) / 2, vp_width, vp_height);
+	f->glViewport((widget_width - vp_width) / 2, (widget_height - vp_height) / 2, vp_width, vp_height);
 
 	for(int i=0; i<3; i++)
 	{
