@@ -66,7 +66,15 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 
 void *chiaki_aligned_alloc(size_t alignment, size_t size)
 {
+#if __APPLE__
+	void *r;
+	if(posix_memalign(&r, alignment, size) == 0)
+		return r;
+	else
+		return NULL;
+#else
 	return aligned_alloc(alignment, size);
+#endif
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init()
