@@ -3,3 +3,5 @@
 build
 cmake-build-*
 .DS_store
+*.AppImage
+appdir

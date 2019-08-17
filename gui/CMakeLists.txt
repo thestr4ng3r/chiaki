@@ -76,3 +76,9 @@ set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki.chiaki"
 		MACOSX_BUNDLE_ICON_FILE chiaki.icns
 		RESOURCE "${RESOURCE_FILES}")
+
+install(TARGETS chiaki
+		RUNTIME DESTINATION bin
+		BUNDLE DESTINATION bin)
+install(FILES chiaki.desktop DESTINATION share/applications)
+install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512)
