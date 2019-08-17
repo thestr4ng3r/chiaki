@@ -49,7 +49,12 @@ add_executable(chiaki
 		res/resources.qrc)
 target_include_directories(chiaki PRIVATE include)
 
-target_link_libraries(chiaki chiaki-lib chiaki-cli-lib)
+target_link_libraries(chiaki chiaki-lib)
+if(CHIAKI_ENABLE_CLI)
+	add_definitions(CHIAKI_ENABLE_CLI)
+	target_link_libraries(chiaki chiaki-cli-lib)
+endif()
+
 target_link_libraries(chiaki FFMPEG::avcodec)
 target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)

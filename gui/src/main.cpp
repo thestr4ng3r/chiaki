@@ -8,7 +8,9 @@
 #include <host.h>
 #include <avopenglwidget.h>
 
+#ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>
+#endif
 
 #include <chiaki/session.h>
 #include <chiaki/regist.h>
@@ -26,6 +28,7 @@
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
+#ifdef CHIAKI_ENABLE_CLI
 struct CLICommand
 {
 	int (*cmd)(ChiakiLog *log, int argc, char *argv[]);
@@ -34,6 +37,7 @@ struct CLICommand
 static const QMap<QString, CLICommand> cli_commands = {
 	{ "discover", { chiaki_cli_cmd_discover } }
 };
+#endif
 
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QApplication &app, Settings *settings);
@@ -72,7 +76,9 @@ int main(int argc, char *argv[])
 
 	QStringList cmds;
 	cmds.append("stream");
+#ifdef CHIAKI_ENABLE_CLI
 	cmds.append(cli_commands.keys());
+#endif
 
 	parser.addPositionalArgument("command", cmds.join(", "));
 	parser.addPositionalArgument("host", "Address to connect to (when using the stream command)");
@@ -118,6 +124,7 @@ int main(int argc, char *argv[])
 
 		return RunStream(app, connect_info);
 	}
+#ifdef CHIAKI_ENABLE_CLI
 	else if(cli_commands.contains(args[0]))
 	{
 		ChiakiLog log;
@@ -135,6 +142,7 @@ int main(int argc, char *argv[])
 		}
 		return cmd.cmd(&log, sub_argc, sub_argv.data());
 	}
+#endif
 	else
 	{
 		parser.showHelp(1);
