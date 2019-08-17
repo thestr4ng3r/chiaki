@@ -2,7 +2,7 @@
 find_package(Protobuf REQUIRED)
 
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/takion.pb"
-		COMMAND protobuf::protoc "-o${CMAKE_CURRENT_BINARY_DIR}/takion.pb" takion.proto "-I${CMAKE_CURRENT_SOURCE_DIR}"
+		COMMAND protobuf::protoc "-o${CMAKE_CURRENT_BINARY_DIR}/takion.pb" "${CMAKE_CURRENT_SOURCE_DIR}/takion.proto" "-I${CMAKE_CURRENT_SOURCE_DIR}"
 		MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/takion.proto")
 
 set(SOURCE_FILES "${CMAKE_CURRENT_BINARY_DIR}/takion.pb.c")

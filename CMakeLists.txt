@@ -5,6 +5,7 @@ project(chiaki)
 
 option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" OFF)
+option(CHIAKI_GUI_ENABLE_QT_GAMEPAD "Use QtGamepad for Input" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

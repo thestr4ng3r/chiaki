@@ -1,0 +1,48 @@
+
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      dist: bionic
+      addons:
+        apt:
+          sources:
+            - sourceline: "ppa:beineri/opt-qt-5.12.0-bionic"
+          packages:
+            - libprotoc-dev
+            - protobuf-compiler
+            - python3-protobuf
+            - libopus-dev
+            - qt512base
+            - qt512multimedia
+            - qt512gamepad
+            - qt512svg
+            - libgl1-mesa-dev
+            - libavcodec-dev
+      env:
+        - CMAKE_PREFIX_PATH="/opt/qt512"
+
+    - os: osx
+      osx_image: xcode11
+      addons:
+        homebrew:
+          packages:
+            - qt
+            - opus
+            - openssl@1.1
+            - ffmpeg
+      env:
+        - CMAKE_PREFIX_PATH="/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
+
+script:
+  - mkdir build && cd build
+  - cmake
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
+      -DCHIAKI_ENABLE_TESTS=ON
+      -DCHIAKI_ENABLE_CLI=OFF
+      -DCHIAKI_GUI_ENABLE_QT_GAMEPAD=ON
+      ..
+  - make -j4
+  - test/chiaki-unit
