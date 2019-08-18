@@ -225,15 +225,7 @@ void MainWindow::ServerItemWidgetTriggered()
 
 		QString host = server->GetHostAddr();
 		StreamSessionConnectInfo info(settings, host, server->registered_host.GetRPRegistKey(), server->registered_host.GetRPKey());
-		try
-		{
-			auto stream_window = new StreamWindow(info);
-			stream_window->show();
-		}
-		catch(const ChiakiException &e)
-		{
-			QMessageBox::critical(this, tr("Stream failed"), e.what());
-		}
+		new StreamWindow(info);
 	}
 	else
 	{

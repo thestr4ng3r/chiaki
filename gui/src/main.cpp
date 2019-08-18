@@ -161,7 +161,6 @@ int RunMain(QApplication &app, Settings *settings)
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
 {
 	StreamWindow window(connect_info);
-	window.show();
 	app.setQuitOnLastWindowClosed(true);
 	return app.exec();
 }

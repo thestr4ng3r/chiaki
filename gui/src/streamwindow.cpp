@@ -25,18 +25,29 @@
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
 {
-	session = new StreamSession(connect_info, this);
+	try
+	{
+		session = new StreamSession(connect_info, this);
 
-	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
+		connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 
-	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
-	setCentralWidget(av_widget);
+		av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+		setCentralWidget(av_widget);
 
-	grabKeyboard();
+		grabKeyboard();
 
-	session->Start();
+		session->Start();
 
-	resize(connect_info.video_profile.width, connect_info.video_profile.height);
+		resize(connect_info.video_profile.width, connect_info.video_profile.height);
+		show();
+	}
+	catch(const Exception &e)
+	{
+		session = nullptr;
+		av_widget = nullptr;
+		QMessageBox::critical(this, tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+		close();
+	}
 }
 
 StreamWindow::~StreamWindow()
@@ -47,17 +58,20 @@ StreamWindow::~StreamWindow()
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
 {
-	session->HandleKeyboardEvent(event);
+	if(session)
+		session->HandleKeyboardEvent(event);
 }
 
 void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 {
-	session->HandleKeyboardEvent(event);
+	if(session)
+		session->HandleKeyboardEvent(event);
 }
 
 void StreamWindow::closeEvent(QCloseEvent *)
 {
-	session->Stop();
+	if(session)
+		session->Stop();
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
