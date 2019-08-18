@@ -210,9 +210,13 @@ if (FFMPEG_INCLUDE_DIRS)
   list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
 endif ()
 
+if(_ffmpeg_required_vars)
+  set(_ffmpeg_required_vars REQUIRED_VARS ${_ffmpeg_required_vars})
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FFMPEG
-  REQUIRED_VARS ${_ffmpeg_required_vars}
+  ${_ffmpeg_required_vars}
   VERSION_VAR FFMPEG_VERSION
   HANDLE_COMPONENTS)
 unset(_ffmpeg_required_vars)

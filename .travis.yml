@@ -20,6 +20,7 @@ matrix:
             - qt512svg
             - libgl1-mesa-dev
             - nasm
+            - libsdl2-dev
       env:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
@@ -57,7 +58,8 @@ script:
       -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
       -DCHIAKI_ENABLE_TESTS=ON
       -DCHIAKI_ENABLE_CLI=OFF
-      -DCHIAKI_GUI_ENABLE_QT_GAMEPAD=ON
+      -DCHIAKI_GUI_ENABLE_QT_GAMEPAD=OFF
+      -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON
       $CMAKE_EXTRA_ARGS
       ..
   - make -j4
