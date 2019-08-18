@@ -32,6 +32,12 @@
 #include <pb.h>
 #include <chiaki/takion.h>
 
+#ifndef _WIN32
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
+
 
 #define SENKUSHA_PORT 9297
 

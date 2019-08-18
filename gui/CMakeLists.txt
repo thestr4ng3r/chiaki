@@ -13,6 +13,10 @@ if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 	find_package(SDL2 MODULE REQUIRED)
 endif()
 
+if(WIN32)
+	add_definitions(-DWIN32_LEAN_AND_MEAN)
+endif()
+
 find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil)
 
 set(RESOURCE_FILES "")
@@ -21,7 +25,7 @@ if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki.icns")
 endif()
 
-add_executable(chiaki
+add_executable(chiaki WIN32
 		${RESOURCE_FILES}
 		include/exception.h
 		src/main.cpp

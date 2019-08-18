@@ -26,14 +26,26 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <pthread.h>
+#endif
+
+typedef void *(*ChiakiThreadFunc)(void *);
 
 typedef struct chiaki_thread_t
 {
+#ifdef _WIN32
+	HANDLE thread;
+	ChiakiThreadFunc func;
+	void *arg;
+	void *ret;
+#else
 	pthread_t thread;
+#endif
 } ChiakiThread;
-
-typedef void *(*ChiakiThreadFunc)(void *);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiThreadFunc func, void *arg);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **retval);
@@ -42,7 +54,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const
 
 typedef struct chiaki_mutex_t
 {
+#ifdef _WIN32
+	CRITICAL_SECTION cs;
+#else
 	pthread_mutex_t mutex;
+#endif
 } ChiakiMutex;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec);
@@ -54,7 +70,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex);
 
 typedef struct chiaki_cond_t
 {
+#ifdef _WIN32
+	CONDITION_VARIABLE cond;
+#else
 	pthread_cond_t cond;
+#endif
 } ChiakiCond;
 
 typedef bool (*ChiakiCheckPred)(void *);

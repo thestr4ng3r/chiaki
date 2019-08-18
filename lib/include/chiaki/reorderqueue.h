@@ -90,7 +90,7 @@ static inline void chiaki_reorder_queue_set_drop_cb(ChiakiReorderQueue *queue, C
 
 static inline size_t chiaki_reorder_queue_size(ChiakiReorderQueue *queue)
 {
-	return 1 << queue->size_exp;
+	return ((size_t)1) << queue->size_exp;
 }
 
 static inline uint64_t chiaki_reorder_queue_count(ChiakiReorderQueue *queue)

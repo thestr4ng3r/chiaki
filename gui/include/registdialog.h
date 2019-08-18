@@ -18,9 +18,9 @@
 #ifndef CHIAKI_REGISTDIALOG_H
 #define CHIAKI_REGISTDIALOG_H
 
-#include "host.h"
-
 #include <chiaki/regist.h>
+
+#include "host.h"
 
 #include <QDialog>
 

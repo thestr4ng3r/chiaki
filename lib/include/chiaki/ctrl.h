@@ -25,6 +25,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if _WIN32
+#include <winsock2.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,7 +38,7 @@ typedef struct chiaki_ctrl_t
 	struct chiaki_session_t *session;
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;
-	int sock;
+	chiaki_socket_t sock;
 	uint8_t recv_buf[512];
 	size_t recv_buf_size;
 	uint64_t crypt_counter_remote;

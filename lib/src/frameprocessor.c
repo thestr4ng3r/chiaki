@@ -24,6 +24,10 @@
 #include <string.h>
 #include <assert.h>
 
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif
+
 #define UNIT_SLOTS_MAX 256
 
 

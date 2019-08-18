@@ -19,7 +19,6 @@
 #include <chiaki/congestioncontrol.h>
 #include <chiaki/random.h>
 
-#include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -27,7 +26,12 @@
 #include <string.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#else
+#include <unistd.h>
 #include <netinet/ip.h>
+#endif
 
 
 // VERY similar to SCTP, see RFC 4960
@@ -66,7 +70,7 @@ typedef enum takion_packet_type_t {
 /**
  * @return The offset of the mac of size CHIAKI_GKCRYPT_GMAC_SIZE inside a packet of type or -1 if unknown.
  */
-ssize_t takion_packet_type_mac_offset(TakionPacketType type)
+int takion_packet_type_mac_offset(TakionPacketType type)
 {
 	switch(type)
 	{
@@ -83,7 +87,7 @@ ssize_t takion_packet_type_mac_offset(TakionPacketType type)
 /**
  * @return The offset of the 4-byte key_pos inside a packet of type or -1 if unknown.
  */
-ssize_t takion_packet_type_key_pos_offset(TakionPacketType type)
+int takion_packet_type_key_pos_offset(TakionPacketType type)
 {
 	switch(type)
 	{
@@ -225,7 +229,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	}
 
 	takion->sock = socket(info->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-	if(takion->sock < 0)
+	if(CHIAKI_SOCKET_IS_INVALID(takion->sock))
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to create socket");
 		ret = CHIAKI_ERR_NETWORK;
@@ -233,7 +237,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	}
 
 	const int rcvbuf_val = takion->a_rwnd;
-	int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf_val, sizeof(rcvbuf_val));
+	int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const void *)&rcvbuf_val, sizeof(rcvbuf_val));
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: %s", strerror(errno));
@@ -244,8 +248,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 #if __APPLE__
 	CHIAKI_LOGW(takion->log, "Don't fragment is not supported on macOS, MTU values may be incorrect.");
 #else
+#if defined(_WIN32)
+	const DWORD dontfragment_val = 1;
+	r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
+#else
 	const int mtu_discover_val = IP_PMTUDISC_DO;
-	r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_discover_val, sizeof(mtu_discover_val));
+	r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
+#endif
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
@@ -274,7 +283,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	return CHIAKI_ERR_SUCCESS;
 
 error_sock:
-	close(takion->sock);
+	CHIAKI_SOCKET_CLOSE(takion->sock);
 error_pipe:
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
 error_seq_num_local_mutex:
@@ -318,7 +327,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const uint8_t *buf, size_t buf_size)
 {
-	ssize_t r = send(takion->sock, buf, buf_size, 0);
+	int r = send(takion->sock, buf, buf_size, 0);
 	if(r < 0)
 		return CHIAKI_ERR_NETWORK;
 	return CHIAKI_ERR_SUCCESS;
@@ -331,8 +340,8 @@ static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *b
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
 	TakionPacketType base_type = buf[0] & TAKION_PACKET_BASE_TYPE_MASK;
-	ssize_t mac_offset = takion_packet_type_mac_offset(base_type);
-	ssize_t key_pos_offset = takion_packet_type_key_pos_offset(base_type);
+	int mac_offset = takion_packet_type_mac_offset(base_type);
+	int key_pos_offset = takion_packet_type_key_pos_offset(base_type);
 	if(mac_offset < 0 || key_pos_offset < 0)
 		return CHIAKI_ERR_INVALID_DATA;
 
@@ -730,7 +739,7 @@ beach:
 		event.type = CHIAKI_TAKION_EVENT_TYPE_DISCONNECT;
 		takion->cb(&event, takion->cb_user);
 	}
-	close(takion->sock);
+	CHIAKI_SOCKET_CLOSE(takion->sock);
 	return NULL;
 }
 
@@ -746,7 +755,7 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 		return err;
 	}
 
-	ssize_t received_sz = recv(takion->sock, buf, *buf_size, 0);
+	int received_sz = recv(takion->sock, buf, *buf_size, 0);
 	if(received_sz <= 0)
 	{
 		if(received_sz < 0)

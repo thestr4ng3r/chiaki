@@ -22,12 +22,17 @@
 #include <chiaki/log.h>
 
 #include <string.h>
-#include <unistd.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <unistd.h>
+#include <netdb.h>
 #include <arpa/inet.h>
+#endif
 
 const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state)
 {
@@ -123,7 +128,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	discovery->log = log;
 
 	discovery->socket = socket(AF_INET, SOCK_DGRAM, 0);
-	if(discovery->socket < 0)
+	if(CHIAKI_SOCKET_IS_INVALID(discovery->socket))
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to create socket");
 		return CHIAKI_ERR_NETWORK;
@@ -149,7 +154,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	if(r < 0)
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to bind");
-		close(discovery->socket);
+		CHIAKI_SOCKET_CLOSE(discovery->socket);
 		return CHIAKI_ERR_NETWORK;
 	}
 
@@ -163,7 +168,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 
 CHIAKI_EXPORT void chiaki_discovery_fini(ChiakiDiscovery *discovery)
 {
-	close(discovery->socket);
+	CHIAKI_SOCKET_CLOSE(discovery->socket);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, ChiakiDiscoveryPacket *packet, struct sockaddr *addr, size_t addr_size)
@@ -178,7 +183,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 	if((size_t)len >= sizeof(buf))
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	ssize_t rc = sendto(discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
+	int rc = sendto(discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
 	if(rc < 0)
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to send: %s", strerror(errno));
@@ -245,7 +250,7 @@ static void *discovery_thread_func(void *user)
 		char buf[512];
 		struct sockaddr client_addr;
 		socklen_t client_addr_size = sizeof(client_addr);
-		ssize_t n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
+		int n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
 		if(n < 0)
 		{
 			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket");

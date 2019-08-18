@@ -19,7 +19,9 @@
 #define CHIAKI_AUDIO_H
 
 #include <stdint.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include "common.h"
 

@@ -18,12 +18,12 @@
 #ifndef CHIAKI_DISCOVERYMANAGER_H
 #define CHIAKI_DISCOVERYMANAGER_H
 
+#include <chiaki/discoveryservice.h>
+
 #include "host.h"
 
 #include <QObject>
 #include <QList>
-
-#include <chiaki/discoveryservice.h>
 
 struct DiscoveryHost
 {

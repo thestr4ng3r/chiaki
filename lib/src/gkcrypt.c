@@ -99,7 +99,7 @@ error_key_buf_mutex:
 	if(gkcrypt->key_buf)
 		chiaki_mutex_fini(&gkcrypt->key_buf_mutex);
 error_key_buf:
-	free(gkcrypt->key_buf);
+	chiaki_aligned_free(gkcrypt->key_buf);
 error:
 	return err;
 }
@@ -113,7 +113,7 @@ CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt)
 		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
 		chiaki_cond_signal(&gkcrypt->key_buf_cond);
 		chiaki_thread_join(&gkcrypt->key_buf_thread, NULL);
-		free(gkcrypt->key_buf);
+		chiaki_aligned_free(gkcrypt->key_buf);
 	}
 }
 

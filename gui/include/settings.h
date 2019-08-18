@@ -18,9 +18,9 @@
 #ifndef CHIAKI_SETTINGS_H
 #define CHIAKI_SETTINGS_H
 
-#include "host.h"
-
 #include <chiaki/session.h>
+
+#include "host.h"
 
 #include <QSettings>
 

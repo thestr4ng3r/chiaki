@@ -25,13 +25,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#endif
 
 #include "utils.h"
 
@@ -411,6 +415,8 @@ typedef struct session_response_t {
 	bool success;
 } SessionResponse;
 
+#include <stdio.h>
+
 static void parse_session_response(SessionResponse *response, ChiakiHttpResponse *http_response)
 {
 	memset(response, 0, sizeof(SessionResponse));
@@ -431,7 +437,9 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
 		for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
 		{
 			if(strcmp(header->key, "RP-Application-Reason") == 0)
-				response->error_code = (uint32_t)strtol(header->value, NULL, 0x10);
+			{
+				response->error_code = (uint32_t)strtoul(header->value, NULL, 0x10);
+			}
 		}
 		response->success = false;
 	}
@@ -440,11 +448,11 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
 
 static bool session_thread_request_session(ChiakiSession *session)
 {
-	int session_sock = -1;
+	chiaki_socket_t session_sock = CHIAKI_INVALID_SOCKET;
 	for(struct addrinfo *ai=session->connect_info.host_addrinfos; ai; ai=ai->ai_next)
 	{
-		if(ai->ai_protocol != IPPROTO_TCP)
-			continue;
+		//if(ai->ai_protocol != IPPROTO_TCP)
+		//	continue;
 
 		struct sockaddr *sa = malloc(ai->ai_addrlen);
 		if(!sa)
@@ -460,7 +468,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 		set_port(sa, htons(SESSION_PORT));
 
 		// TODO: this can block, make cancelable somehow
-		int r = getnameinfo(sa, ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, 0);
+		int r = getnameinfo(sa, (socklen_t)ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, 0);
 		if(r != 0)
 		{
 			free(sa);
@@ -469,8 +477,8 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 		CHIAKI_LOGI(session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
 
-		session_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-		if(session_sock < 0)
+		session_sock = socket(ai->ai_family, SOCK_STREAM, 0);
+		if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 		{
 			free(sa);
 			continue;
@@ -478,13 +486,22 @@ static bool session_thread_request_session(ChiakiSession *session)
 		r = connect(session_sock, sa, ai->ai_addrlen);
 		if(r < 0)
 		{
+#ifdef _WIN32
+			int err = WSAGetLastError();
+			CHIAKI_LOGE(session->log, "Session request connect failed: %u", err);
+			if(err == WSAECONNREFUSED)
+				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
+			else
+				session->quit_reason = CHIAKI_QUIT_REASON_NONE;
+#else
 			int errsv = errno;
 			CHIAKI_LOGE(session->log, "Session request connect failed: %s", strerror(errsv));
 			if(errsv == ECONNREFUSED)
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
 			else
 				session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-			close(session_sock);
+#endif
+			CHIAKI_SOCKET_CLOSE(session_sock);
 			session_sock = -1;
 			free(sa);
 			continue;
@@ -496,7 +513,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 	}
 
 
-	if(session_sock < 0)
+	if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 	{
 		CHIAKI_LOGE(session->log, "Session request connect failed eventually.");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
@@ -529,7 +546,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 	ChiakiErrorCode err = format_hex(regist_key_hex, sizeof(regist_key_hex), (uint8_t *)session->connect_info.regist_key, regist_key_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		close(session_sock);
+		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
@@ -539,18 +556,18 @@ static bool session_thread_request_session(ChiakiSession *session)
 							   session->connect_info.hostname, SESSION_PORT, regist_key_hex);
 	if(request_len < 0 || request_len >= sizeof(buf))
 	{
-		close(session_sock);
+		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
 
 	CHIAKI_LOGI(session->log, "Sending session request");
 
-	ssize_t sent = send(session_sock, buf, (size_t)request_len, 0);
+	int sent = send(session_sock, buf, (size_t)request_len, 0);
 	if(sent < 0)
 	{
 		CHIAKI_LOGE(session->log, "Failed to send session request");
-		close(session_sock);
+		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
@@ -572,16 +589,18 @@ static bool session_thread_request_session(ChiakiSession *session)
 			CHIAKI_LOGE(session->log, "Failed to receive session request response");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
-		close(session_sock);
+		CHIAKI_SOCKET_CLOSE(session_sock);
 		return false;
 	}
 
 	ChiakiHttpResponse http_response;
+	CHIAKI_LOGV(session->log, "Session Response Header:");
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, buf, header_size);
 	err = chiaki_http_response_parse(&http_response, buf, header_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "Failed to parse session request response");
-		close(session_sock);
+		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return false;
 	}
@@ -619,6 +638,6 @@ static bool session_thread_request_session(ChiakiSession *session)
 	}
 
 	chiaki_http_response_fini(&http_response);
-	close(session_sock);
+	CHIAKI_SOCKET_CLOSE(session_sock);
 	return response.success;
 }

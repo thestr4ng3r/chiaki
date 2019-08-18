@@ -1,3 +1,4 @@
+*~
 *.swp
 .idea
 build
@@ -6,3 +7,9 @@ cmake-build-*
 *.AppImage
 appdir
 /ffmpeg*
+/Chiaki
+/SDL2-*
+/opus*
+/ffmpeg*
+/protoc*
+/openssl*

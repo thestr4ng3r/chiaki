@@ -138,7 +138,7 @@ static void seqnums_ack(ChiakiSeqNum32 *nums, size_t *nums_count, ChiakiSeqNum32
 
 static MunitResult test_takion_send_buffer(const MunitParameter params[], void *user)
 {
-	static const size_t nums_count = 0x30;
+#define nums_count 0x30
 	ChiakiTakionSendBuffer send_buffer;
 	ChiakiErrorCode err = chiaki_takion_send_buffer_init(&send_buffer, NULL, nums_count);
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
@@ -169,6 +169,7 @@ static MunitResult test_takion_send_buffer(const MunitParameter params[], void *
 
 	chiaki_takion_send_buffer_fini(&send_buffer);
 	return MUNIT_OK;
+#undef nums_count
 }
 
 

@@ -18,9 +18,9 @@
 #ifndef CHIAKI_VIDEODECODER_H
 #define CHIAKI_VIDEODECODER_H
 
-#include "exception.h"
-
 #include <chiaki/log.h>
+
+#include "exception.h"
 
 #include <QMutex>
 #include <QObject>

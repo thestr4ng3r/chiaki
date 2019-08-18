@@ -21,7 +21,9 @@
 #include "common.h"
 
 #include <stdint.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

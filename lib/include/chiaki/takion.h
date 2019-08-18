@@ -28,8 +28,11 @@
 #include "feedback.h"
 #include "takionsendbuffer.h"
 
-#include <netinet/in.h>
 #include <stdbool.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 
 
 #ifdef __cplusplus
@@ -112,7 +115,7 @@ typedef struct chiaki_takion_connect_info_t
 {
 	ChiakiLog *log;
 	struct sockaddr *sa;
-	socklen_t sa_len;
+	size_t sa_len;
 	ChiakiTakionCallback cb;
 	void *cb_user;
 	bool enable_crypt;
@@ -154,7 +157,7 @@ typedef struct chiaki_takion_t
 
 	ChiakiTakionCallback cb;
 	void *cb_user;
-	int sock;
+	chiaki_socket_t sock;
 	ChiakiThread thread;
 	ChiakiStopPipe stop_pipe;
 	uint32_t tag_local;

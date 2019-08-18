@@ -18,10 +18,10 @@
 #ifndef CHIAKI_HOST_H
 #define CHIAKI_HOST_H
 
+#include <chiaki/regist.h>
+
 #include <QMetaType>
 #include <QString>
-
-#include <chiaki/regist.h>
 
 class QSettings;
 

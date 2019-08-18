@@ -19,7 +19,15 @@
 #include <exception.h>
 
 #include <cstring>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
 
 #define PING_MS		500
 #define HOSTS_MAX	16
@@ -101,8 +109,8 @@ void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_
 	{
 		if(ai->ai_family != AF_INET)
 			continue;
-		if(ai->ai_protocol != IPPROTO_UDP)
-			continue;
+		//if(ai->ai_protocol != IPPROTO_UDP)
+		//	continue;
 		if(ai->ai_addrlen > sizeof(addr))
 			continue;
 		std::memcpy(&addr, ai->ai_addr, ai->ai_addrlen);

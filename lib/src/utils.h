@@ -19,10 +19,16 @@
 #define CHIAKI_UTILS_H
 
 #include <chiaki/common.h>
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
-static inline ChiakiErrorCode set_port(struct sockaddr *sa, in_port_t port)
+#include <stdint.h>
+
+static inline ChiakiErrorCode set_port(struct sockaddr *sa, uint16_t port)
 {
 	if(sa->sa_family == AF_INET)
 		((struct sockaddr_in *)sa)->sin_port = port;

@@ -23,7 +23,7 @@
 class QLabel;
 
 class ServerIconWidget;
-class DisplayServer;
+struct DisplayServer;
 
 class ServerItemWidget : public QFrame
 {

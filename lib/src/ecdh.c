@@ -22,6 +22,7 @@
 #include <openssl/evp.h>
 #include <openssl/ec.h>
 #include <openssl/hmac.h>
+#include <openssl/bn.h>
 
 #include <string.h>
 

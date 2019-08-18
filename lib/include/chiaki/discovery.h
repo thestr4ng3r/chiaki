@@ -23,8 +23,14 @@
 #include "stoppipe.h"
 #include "log.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+typedef unsigned short sa_family_t;
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,7 +79,7 @@ typedef struct chiaki_discovery_host_t
 	// All string members here must be in sync with CHIAKI_DISCOVERY_HOST_STRING_FOREACH
 	ChiakiDiscoveryHostState state;
 	uint16_t host_request_port;
-#define STRING_MEMBER(name) const char *name;
+#define STRING_MEMBER(name) const char *name
 	CHIAKI_DISCOVERY_HOST_STRING_FOREACH(STRING_MEMBER)
 #undef STRING_MEMBER
 } ChiakiDiscoveryHost;
@@ -84,7 +90,7 @@ CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, Chiaki
 typedef struct chiaki_discovery_t
 {
 	ChiakiLog *log;
-	int socket;
+	chiaki_socket_t socket;
 	struct sockaddr local_addr;
 } ChiakiDiscovery;
 

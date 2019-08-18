@@ -25,6 +25,10 @@
 #include <time.h>
 #include <errno.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 {
 	switch(code)
@@ -64,9 +68,11 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 	}
 }
 
-void *chiaki_aligned_alloc(size_t alignment, size_t size)
+CHIAKI_EXPORT void *chiaki_aligned_alloc(size_t alignment, size_t size)
 {
-#if __APPLE__
+#if defined(_WIN32)
+	return _aligned_malloc(size, alignment);
+#elif __APPLE__
 	void *r;
 	if(posix_memalign(&r, alignment, size) == 0)
 		return r;
@@ -74,6 +80,15 @@ void *chiaki_aligned_alloc(size_t alignment, size_t size)
 		return NULL;
 #else
 	return aligned_alloc(alignment, size);
+#endif
+}
+
+CHIAKI_EXPORT void chiaki_aligned_free(void *ptr)
+{
+#ifdef _WIN32
+	_aligned_free(ptr);
+#else
+	free(ptr);
 #endif
 }
 
@@ -86,6 +101,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init()
 	int galois_r = galois_init_default_field(CHIAKI_FEC_WORDSIZE);
 	if(galois_r != 0)
 		return galois_r == ENOMEM ? CHIAKI_ERR_MEMORY : CHIAKI_ERR_UNKNOWN;
+
+#if _WIN32
+	{
+		WORD wsa_version = MAKEWORD(2, 2);
+		WSADATA wsa_data;
+		int err = WSAStartup(wsa_version, &wsa_data);
+		if (err != 0)
+			return CHIAKI_ERR_NETWORK;
+	}
+#endif
 
 	return CHIAKI_ERR_SUCCESS;
 }

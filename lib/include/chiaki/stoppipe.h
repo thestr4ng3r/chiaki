@@ -22,7 +22,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <sys/time.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,14 +33,18 @@ extern "C" {
 
 typedef struct chiaki_stop_pipe_t
 {
+#ifdef _WIN32
+	WSAEVENT event;
+#else
 	int fds[2];
+#endif
 } ChiakiStopPipe;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe);
 CHIAKI_EXPORT void chiaki_stop_pipe_fini(ChiakiStopPipe *stop_pipe);
 CHIAKI_EXPORT void chiaki_stop_pipe_stop(ChiakiStopPipe *stop_pipe);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, int fd, uint64_t timeout_ms);
-static inline ChiakiErrorCode chiaki_stop_pipe_sleep(ChiakiStopPipe *stop_pipe, uint64_t timeout_ms) { return chiaki_stop_pipe_select_single(stop_pipe, -1, timeout_ms); }
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, uint64_t timeout_ms);
+static inline ChiakiErrorCode chiaki_stop_pipe_sleep(ChiakiStopPipe *stop_pipe, uint64_t timeout_ms) { return chiaki_stop_pipe_select_single(stop_pipe, CHIAKI_INVALID_SOCKET, timeout_ms); }
 
 #ifdef __cplusplus
 }

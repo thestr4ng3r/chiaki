@@ -1,8 +1,11 @@
 
-find_package(Protobuf REQUIRED)
+find_program(PROTOC protoc)
+if(NOT PROTOC)
+	message(FATAL_ERROR "Could not find protoc")
+endif()
 
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/takion.pb"
-		COMMAND protobuf::protoc "-o${CMAKE_CURRENT_BINARY_DIR}/takion.pb" "${CMAKE_CURRENT_SOURCE_DIR}/takion.proto" "-I${CMAKE_CURRENT_SOURCE_DIR}"
+		COMMAND "${PROTOC}" "-o${CMAKE_CURRENT_BINARY_DIR}/takion.pb" "${CMAKE_CURRENT_SOURCE_DIR}/takion.proto" "-I${CMAKE_CURRENT_SOURCE_DIR}"
 		MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/takion.proto")
 
 set(SOURCE_FILES "${CMAKE_CURRENT_BINARY_DIR}/takion.pb.c")

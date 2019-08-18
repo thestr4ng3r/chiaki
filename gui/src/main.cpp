@@ -1,4 +1,8 @@
 
+// ugly workaround because Windows does weird things and ENOTIME
+int real_main(int argc, char *argv[]);
+int main(int argc, char *argv[]) { return real_main(argc, argv); }
+
 #include <streamwindow.h>
 #include <videodecoder.h>
 #include <mainwindow.h>
@@ -43,7 +47,7 @@ static const QMap<QString, CLICommand> cli_commands = {
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QApplication &app, Settings *settings);
 
-int main(int argc, char *argv[])
+int real_main(int argc, char *argv[])
 {
 	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<RegisteredHost>();
@@ -66,6 +70,8 @@ int main(int argc, char *argv[])
 	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
 
 	QApplication app(argc, argv);
+
+	Q_INIT_RESOURCE(resources);
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 

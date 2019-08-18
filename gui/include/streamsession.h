@@ -18,6 +18,8 @@
 #ifndef CHIAKI_STREAMSESSION_H
 #define CHIAKI_STREAMSESSION_H
 
+#include <chiaki/session.h>
+
 #include "videodecoder.h"
 #include "exception.h"
 #include "sessionlog.h"
@@ -25,8 +27,6 @@
 
 #include <QObject>
 #include <QImage>
-
-#include <chiaki/session.h>
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 class QGamepad;

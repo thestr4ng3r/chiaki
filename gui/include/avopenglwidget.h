@@ -18,10 +18,10 @@
 #ifndef CHIAKI_AVOPENGLWIDGET_H
 #define CHIAKI_AVOPENGLWIDGET_H
 
+#include <chiaki/log.h>
+
 #include <QOpenGLWidget>
 #include <QMutex>
-
-#include <chiaki/log.h>
 
 extern "C"
 {

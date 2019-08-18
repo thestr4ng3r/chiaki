@@ -22,11 +22,20 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
 
 #define SESSION_OSTYPE "Win10.0.0"
 
@@ -139,7 +148,7 @@ static void *ctrl_thread_func(void *user)
 			break;
 		}
 
-		ssize_t received = recv(ctrl->sock, ctrl->recv_buf + ctrl->recv_buf_size, sizeof(ctrl->recv_buf) - ctrl->recv_buf_size, 0);
+		int received = recv(ctrl->sock, ctrl->recv_buf + ctrl->recv_buf_size, sizeof(ctrl->recv_buf) - ctrl->recv_buf_size, 0);
 		if(received <= 0)
 		{
 			if(received < 0)
@@ -150,7 +159,7 @@ static void *ctrl_thread_func(void *user)
 		ctrl->recv_buf_size += received;
 	}
 
-	close(ctrl->sock);
+	CHIAKI_SOCKET_CLOSE(ctrl->sock);
 
 	return NULL;
 }
@@ -164,7 +173,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type,
 	*((uint16_t *)(header + 4)) = htons(type);
 	*((uint16_t *)(header + 6)) = 0;
 
-	ssize_t sent = send(ctrl->sock, header, sizeof(header), 0);
+	int sent = send(ctrl->sock, header, sizeof(header), 0);
 	if(sent < 0)
 	{
 		CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Header");
@@ -321,7 +330,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	else
 		return CHIAKI_ERR_INVALID_DATA;
 
-	int sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
 	if(sock < 0)
 	{
 		CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
@@ -336,7 +345,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		int errsv = errno;
 		CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", strerror(errsv));
 		ctrl_failed(ctrl, errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-		close(sock);
+		CHIAKI_SOCKET_CLOSE(sock);
 		return CHIAKI_ERR_NETWORK;
 	}
 
@@ -396,7 +405,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	CHIAKI_LOGI(session->log, "Sending ctrl request");
 
-	ssize_t sent = send(sock, buf, (size_t)request_len, 0);
+	int sent = send(sock, buf, (size_t)request_len, 0);
 	if(sent < 0)
 	{
 		CHIAKI_LOGE(session->log, "Failed to send ctrl request");
@@ -454,6 +463,6 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	return CHIAKI_ERR_SUCCESS;
 
 error:
-	close(sock);
+	CHIAKI_SOCKET_CLOSE(sock);
 	return err;
 }

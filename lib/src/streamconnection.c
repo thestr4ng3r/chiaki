@@ -25,7 +25,12 @@
 
 #include <string.h>
 #include <assert.h>
+#ifndef _WIN32
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
 
 #include <takion.pb.h>
 #include <pb_encode.h>
@@ -659,7 +664,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 		char json[LAUNCH_SPEC_JSON_BUF_SIZE];
 		char b64[LAUNCH_SPEC_JSON_BUF_SIZE * 2];
 	} launch_spec_buf;
-	ssize_t launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
+	int launch_spec_json_size = chiaki_launchspec_format(launch_spec_buf.json, sizeof(launch_spec_buf.json), &launch_spec);
 	if(launch_spec_json_size < 0)
 	{
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to format LaunchSpec json");

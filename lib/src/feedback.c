@@ -18,7 +18,11 @@
 #include <chiaki/feedback.h>
 #include <chiaki/controller.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <string.h>
 
 CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state)

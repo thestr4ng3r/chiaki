@@ -18,7 +18,22 @@
 #ifndef CHIAKI_COMMON_H
 #define CHIAKI_COMMON_H
 
+#include <stdbool.h>
+#ifdef _WIN32
+#define chiaki_socket_t SOCKET
+#define CHIAKI_SOCKET_IS_INVALID(s) ((s) == INVALID_SOCKET)
+#define CHIAKI_INVALID_SOCKET INVALID_SOCKET
+#define CHIAKI_SOCKET_CLOSE(s) closesocket(s)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#else
 #include <unistd.h>
+#define chiaki_socket_t int
+#define CHIAKI_SOCKET_IS_INVALID(s) ((s) < 0)
+#define CHIAKI_INVALID_SOCKET (-1)
+#define CHIAKI_SOCKET_CLOSE(s) close(s)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,6 +67,7 @@ typedef enum
 CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
 
 CHIAKI_EXPORT void *chiaki_aligned_alloc(size_t alignment, size_t size);
+CHIAKI_EXPORT void chiaki_aligned_free(void *ptr);
 
 /**
  * Perform initialization of global state needed for using the Chiaki lib

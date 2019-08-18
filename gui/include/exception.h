@@ -25,11 +25,11 @@
 class Exception : public std::exception
 {
 	private:
-		QString msg;
+		QByteArray msg;
 
 	public:
-		explicit Exception(const QString &msg) : msg(msg) {}
-		const char *what() const noexcept override { return msg.toLocal8Bit().constData(); }
+		explicit Exception(const QString &msg) : msg(msg.toLocal8Bit()) {}
+		const char *what() const noexcept override { return msg.constData(); }
 };
 
 #endif // CHIAKI_EXCEPTION_H

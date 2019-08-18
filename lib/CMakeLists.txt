@@ -81,6 +81,10 @@ add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE
 add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
+if(WIN32)
+	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt)
+endif()
+
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 find_package(Threads)

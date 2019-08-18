@@ -89,8 +89,6 @@ send_packet:
 	emit FramesAvailable();
 }
 
-#include <unistd.h>
-
 AVFrame *VideoDecoder::PullFrame()
 {
 	QMutexLocker locker(&mutex);
