@@ -36,6 +36,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 {
 	this->settings = settings;
 
+	setWindowTitle(tr("Settings"));
+
 	auto layout = new QVBoxLayout(this);
 	setLayout(layout);
 

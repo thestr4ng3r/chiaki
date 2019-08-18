@@ -21,11 +21,13 @@
 
 #include <QLabel>
 #include <QMessageBox>
+#include <QCoreApplication>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
+	setWindowTitle(qApp->applicationName());
 	try
 	{
 		session = new StreamSession(connect_info, this);

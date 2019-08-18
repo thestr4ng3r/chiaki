@@ -32,6 +32,8 @@ ManualHostDialog::ManualHostDialog(Settings *settings, int id, QWidget *parent)
 	this->settings = settings;
 	host_id = id;
 
+	setWindowTitle(tr("Add Manual Console"));
+
 	ManualHost host;
 	if(id >= 0 && settings->GetManualHostExists(id))
 		host = settings->GetManualHost(id);
