@@ -19,10 +19,9 @@ matrix:
             - qt512gamepad
             - qt512svg
             - libgl1-mesa-dev
-            - libavcodec-dev
-            - libavcodec-extra
+            - nasm
       env:
-        - CMAKE_PREFIX_PATH="/opt/qt512"
+        - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
         - DEPLOY_FILE="Chiaki-x86_64.AppImage"
       after_success:
@@ -42,11 +41,14 @@ matrix:
             - qt
             - opus
             - openssl@1.1
-            - ffmpeg
+            - nasm
       env:
         - CMAKE_PREFIX_PATH="/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
         - CMAKE_EXTRA_ARGS=""
         - DEPLOY_FILE="""
+
+install:
+  - scripts/build-ffmpeg.sh
 
 script:
   - mkdir build && cd build

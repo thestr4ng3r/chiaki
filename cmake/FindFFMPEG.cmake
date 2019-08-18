@@ -29,7 +29,19 @@ Note that only components requested with `COMPONENTS` or `OPTIONAL_COMPONENTS`
 are guaranteed to set these variables or provide targets.
 #]==]
 
+find_package(PkgConfig)
+
 function (_ffmpeg_find component headername)
+  # Try pkg-config first
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
+    if(FFMPEG_${component}_FOUND)
+      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES IMPORTED_GLOBAL TRUE)
+      add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
+      return()
+    endif()
+  endif()
+
   find_path("FFMPEG_${component}_INCLUDE_DIR"
     NAMES
       "lib${component}/${headername}"
@@ -130,33 +142,39 @@ function (_ffmpeg_find component headername)
   endif ()
 endfunction ()
 
+unset(_pkg_config_extra_arg)
+
 _ffmpeg_find(avutil     avutil.h)
-_ffmpeg_find(avresample avresample.h
-  avutil)
+#_ffmpeg_find(avresample avresample.h
+#  avutil)
 _ffmpeg_find(swresample swresample.h
   avutil)
 _ffmpeg_find(swscale    swscale.h
   avutil)
 _ffmpeg_find(avcodec    avcodec.h
   avutil)
-_ffmpeg_find(avformat   avformat.h
-  avcodec avutil)
-_ffmpeg_find(avfilter   avfilter.h
-  avutil)
-_ffmpeg_find(avdevice   avdevice.h
-  avformat avutil)
+#_ffmpeg_find(avformat   avformat.h
+#  avcodec avutil)
+#_ffmpeg_find(avfilter   avfilter.h
+#  avutil)
+#_ffmpeg_find(avdevice   avdevice.h
+#  avformat avutil)
 
 if (TARGET FFMPEG::avutil)
-  set(_ffmpeg_version_header_path "${FFMPEG_avutil_INCLUDE_DIR}/libavutil/ffversion.h")
-  if (EXISTS "${_ffmpeg_version_header_path}")
-    file(STRINGS "${_ffmpeg_version_header_path}" _ffmpeg_version
-      REGEX "FFMPEG_VERSION")
-    string(REGEX REPLACE ".*\"n?\(.*\)\"" "\\1" FFMPEG_VERSION "${_ffmpeg_version}")
-    unset(_ffmpeg_version)
-  else ()
-    set(FFMPEG_VERSION FFMPEG_VERSION-NOTFOUND)
-  endif ()
-  unset(_ffmpeg_version_header_path)
+  if(TARGET PkgConfig::FFMPEG_avutil)
+    set(FFMPEG_VERSION ${FFMPEG_avutil_VERSION})
+  else()
+    set(_ffmpeg_version_header_path "${FFMPEG_avutil_INCLUDE_DIR}/libavutil/ffversion.h")
+    if (EXISTS "${_ffmpeg_version_header_path}")
+      file(STRINGS "${_ffmpeg_version_header_path}" _ffmpeg_version
+        REGEX "FFMPEG_VERSION")
+      string(REGEX REPLACE ".*\"n?\(.*\)\"" "\\1" FFMPEG_VERSION "${_ffmpeg_version}")
+      unset(_ffmpeg_version)
+    else ()
+      set(FFMPEG_VERSION FFMPEG_VERSION-NOTFOUND)
+    endif ()
+    unset(_ffmpeg_version_header_path)
+  endif()
 endif ()
 
 set(FFMPEG_INCLUDE_DIRS)
@@ -164,18 +182,25 @@ set(FFMPEG_LIBRARIES)
 set(_ffmpeg_required_vars)
 foreach (_ffmpeg_component IN LISTS FFMPEG_FIND_COMPONENTS)
   if (TARGET "FFMPEG::${_ffmpeg_component}")
-    set(FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS
-      "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIR}")
-    set(FFMPEG_${_ffmpeg_component}_LIBRARIES
-      "${FFMPEG_${_ffmpeg_component}_LIBRARY}")
-    list(APPEND FFMPEG_INCLUDE_DIRS
-      "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS}")
-    list(APPEND FFMPEG_LIBRARIES
-      "${FFMPEG_${_ffmpeg_component}_LIBRARIES}")
-    if (FFMEG_FIND_REQUIRED_${_ffmpeg_component})
+    if(TARGET PkgConfig::FFMPEG_${_ffmpeg_component})
+      list(APPEND FFMPEG_INCLUDE_DIRS ${FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS})
+      list(APPEND FFMPEG_LIBRARIES ${FFMPEG_${_ffmpeg_component}_LIBRARIES})
       list(APPEND _ffmpeg_required_vars
-        "FFMPEG_${_ffmpeg_required_vars}_INCLUDE_DIRS"
-        "FFMPEG_${_ffmpeg_required_vars}_LIBRARIES")
+              "FFMPEG_${_ffmpeg_component}_LIBRARIES")
+    else()
+      set(FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS
+        "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIR}")
+      set(FFMPEG_${_ffmpeg_component}_LIBRARIES
+        "${FFMPEG_${_ffmpeg_component}_LIBRARY}")
+      list(APPEND FFMPEG_INCLUDE_DIRS
+        "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS}")
+      list(APPEND FFMPEG_LIBRARIES
+        "${FFMPEG_${_ffmpeg_component}_LIBRARIES}")
+      if (FFMEG_FIND_REQUIRED_${_ffmpeg_component})
+        list(APPEND _ffmpeg_required_vars
+          "FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS"
+          "FFMPEG_${_ffmpeg_component}_LIBRARIES")
+      endif()
     endif ()
   endif ()
 endforeach ()
@@ -187,7 +212,7 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FFMPEG
-  REQUIRED_VARS FFMPEG_INCLUDE_DIRS FFMPEG_LIBRARIES ${_ffmpeg_required_vars}
+  REQUIRED_VARS ${_ffmpeg_required_vars}
   VERSION_VAR FFMPEG_VERSION
   HANDLE_COMPONENTS)
 unset(_ffmpeg_required_vars)

@@ -5,3 +5,4 @@ cmake-build-*
 .DS_store
 *.AppImage
 appdir
+/ffmpeg*
