@@ -46,14 +46,20 @@ function (_ffmpeg_find component headername)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
     if(FFMPEG_${component}_FOUND)
-      join(FFMPEG_LDFLAGS_STRING " " ${FFMPEG_${component}_LDFLAGS})
-      string(REGEX REPLACE "-Wl,-framework,([^ ]+)" "-framework \\1" FFMPEG_LDFLAGS_STRING_CLEAN ${FFMPEG_LDFLAGS_STRING})
-      string(REGEX MATCHALL "-framework [^ ]+" FFMPEG_FRAMEWORKS ${FFMPEG_LDFLAGS_STRING_CLEAN})
-      list(APPEND FFMPEG_${component}_LIBRARIES ${FFMPEG_FRAMEWORKS})
-      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES
-              IMPORTED_GLOBAL TRUE
-              INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
-              INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}")
+      if(APPLE)
+        join(FFMPEG_LDFLAGS_STRING " " ${FFMPEG_${component}_LDFLAGS})
+        string(REGEX REPLACE "-Wl,-framework,([^ ]+)" "-framework \\1" FFMPEG_LDFLAGS_STRING_CLEAN ${FFMPEG_LDFLAGS_STRING})
+        string(REGEX MATCHALL "-framework [^ ]+" FFMPEG_FRAMEWORKS ${FFMPEG_LDFLAGS_STRING_CLEAN})
+        list(APPEND FFMPEG_${component}_LIBRARIES ${FFMPEG_FRAMEWORKS})
+        set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES
+                INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
+                INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}"
+                INTERFACE_LINK_OPTIONS "")
+        message("set libs to \"${FFMPEG_${component}_LIBRARIES}\"")
+        message("set lib dirs to \"${FFMPEG_${component}_LIBRARY_DIRS}\"")
+        message("set lib otps not to \"${FFMPEG_${component}_LDFLAGS}\"")
+      endif()
+      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES IMPORTED_GLOBAL TRUE)
       add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
       return()
     endif()
@@ -223,17 +229,9 @@ foreach (_ffmpeg_component IN LISTS FFMPEG_FIND_COMPONENTS)
 endforeach ()
 unset(_ffmpeg_component)
 
-if (FFMPEG_INCLUDE_DIRS)
-  list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
-endif ()
-
-if(_ffmpeg_required_vars)
-  set(_ffmpeg_required_vars REQUIRED_VARS ${_ffmpeg_required_vars})
-endif()
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FFMPEG
-  ${_ffmpeg_required_vars}
+  REQUIRED_VARS FFMPEG_LIBRARIES
   VERSION_VAR FFMPEG_VERSION
   HANDLE_COMPONENTS)
 unset(_ffmpeg_required_vars)

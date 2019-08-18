@@ -43,8 +43,9 @@ matrix:
             - opus
             - openssl@1.1
             - nasm
+            - sdl2
       env:
-        - CMAKE_PREFIX_PATH="/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
+        - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
         - CMAKE_EXTRA_ARGS=""
         - DEPLOY_FILE="Chiaki.dmg"
       after_success:
@@ -59,6 +60,7 @@ script:
   - mkdir build && cd build
   - cmake
       -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_VERBOSE_MAKEFILE=ON
       -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
       -DCHIAKI_ENABLE_TESTS=ON
       -DCHIAKI_ENABLE_CLI=OFF
