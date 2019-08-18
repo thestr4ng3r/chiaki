@@ -31,12 +31,29 @@ are guaranteed to set these variables or provide targets.
 
 find_package(PkgConfig)
 
+function(join OUTPUT GLUE)
+  set(_TMP_RESULT "")
+  set(_GLUE "") # effective glue is empty at the beginning
+  foreach(arg ${ARGN})
+    set(_TMP_RESULT "${_TMP_RESULT}${_GLUE}${arg}")
+    set(_GLUE "${GLUE}")
+  endforeach()
+  set(${OUTPUT} "${_TMP_RESULT}" PARENT_SCOPE)
+endfunction()
+
 function (_ffmpeg_find component headername)
   # Try pkg-config first
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
     if(FFMPEG_${component}_FOUND)
-      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES IMPORTED_GLOBAL TRUE)
+      join(FFMPEG_LDFLAGS_STRING " " ${FFMPEG_${component}_LDFLAGS})
+      string(REGEX REPLACE "-Wl,-framework,([^ ]+)" "-framework \\1" FFMPEG_LDFLAGS_STRING_CLEAN ${FFMPEG_LDFLAGS_STRING})
+      string(REGEX MATCHALL "-framework [^ ]+" FFMPEG_FRAMEWORKS ${FFMPEG_LDFLAGS_STRING_CLEAN})
+      list(APPEND FFMPEG_${component}_LIBRARIES ${FFMPEG_FRAMEWORKS})
+      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES
+              IMPORTED_GLOBAL TRUE
+              INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
+              INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}")
       add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
       return()
     endif()
