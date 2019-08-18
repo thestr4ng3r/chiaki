@@ -46,7 +46,11 @@ matrix:
       env:
         - CMAKE_PREFIX_PATH="/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
         - CMAKE_EXTRA_ARGS=""
-        - DEPLOY_FILE="""
+        - DEPLOY_FILE="Chiaki.dmg"
+      after_success:
+        - cd ..
+        - cp -a build/gui/chiaki.app Chiaki.app
+        - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
 
 install:
   - scripts/build-ffmpeg.sh
