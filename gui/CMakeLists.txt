@@ -10,7 +10,7 @@ if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	find_package(Qt5 REQUIRED COMPONENTS Gamepad)
 endif()
 if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
-	find_package(SDL2 REQUIRED)
+	find_package(SDL2 MODULE REQUIRED)
 endif()
 
 find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil)
