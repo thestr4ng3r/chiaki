@@ -17,6 +17,7 @@
 
 #include <streamsession.h>
 #include <settings.h>
+#include <controllermanager.h>
 
 #include <chiaki/base64.h>
 
@@ -57,6 +58,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	gamepad(nullptr),
 #endif
+	controller(nullptr),
 	video_decoder(log.GetChiakiLog()),
 	audio_output(nullptr),
 	audio_io(nullptr)
@@ -87,8 +89,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	connect(QGamepadManager::instance(), &QGamepadManager::connectedGamepadsChanged, this, &StreamSession::UpdateGamepads);
-	UpdateGamepads();
 #endif
+#if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
+#endif
+
+	UpdateGamepads();
 }
 
 StreamSession::~StreamSession()
@@ -97,6 +103,9 @@ StreamSession::~StreamSession()
 	chiaki_session_fini(&session);
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	delete gamepad;
+#endif
+#if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	delete controller;
 #endif
 }
 
@@ -157,9 +166,9 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 	SendFeedbackState();
 }
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 void StreamSession::UpdateGamepads()
 {
+#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	if(!gamepad || !gamepad->isConnected())
 	{
 		if(gamepad)
@@ -198,8 +207,33 @@ void StreamSession::UpdateGamepads()
 	}
 
 	SendFeedbackState();
-}
 #endif
+#if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller || !controller->IsConnected())
+	{
+		if(controller)
+		{
+			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
+			delete controller;
+			controller = nullptr;
+		}
+		const auto available_controllers = ControllerManager::GetInstance()->GetAvailableControllers();
+		if(!available_controllers.isEmpty())
+		{
+			controller = ControllerManager::GetInstance()->OpenController(available_controllers[0]);
+			if(!controller)
+			{
+				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open controller %d", available_controllers[0]);
+				return;
+			}
+			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", available_controllers[0], controller->GetName().toLocal8Bit().constData());
+			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
+		}
+	}
+
+	SendFeedbackState();
+#endif
+}
 
 void StreamSession::SendFeedbackState()
 {
@@ -230,6 +264,11 @@ void StreamSession::SendFeedbackState()
 		state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);
 		state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
 	}
+#endif
+
+#if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(controller)
+		state = controller->GetState();
 #endif
 
 	chiaki_controller_state_or(&state, &state, &keyboard_state);

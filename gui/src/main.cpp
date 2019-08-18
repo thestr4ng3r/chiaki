@@ -7,6 +7,7 @@
 #include <registdialog.h>
 #include <host.h>
 #include <avopenglwidget.h>
+#include <controllermanager.h>
 
 #ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>

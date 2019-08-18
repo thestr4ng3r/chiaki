@@ -25,6 +25,7 @@
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose);
 	try
 	{
 		session = new StreamSession(connect_info, this);

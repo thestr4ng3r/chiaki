@@ -3,11 +3,17 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL Svg)
+if(CHIAKI_GUI_ENABLE_QT_GAMEPAD AND CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
+	message(FATAL_ERROR "Only one input method may be enabled. Disable either CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER or CHIAKI_GUI_ENABLE_QT_GAMEPAD.")
+endif()
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	find_package(Qt5 REQUIRED COMPONENTS Gamepad)
 endif()
+if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
+	find_package(SDL2 REQUIRED)
+endif()
 
-find_package(FFMPEG REQUIRED COMPONENTS avcodec)
+find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil)
 
 set(RESOURCE_FILES "")
 
@@ -16,6 +22,7 @@ if(APPLE)
 endif()
 
 add_executable(chiaki
+		${RESOURCE_FILES}
 		include/exception.h
 		src/main.cpp
 		include/streamwindow.h
@@ -51,7 +58,8 @@ add_executable(chiaki
 		include/manualhostdialog.h
 		src/manualhostdialog.cpp
 		res/resources.qrc
-		${RESOURCE_FILES})
+		include/controllermanager.h
+		src/controllermanager.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
@@ -60,11 +68,15 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki FFMPEG::avcodec)
+target_link_libraries(chiaki FFMPEG::avcodec FFMPEG::avutil)
 target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
 	target_link_libraries(chiaki Qt5::Gamepad)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_GAMEPAD)
+endif()
+if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
+	target_link_libraries(chiaki SDL2::SDL2)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 endif()
 
 set_target_properties(chiaki PROPERTIES

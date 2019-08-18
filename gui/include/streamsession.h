@@ -21,6 +21,7 @@
 #include "videodecoder.h"
 #include "exception.h"
 #include "sessionlog.h"
+#include "controllermanager.h"
 
 #include <QObject>
 #include <QImage>
@@ -68,6 +69,7 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *gamepad;
 #endif
+		Controller *controller;
 
 		ChiakiControllerState keyboard_state;
 
@@ -93,6 +95,7 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *GetGamepad()	{ return gamepad; }
 #endif
+		Controller *GetController()	{ return controller; }
 		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
 
 		void HandleKeyboardEvent(QKeyEvent *event);
@@ -102,9 +105,7 @@ class StreamSession : public QObject
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 
 	private slots:
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		void UpdateGamepads();
-#endif
 		void SendFeedbackState();
 };
 
