@@ -71,3 +71,11 @@ script:
   - make -j4
   - test/chiaki-unit
 
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: R7RjLOuGFda05EJeNX2lNG135xKU2w9IQn7p1H1P2zw4zlQMgSBpNRaW8hE408x5KJUjptJTF6QaYYmPWbHlf9VEPFVIcVzSp8YSd2Cdr+GKhmFgWF+fJPBj5y9NNqohwxvK3Nrugh0v6yVQiEYEGF7WArU6dvymSNNTw/EqXtfrOvwUgSf1bDAzQAsXn3E6Ptzf9DrQU8+mOgMSqT/3Wy5207KLmWTtwBWDgkskKwS9OEXk3tDd6U4uT7NFHHmcw+ZjQXRD+yHSHUWYs1oKR4IfgPFxQfEK0Txhkxdf3yj1aNweuk7GGC3cfRaarUfRQpoYqYYCxhTfGZ2b4rVgX3XpssMY7ZmSZHRi/SX08ETXF/c7PZGzr0RPFXZLgAGjgN6O2Dbb9agc3tOUGDUuqKEWX9sALm82WS0FRAFrFLENgMFsj5hu+DKIIkAU2yEsadYKjjhC+q+mTAEkxKKknvM50Xpx3tE1TlP/31Z53v4/NydHIHXPJ72V3mnuoTacwhG2SkGtjMbLCnEZDCtu9C4556oa7Z29cqafv90ZD7lTQMV+ijKvjxgOC9u1GeemmZLofRGDFyYSqKxOpYxxxXGOhs+7FMAdKP00h++MTLwRwIebKQs0fW0XiNKmwushWOUU8sXI1jxTbwe9dPQsspxHRv/mVo6l2vUcBjC19K0=
+  file: $DEPLOY_FILE
+  on:
+    tags: true
