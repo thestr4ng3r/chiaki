@@ -81,6 +81,7 @@ void DiscoveryManager::SetActive(bool active)
 		ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
+			service_active = false;
 			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service");
 			return;
 		}
