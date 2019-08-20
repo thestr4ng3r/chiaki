@@ -298,11 +298,12 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	}
 
 	audio_output = new QAudioOutput(audio_format, this);
+	audio_output->setBufferSize(48000);
 	audio_io = audio_output->start();
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz",
+	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",
 				audio_device_info.deviceName().toLocal8Bit().constData(),
-				channels, rate);
+				channels, rate, audio_output->bufferSize());
 }
 
 void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
