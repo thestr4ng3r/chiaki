@@ -53,6 +53,8 @@ SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QStrin
 			CHIAKI_LOGI(&log, "Logging to file %s", filename.toLocal8Bit().constData());
 		}
 	}
+
+	CHIAKI_LOGI(&log, "Chiaki Version " CHIAKI_VERSION);
 }
 
 SessionLog::~SessionLog()

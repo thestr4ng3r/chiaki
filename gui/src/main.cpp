@@ -71,7 +71,7 @@ int real_main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
-	Q_INIT_RESOURCE(resources);
+	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 

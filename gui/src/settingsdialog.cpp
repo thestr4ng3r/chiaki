@@ -32,6 +32,21 @@
 #include <QCheckBox>
 #include <QLineEdit>
 
+
+const char * const about_string =
+	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
+	""
+	"<p>This program is free software: you can redistribute it and/or modify "
+	"it under the terms of the GNU General Public License as published by "
+	"the Free Software Foundation, either version 3 of the License, or "
+	"(at your option) any later version.</p>"
+	""
+	"<p>This program is distributed in the hope that it will be useful, "
+	"but WITHOUT ANY WARRANTY; without even the implied warranty of "
+	"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
+	"GNU General Public License for more details.</p>";
+
+
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
 	this->settings = settings;
@@ -61,6 +76,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
 
+	auto about_button = new QPushButton(tr("About Chiaki"), this);
+	general_layout->addRow(about_button);
+	connect(about_button, &QPushButton::clicked, this, [this]() {
+		QMessageBox::about(this, tr("About Chiaki"), about_string);
+	});
 
 	// Stream Settings
 
