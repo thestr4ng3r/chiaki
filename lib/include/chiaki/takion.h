@@ -116,6 +116,7 @@ typedef struct chiaki_takion_connect_info_t
 	ChiakiLog *log;
 	struct sockaddr *sa;
 	size_t sa_len;
+	bool ip_dontfrag;
 	ChiakiTakionCallback cb;
 	void *cb_user;
 	bool enable_crypt;

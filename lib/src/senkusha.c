@@ -151,6 +151,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
 	err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
+	takion_info.ip_dontfrag = true;
 
 	takion_info.enable_crypt = false;
 	takion_info.protocol_version = 7;

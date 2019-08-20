@@ -245,23 +245,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_sock;
 	}
 
+	if(info->ip_dontfrag)
+	{
 #if __APPLE__
-	CHIAKI_LOGW(takion->log, "Don't fragment is not supported on macOS, MTU values may be incorrect.");
+		CHIAKI_LOGW(takion->log, "Don't fragment is not supported on macOS, MTU values may be incorrect.");
 #else
 #if defined(_WIN32)
-	const DWORD dontfragment_val = 1;
-	r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
+		const DWORD dontfragment_val = 1;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
 #else
-	const int mtu_discover_val = IP_PMTUDISC_DO;
-	r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
+		const int mtu_discover_val = IP_PMTUDISC_DO;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *) &mtu_discover_val, sizeof(mtu_discover_val));
 #endif
-	if(r < 0)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
-		ret = CHIAKI_ERR_NETWORK;
-		goto error_sock;
+		if(r < 0)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
+			ret = CHIAKI_ERR_NETWORK;
+			goto error_sock;
+		}
+		CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
+#endif
 	}
-#endif
 
 	r = connect(takion->sock, info->sa, info->sa_len);
 	if(r < 0)

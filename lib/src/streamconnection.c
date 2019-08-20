@@ -142,6 +142,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
 	err = set_port(takion_info.sa, htons(STREAM_CONNECTION_PORT));
 	assert(err == CHIAKI_ERR_SUCCESS);
+	takion_info.ip_dontfrag = false;
 
 	takion_info.enable_crypt = true;
 	takion_info.protocol_version = 9;
