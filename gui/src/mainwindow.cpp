@@ -202,13 +202,14 @@ void MainWindow::SendWakeup(const DisplayServer *server)
 
 void MainWindow::ServerItemWidgetTriggered()
 {
-	auto server = DisplayServerFromSender();
-	if(!server)
+	auto s = DisplayServerFromSender();
+	if(!s)
 		return;
+	auto server = *s;
 
-	if(server->registered)
+	if(server.registered)
 	{
-		if(server->discovered && server->discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+		if(server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
 		{
 			int r = QMessageBox::question(this,
 					tr("Start Stream"),
@@ -216,21 +217,27 @@ void MainWindow::ServerItemWidgetTriggered()
 					QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 			if(r == QMessageBox::Yes)
 			{
-				SendWakeup(server);
+				SendWakeup(&server);
 				return;
 			}
 			else if(r == QMessageBox::Cancel)
 				return;
 		}
 
-		QString host = server->GetHostAddr();
-		StreamSessionConnectInfo info(settings, host, server->registered_host.GetRPRegistKey(), server->registered_host.GetRPKey());
+		QString host = server.GetHostAddr();
+		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey());
 		new StreamWindow(info);
 	}
 	else
 	{
-		RegistDialog regist_dialog(settings, server->GetHostAddr(), this);
-		regist_dialog.exec();
+		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+		int r = regist_dialog.exec();
+		if(r == QDialog::Accepted && !server.discovered) // success
+		{
+			ManualHost manual_host = server.manual_host;
+			manual_host.Register(regist_dialog.GetRegisteredHost());
+			settings->SetManualHost(manual_host);
+		}
 	}
 }
 

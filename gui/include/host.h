@@ -96,6 +96,8 @@ class ManualHost
 		bool GetRegistered() const	{ return registered; }
 		HostMAC GetMAC() const 		{ return registered_mac; }
 
+		void Register(const RegisteredHost &registered_host) { this->registered = true; this->registered_mac = registered_host.GetPS4MAC(); }
+
 		void SaveToSettings(QSettings *settings) const;
 		static ManualHost LoadFromSettings(QSettings *settings);
 };

@@ -45,12 +45,16 @@ class RegistDialog : public QDialog
 		QDialogButtonBox *button_box;
 		QPushButton *register_button;
 
+		RegisteredHost registered_host;
+
 	private slots:
 		void ValidateInput();
 
 	public:
 		explicit RegistDialog(Settings *settings, const QString &host = QString(), QWidget *parent = nullptr);
 		~RegistDialog();
+
+		RegisteredHost GetRegisteredHost() { return registered_host; }
 
 	public slots:
 		void accept() override;
@@ -71,6 +75,8 @@ class RegistExecuteDialog: public QDialog
 		QPlainTextEdit *log_edit;
 		QDialogButtonBox *button_box;
 
+		RegisteredHost registered_host;
+
 		void Finished();
 
 	private slots:
@@ -81,6 +87,8 @@ class RegistExecuteDialog: public QDialog
 	public:
 		explicit RegistExecuteDialog(Settings *settings, const ChiakiRegistInfo &regist_info, QWidget *parent = nullptr);
 		~RegistExecuteDialog();
+
+		RegisteredHost GetRegisteredHost()	{ return registered_host; }
 };
 
 Q_DECLARE_METATYPE(ChiakiRegistEventType)

@@ -101,7 +101,10 @@ void RegistDialog::accept()
 	RegistExecuteDialog execute_dialog(settings, info, this);
 	int r = execute_dialog.exec();
 	if(r == QDialog::Accepted)
-		close();
+	{
+		this->registered_host = execute_dialog.GetRegisteredHost();
+		QDialog::accept();
+	}
 }
 
 static void RegistExecuteDialogLogCb(ChiakiLogLevel level, const char *msg, void *user);
@@ -155,6 +158,7 @@ void RegistExecuteDialog::Finished()
 void RegistExecuteDialog::Success(RegisteredHost host)
 {
 	CHIAKI_LOGI(&log, "Successfully registered %s", host.GetPS4Nickname().toLocal8Bit().constData());
+	this->registered_host = host;
 
 	if(settings->GetRegisteredHostRegistered(host.GetPS4MAC()))
 	{
