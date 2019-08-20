@@ -232,13 +232,19 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 		return;
 	}
 
-	if(payload_size < 2 || (char)payload[0] != 'J')
+	if(payload_size < 2)
 	{
-		CHIAKI_LOGE(ctrl->session->log, "Invalid Session Id received");
+		CHIAKI_LOGE(ctrl->session->log, "Invalid Session Id \"%s\" received", payload);
 		return;
 	}
 
-	// skip the 'J'
+	if(payload[0] != 0x4a)
+	{
+		CHIAKI_LOGW(ctrl->session->log, "Received presumably invalid Session Id:");
+		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_WARNING, payload, payload_size);
+	}
+
+	// skip the size
 	payload++;
 	payload_size--;
 
