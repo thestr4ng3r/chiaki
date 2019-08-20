@@ -5,6 +5,8 @@
 
 **Disclaimer:** This project is not endorsed or certified by Sony Interactive Entertainment LLC.
 
+[![Travis Build Status](https://travis-ci.com/thestr4ng3r/chiaki.svg?branch=master)](https://travis-ci.com/thestr4ng3r/chiaki) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki)
+
 Chiaki is a Free and Open Source Software Client for PlayStation 4 Remote Play
 for Linux, macOS, Windows and potentially even more platforms.
 
