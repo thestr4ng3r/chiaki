@@ -54,8 +54,16 @@ class Settings : public QObject
 		ChiakiVideoResolutionPreset GetResolution() const;
 		void SetResolution(ChiakiVideoResolutionPreset resolution);
 
+		/**
+		 * @return 0 if set to "automatic"
+		 */
 		ChiakiVideoFPSPreset GetFPS() const;
 		void SetFPS(ChiakiVideoFPSPreset fps);
+
+		unsigned int GetBitrate() const;
+		void SetBitrate(unsigned int bitrate);
+
+		ChiakiConnectVideoProfile GetVideoProfile();
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);

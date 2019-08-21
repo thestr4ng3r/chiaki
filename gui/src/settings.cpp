@@ -73,6 +73,25 @@ void Settings::SetFPS(ChiakiVideoFPSPreset fps)
 	settings.setValue("settings/fps", fps_values[fps]);
 }
 
+unsigned int Settings::GetBitrate() const
+{
+	return settings.value("settings/bitrate", 0).toUInt();
+}
+
+void Settings::SetBitrate(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate", bitrate);
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfile()
+{
+	ChiakiConnectVideoProfile profile;
+	chiaki_connect_video_profile_preset(&profile, GetResolution(), GetFPS());
+	unsigned int bitrate = GetBitrate();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	return profile;
+}
 
 void Settings::LoadRegisteredHosts()
 {

@@ -122,6 +122,14 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(fps_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(FPSSelected()));
 	stream_settings_layout->addRow(tr("FPS:"), fps_combo_box);
 
+	bitrate_edit = new QLineEdit(this);
+	bitrate_edit->setValidator(new QIntValidator(2000, 50000, bitrate_edit));
+	unsigned int bitrate = settings->GetBitrate();
+	bitrate_edit->setText(bitrate ? QString::number(bitrate) : "");
+	stream_settings_layout->addRow(tr("Bitrate:"), bitrate_edit);
+	connect(bitrate_edit, &QLineEdit::textEdited, this, &SettingsDialog::BitrateEdited);
+	UpdateBitratePlaceholder();
+
 
 	// Registered Consoles
 
@@ -150,6 +158,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
 	layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
+	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
 	UpdateRegisteredHosts();
 	UpdateRegisteredHostsButtons();
@@ -161,6 +170,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 void SettingsDialog::ResolutionSelected()
 {
 	settings->SetResolution((ChiakiVideoResolutionPreset)resolution_combo_box->currentData().toInt());
+	UpdateBitratePlaceholder();
 }
 
 void SettingsDialog::LogVerboseChanged()
@@ -171,6 +181,16 @@ void SettingsDialog::LogVerboseChanged()
 void SettingsDialog::FPSSelected()
 {
 	settings->SetFPS((ChiakiVideoFPSPreset)fps_combo_box->currentData().toInt());
+}
+
+void SettingsDialog::BitrateEdited()
+{
+	settings->SetBitrate(bitrate_edit->text().toUInt());
+}
+
+void SettingsDialog::UpdateBitratePlaceholder()
+{
+	bitrate_edit->setPlaceholderText(tr("Automatic (%1)").arg(settings->GetVideoProfile().bitrate));
 }
 
 void SettingsDialog::UpdateRegisteredHosts()

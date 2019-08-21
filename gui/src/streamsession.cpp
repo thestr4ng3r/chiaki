@@ -41,7 +41,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 {
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
-	chiaki_connect_video_profile_preset(&video_profile, settings->GetResolution(), settings->GetFPS());
+	video_profile = settings->GetVideoProfile();
 	this->host = host;
 	this->regist_key = regist_key;
 	this->morning = morning;

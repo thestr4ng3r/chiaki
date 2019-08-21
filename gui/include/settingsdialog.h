@@ -24,6 +24,7 @@ class Settings;
 class QListWidget;
 class QComboBox;
 class QCheckBox;
+class QLineEdit;
 
 class SettingsDialog : public QDialog
 {
@@ -36,15 +37,19 @@ class SettingsDialog : public QDialog
 
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
+		QLineEdit *bitrate_edit;
 
 		QListWidget *registered_hosts_list_widget;
 		QPushButton *delete_registered_host_button;
+
+		void UpdateBitratePlaceholder();
 
 	private slots:
 		void LogVerboseChanged();
 
 		void ResolutionSelected();
 		void FPSSelected();
+		void BitrateEdited();
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();
