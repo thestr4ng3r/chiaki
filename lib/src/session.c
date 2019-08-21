@@ -54,22 +54,27 @@ CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile
 		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
 			profile->width = 640;
 			profile->height = 360;
+			profile->bitrate = 2000;
 			break;
 		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
 			profile->width = 960;
 			profile->height = 540;
+			profile->bitrate = 6000;
 			break;
 		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
 			profile->width = 1280;
 			profile->height = 720;
+			profile->bitrate = 6000; // TODO: 10000 by default
 			break;
 		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
 			profile->width = 1920;
 			profile->height = 1080;
+			profile->bitrate = 10000; // TODO
 			break;
 		default:
 			profile->width = 0;
 			profile->height = 0;
+			profile->bitrate = 0;
 			break;
 	}
 
@@ -595,7 +600,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 
 	ChiakiHttpResponse http_response;
 	CHIAKI_LOGV(session->log, "Session Response Header:");
-	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, buf, header_size);
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, header_size);
 	err = chiaki_http_response_parse(&http_response, buf, header_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

@@ -35,6 +35,7 @@ typedef struct chiaki_launch_spec_t
 	unsigned int width;
 	unsigned int height;
 	unsigned int max_fps;
+	unsigned int bw_kbps_sent;
 } ChiakiLaunchSpec;
 
 CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec);

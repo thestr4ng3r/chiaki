@@ -659,6 +659,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	launch_spec.width = session->connect_info.video_profile.width;
 	launch_spec.height = session->connect_info.video_profile.height;
 	launch_spec.max_fps = session->connect_info.video_profile.max_fps;
+	launch_spec.bw_kbps_sent = session->connect_info.video_profile.bitrate;
 
 	union
 	{

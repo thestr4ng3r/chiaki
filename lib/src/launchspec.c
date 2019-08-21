@@ -28,18 +28,18 @@ static const char launchspec_fmt[] =
 			"{"
 				"\"resolution\":"
 				"{"
-					"\"width\":%u,"
-					"\"height\":%u"
+					"\"width\":%u," // 0
+					"\"height\":%u" // 1
 				"},"
-				"\"maxFps\":%u,"
+				"\"maxFps\":%u," // 2
 				"\"score\":10"
 			"}"
 		"],"
 		"\"network\":{"
-			"\"bwKbpsSent\":2000,"
+			"\"bwKbpsSent\":%u," // 3
 			"\"bwLoss\":0.001000,"
-			"\"mtu\":%u," // 0
-			"\"rtt\":%u," // 1
+			"\"mtu\":%u," // 4
+			"\"rtt\":%u," // 5
 			"\"ports\":[53,2053]"
 		"},"
 		"\"slotId\":1,"
@@ -73,7 +73,7 @@ static const char launchspec_fmt[] =
 			"\"region\":\"US\","
 			"\"languagesUsed\":[\"en\",\"jp\"]"
 		"},"
-		"\"handshakeKey\":\"%s\"" // 2
+		"\"handshakeKey\":\"%s\"" // 6
 	"}";
 
 CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec)
@@ -85,7 +85,7 @@ CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLau
 
 	int written = snprintf(buf, buf_size, launchspec_fmt,
 			launch_spec->width, launch_spec->height, launch_spec->max_fps,
-			launch_spec->mtu, launch_spec->rtt, handshake_key_b64);
+			launch_spec->bw_kbps_sent, launch_spec->mtu, launch_spec->rtt, handshake_key_b64);
 	if(written < 0 || written >= buf_size)
 		return -1;
 	return written;

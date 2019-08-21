@@ -48,6 +48,7 @@ typedef struct chiaki_connect_video_profile_t
 	unsigned int width;
 	unsigned int height;
 	unsigned int max_fps;
+	unsigned int bitrate;
 } ChiakiConnectVideoProfile;
 
 typedef enum {
