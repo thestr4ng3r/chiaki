@@ -61,7 +61,6 @@ cmake \
 	.. || exit 1
 
 ninja || exit 1
-cat gui/chiaki_autogen/*/qrc_resources.cpp
 cd .. || exit 1
 
 
