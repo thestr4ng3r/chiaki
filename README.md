@@ -19,7 +19,6 @@ registration and wakeup of the console, is supported.
 The following features however are yet to be implemented:
 * Congestion Control
 * H264 Error Concealment (FEC and active error recovery however are implemented)
-* Make the console send in higher Bitrate (if possible)
 * Touchpad support (Triggering the Touchpad Button is currently possible by pressing `T` on the keyboard)
 * Configurable Keybindings
 
