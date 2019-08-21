@@ -61,6 +61,7 @@ cmake \
 	.. || exit 1
 
 ninja || exit 1
+ls -l test/chiaki-unit.exe || exit 1
 test/chiaki-unit.exe || exit 1
 cd .. || exit 1
 
