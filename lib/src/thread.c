@@ -66,9 +66,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **re
 	return CHIAKI_ERR_SUCCESS;
 }
 
+//#define CHIAKI_WINDOWS_THREAD_NAME
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const char *name)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && defined(CHIAKI_WINDOWS_THREAD_NAME)
 	int len = MultiByteToWideChar(CP_UTF8, 0, name, -1, NULL, 0);
 	wchar_t *wstr = calloc(sizeof(wchar_t), len+1);
 	if(!wstr)
