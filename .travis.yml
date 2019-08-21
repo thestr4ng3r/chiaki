@@ -3,7 +3,8 @@ language: cpp
 
 matrix:
   include:
-    - os: linux
+    - name: Linux
+      os: linux
       dist: bionic
       addons:
         apt:
@@ -34,7 +35,8 @@ matrix:
         - ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage
         - mv Chiaki-*-x86_64.AppImage Chiaki-x86_64.AppImage
 
-    - os: osx
+    - name: macOS
+      os: osx
       osx_image: xcode11
       addons:
         homebrew:
@@ -52,6 +54,17 @@ matrix:
         - cd ..
         - cp -a build/gui/chiaki.app Chiaki.app
         - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
+
+    - name: "Source Package"
+      os: linux
+      dist: bionic
+      install: ~
+      script:
+        - find . -name ".git*" | xargs rm -rfv
+        - mkdir chiaki && shopt -s extglob && mv !(chiaki) chiaki
+        - tar -czvf "$DEPLOY_FILE" chiaki
+      env:
+        - DEPLOY_FILE="chiaki-src.tar.gz"
 
 install:
   - scripts/build-ffmpeg.sh
