@@ -22,6 +22,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QCoreApplication>
+#include <QAction>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
@@ -30,19 +31,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	setWindowTitle(qApp->applicationName());
 	try
 	{
-		session = new StreamSession(connect_info, this);
-
-		connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
-
-		av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
-		setCentralWidget(av_widget);
-
-		grabKeyboard();
-
-		session->Start();
-
-		resize(connect_info.video_profile.width, connect_info.video_profile.height);
-		show();
+		Init(connect_info);
 	}
 	catch(const Exception &e)
 	{
@@ -57,6 +46,28 @@ StreamWindow::~StreamWindow()
 {
 	// make sure av_widget is always deleted before the session
 	delete av_widget;
+}
+
+void StreamWindow::Init(const StreamSessionConnectInfo &connect_info)
+{
+	session = new StreamSession(connect_info, this);
+
+	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
+
+	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+	setCentralWidget(av_widget);
+
+	grabKeyboard();
+
+	session->Start();
+
+	auto fullscreen_action = new QAction(tr("Fullscreen"), this);
+	fullscreen_action->setShortcut(Qt::Key_F11);
+	addAction(fullscreen_action);
+	connect(fullscreen_action, &QAction::triggered, this, &StreamWindow::ToggleFullscreen);
+
+	resize(connect_info.video_profile.width, connect_info.video_profile.height);
+	show();
 }
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
@@ -86,4 +97,18 @@ void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_st
 		m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
 	QMessageBox::critical(this, tr("Session has quit"), m);
 	close();
+}
+
+void StreamWindow::ToggleFullscreen()
+{
+	if(isFullScreen())
+	{
+		setCursor(Qt::ArrowCursor);
+		showNormal();
+	}
+	else
+	{
+		setCursor(Qt::BlankCursor);
+		showFullScreen();
+	}
 }

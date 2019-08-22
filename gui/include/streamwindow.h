@@ -38,6 +38,8 @@ class StreamWindow: public QMainWindow
 
 		AVOpenGLWidget *av_widget;
 
+		void Init(const StreamSessionConnectInfo &connect_info);
+
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
@@ -45,6 +47,7 @@ class StreamWindow: public QMainWindow
 
 	private slots:
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
+		void ToggleFullscreen();
 };
 
 #endif // CHIAKI_GUI_STREAMWINDOW_H
