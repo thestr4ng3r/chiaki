@@ -46,7 +46,6 @@ PYTHON="C:/Python37/python.exe"
 QT_PATH="C:/Qt/5.12.4/msvc2017_64"
 
 COPY_DLLS="$PWD/openssl-1.1/x64/bin/libcrypto-1_1-x64.dll $PWD/openssl-1.1/x64/bin/libssl-1_1-x64.dll $SDL_ROOT/lib/x64/SDL2.dll"
-echo "copy dlls $COPY_DLLS"
 
 mkdir build && cd build || exit 1
 
@@ -65,7 +64,6 @@ cmake \
 
 ninja || exit 1
 
-ls -l test || exit 1
 test/chiaki-unit.exe || exit 1
 
 cd .. || exit 1
