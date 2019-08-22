@@ -20,6 +20,7 @@ The following features however are yet to be implemented:
 * Congestion Control
 * H264 Error Concealment (FEC and active error recovery however are implemented)
 * Touchpad support (Triggering the Touchpad Button is currently possible by pressing `T` on the keyboard)
+* Rumble
 * Configurable Keybindings
 
 ## Downloading a Release
