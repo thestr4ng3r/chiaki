@@ -74,10 +74,6 @@ before_script:
   - export CHIAKI_VERSION="$TRAVIS_TAG"
   - if [ -z "$CHIAKI_VERSION" ]; then export CHIAKI_VERSION="$TRAVIS_COMMIT"; fi
 
-after_script:
-  - echo "Deploy File: \"$DEPLOY_FILE\""
-  - ls -l "$DEPLOY_FILE"
-
 script:
   - mkdir build && cd build
   - cmake
