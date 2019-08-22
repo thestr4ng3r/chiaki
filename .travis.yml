@@ -1,6 +1,10 @@
 
 language: cpp
 
+branches:
+  only:
+    - master
+
 matrix:
   include:
     - name: Linux
