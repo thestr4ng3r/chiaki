@@ -47,6 +47,10 @@ mkdir build && cd build || exit 1
 
 QT_PATH="C:/Qt/5.12.4/msvc2017_64"
 
+COPY_DLLS=openssl-1.1/x64/bin/libcrypto-1_1-x64.dll \
+	openssl-1.1/x64/bin/libssl-1_1-x64.dll \
+	"$SDL_ROOT/lib/x64/SDL2.dll"
+
 cmake \
 	-G Ninja \
 	-DCMAKE_C_COMPILER=cl \
@@ -61,8 +65,11 @@ cmake \
 	.. || exit 1
 
 ninja || exit 1
-ls -l test/chiaki-unit.exe || exit 1
+
+cp $COPY_DLLS test
+ls -l test || exit 1
 test/chiaki-unit.exe || exit 1
+
 cd .. || exit 1
 
 
@@ -74,8 +81,4 @@ mkdir Chiaki && cp build/gui/chiaki.exe Chiaki || exit 1
 # cp build/gui/chiaki.pdb Chiaki
 
 "$QT_PATH/bin/windeployqt.exe" Chiaki/chiaki.exe || exit 1
-cp \
-	openssl-1.1/x64/bin/libcrypto-1_1-x64.dll \
-	openssl-1.1/x64/bin/libssl-1_1-x64.dll \
-	"$SDL_ROOT/lib/x64/SDL2.dll" \
-	Chiaki
+cp -v $COPY_DLLS Chiaki
