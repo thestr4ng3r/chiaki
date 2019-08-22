@@ -47,9 +47,9 @@ mkdir build && cd build || exit 1
 
 QT_PATH="C:/Qt/5.12.4/msvc2017_64"
 
-COPY_DLLS=openssl-1.1/x64/bin/libcrypto-1_1-x64.dll \
-	openssl-1.1/x64/bin/libssl-1_1-x64.dll \
-	"$SDL_ROOT/lib/x64/SDL2.dll"
+COPY_DLLS="\"$APPVEYOR_BUILD_FOLDER/openssl-1.1/x64/bin/libcrypto-1_1-x64.dll\" \"$APPVEYOR_BUILD_FOLDER/openssl-1.1/x64/bin/libssl-1_1-x64.dll\" \"$SDL_ROOT/lib/x64/SDL2.dll\""
+
+echo "copy dlls $COPY_DLLS"
 
 cmake \
 	-G Ninja \
