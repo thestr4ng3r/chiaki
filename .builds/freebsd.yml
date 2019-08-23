@@ -1,0 +1,25 @@
+
+image: freebsd/latest
+
+packages:
+  - cmake
+  - protobuf
+  - py36-protobuf
+  - opus
+  - qt5-core
+  - qt5-qmake
+  - qt5-buildtools
+  - qt5-gui
+  - qt5-widgets
+  - qt5-svg
+  - qt5-opengl
+  - qt5-multimedia
+  - ffmpeg
+  - sdl2
+
+tasks:
+  - build: |
+      cd chiaki
+      mkdir build && cd build
+      cmake ..
+      make -j4
