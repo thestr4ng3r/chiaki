@@ -64,10 +64,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFee
 			event->buf[1] = 0x89;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_BOX:
-			event->buf[1] = 0x8b;
+			event->buf[1] = 0x8a;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_PYRAMID:
-			event->buf[1] = 0x8a;
+			event->buf[1] = 0x8b;
 			break;
 		case CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT:
 			event->buf[1] = 0x82;
