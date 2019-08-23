@@ -58,7 +58,7 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	broadcast_check_box->setChecked(host.isEmpty());
 
 	psn_id_edit = new QLineEdit(this);
-	form_layout->addRow(tr("PSN ID (username):"), psn_id_edit);
+	form_layout->addRow(tr("PSN ID (username, case-sensitive):"), psn_id_edit);
 
 	pin_edit = new QLineEdit(this);
 	pin_edit->setValidator(new QRegularExpressionValidator(pin_re, pin_edit));

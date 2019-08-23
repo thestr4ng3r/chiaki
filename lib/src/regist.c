@@ -453,6 +453,17 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 	if(http_response.code != 200)
 	{
 		CHIAKI_LOGE(regist->log, "Regist received HTTP code %d", http_response.code);
+
+		for(ChiakiHttpHeader *header=http_response.headers; header; header=header->next)
+		{
+			if(strcmp(header->key, "RP-Application-Reason") == 0)
+			{
+				uint32_t reason = strtoul(header->value, NULL, 0x10);
+				CHIAKI_LOGE(regist->log, "Reported Application Reason: %#x (%s)", (unsigned int)reason, chiaki_rp_application_reason_string(reason));
+				break;
+			}
+		}
+
 		chiaki_http_response_fini(&http_response);
 		return CHIAKI_ERR_UNKNOWN;
 	}

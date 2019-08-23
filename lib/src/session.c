@@ -42,10 +42,26 @@
 
 #define SESSION_PORT					9295
 
-#define RP_APPLICATION_REASON_IN_USE	0x80108b10
-#define RP_APPLICATION_REASON_CRASH		0x80108b15
-
 #define SESSION_EXPECT_TIMEOUT_MS		5000
+
+
+const char *chiaki_rp_application_reason_string(uint32_t reason)
+{
+	switch(reason)
+	{
+		case CHIAKI_RP_APPLICATION_REASON_REGIST_FAILED:
+			return "Regist failed, probably invalid PIN";
+		case CHIAKI_RP_APPLICATION_REASON_INVALID_PSN_ID:
+			return "Invalid PSN ID";
+		case CHIAKI_RP_APPLICATION_REASON_IN_USE:
+			return "Remote is already in use";
+		case CHIAKI_RP_APPLICATION_REASON_CRASH:
+			return "Remote Play on Console crashed";
+		default:
+			return "unknown";
+	}
+}
+
 
 CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps)
 {
@@ -626,14 +642,13 @@ static bool session_thread_request_session(ChiakiSession *session)
 	}
 	else
 	{
+		CHIAKI_LOGE(session->log, "Reported Application Reason: %#x (%s)", (unsigned int)response.error_code, chiaki_rp_application_reason_string(response.error_code));
 		switch(response.error_code)
 		{
-			case RP_APPLICATION_REASON_IN_USE:
-				CHIAKI_LOGE(session->log, "Remote is already in use");
+			case CHIAKI_RP_APPLICATION_REASON_IN_USE:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE;
 				break;
-			case RP_APPLICATION_REASON_CRASH:
-				CHIAKI_LOGE(session->log, "Remote seems to have crashed");
+			case CHIAKI_RP_APPLICATION_REASON_CRASH:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH;
 				break;
 			default:
