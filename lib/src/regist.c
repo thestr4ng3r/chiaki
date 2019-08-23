@@ -85,6 +85,7 @@ CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist)
 {
 	chiaki_thread_join(&regist->thread, NULL);
 	chiaki_stop_pipe_fini(&regist->stop_pipe);
+	free(regist->info.psn_id);
 	free(regist->info.host);
 }
 
