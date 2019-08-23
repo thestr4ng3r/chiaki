@@ -161,6 +161,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	session->should_stop = false;
 	session->ctrl_session_id_received = false;
+	session->ctrl_login_pin_requested = false;
+	session->login_pin_entered = false;
+	session->login_pin = NULL;
+	session->login_pin_size = 0;
 
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -204,6 +208,7 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 {
 	if(!session)
 		return;
+	free(session->login_pin);
 	free(session->quit_reason_str);
 	chiaki_stream_connection_fini(&session->stream_connection);
 	chiaki_stop_pipe_fini(&session->stop_pipe);
@@ -253,6 +258,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession 
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, uint8_t *pin, size_t pin_size)
+{
+	uint8_t *buf = malloc(pin_size);
+	memcpy(buf, pin, pin_size);
+	if(!buf)
+		return CHIAKI_ERR_MEMORY;
+	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	if(session->login_pin_entered)
+		free(session->login_pin);
+	session->login_pin_entered = true;
+	session->login_pin = buf;
+	session->login_pin_size = pin_size;
+	chiaki_mutex_unlock(&session->state_mutex);
+}
+
 static void session_send_event(ChiakiSession *session, ChiakiEvent *event)
 {
 	if(!session->event_cb)
@@ -267,8 +288,24 @@ static bool session_check_state_pred(void *user)
 {
 	ChiakiSession *session = user;
 	return session->should_stop
-		|| session->ctrl_failed
-		|| session->ctrl_session_id_received;
+		|| session->ctrl_failed;
+}
+
+static bool session_check_state_pred_ctrl_start(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		   || session->ctrl_failed
+		   || session->ctrl_session_id_received
+		   || session->ctrl_login_pin_requested;
+}
+
+static bool session_check_state_pred_pin(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		   || session->ctrl_failed
+		   || session->login_pin_entered;
 }
 
 #define ENABLE_SENKUSHA
@@ -312,11 +349,36 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred, session);
+	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 	CHECK_STOP(quit_ctrl);
+
+	if(session->ctrl_failed)
+		goto ctrl_failed;
+
+	if(session->ctrl_login_pin_requested)
+	{
+		session->ctrl_login_pin_requested = false;
+		CHIAKI_LOGI(session->log, "Ctrl requested Login PIN");
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_LOGIN_PIN_REQUEST;
+		session_send_event(session, &event);
+
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
+		CHECK_STOP(quit_ctrl);
+		if(session->ctrl_failed)
+			goto ctrl_failed;
+
+		assert(session->login_pin_entered && session->login_pin);
+		chiaki_ctrl_set_login_pin(&session->ctrl, session->login_pin, session->login_pin_size);
+		session->login_pin_entered = false;
+		free(session->login_pin);
+		session->login_pin = NULL;
+		session->login_pin_size = 0;
+	}
 
 	if(!session->ctrl_session_id_received)
 	{
+ctrl_failed:
 		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
 			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;

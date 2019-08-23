@@ -37,16 +37,25 @@ typedef struct chiaki_ctrl_t
 {
 	struct chiaki_session_t *session;
 	ChiakiThread thread;
-	ChiakiStopPipe stop_pipe;
+
+	bool should_stop;
+	bool login_pin_entered;
+	uint8_t *login_pin; // not owned
+	size_t login_pin_size;
+	ChiakiStopPipe notif_pipe;
+	ChiakiMutex notif_mutex;
+
 	chiaki_socket_t sock;
 	uint8_t recv_buf[512];
 	size_t recv_buf_size;
+	uint64_t crypt_counter_local;
 	uint64_t crypt_counter_remote;
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, uint8_t *pin, size_t pin_size);
 
 #ifdef __cplusplus
 }

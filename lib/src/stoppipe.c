@@ -136,3 +136,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 	return CHIAKI_ERR_TIMEOUT;
 #endif
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_reset(ChiakiStopPipe *stop_pipe)
+{
+#ifdef _WIN32
+	BOOL r = WSAResetEvent(stop_pipe->event);
+	return r ? CHIAKI_ERR_SUCCESS : CHIAKI_ERR_UNKNOWN;
+#else
+	uint8_t v;
+	int r;
+	while((r = read(stop_pipe->fds[0], &v, sizeof(v))) > 0);
+	return r < 0 ? CHIAKI_ERR_UNKNOWN : CHIAKI_ERR_SUCCESS;
+#endif
+}
