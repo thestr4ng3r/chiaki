@@ -30,7 +30,9 @@
 #include <ws2tcpip.h>
 #else
 #include <unistd.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
+#include <sys/socket.h>
 #endif
 
 
@@ -253,9 +255,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 #if defined(_WIN32)
 		const DWORD dontfragment_val = 1;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
+#elif defined(__FreeBSD__)
+		const int dontfrag_val = 1;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const void *)&dontfrag_val, sizeof(dontfrag_val));
 #else
 		const int mtu_discover_val = IP_PMTUDISC_DO;
-		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *) &mtu_discover_val, sizeof(mtu_discover_val));
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
 #endif
 		if(r < 0)
 		{
