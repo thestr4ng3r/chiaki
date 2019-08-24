@@ -258,12 +258,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession 
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, uint8_t *pin, size_t pin_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size)
 {
 	uint8_t *buf = malloc(pin_size);
-	memcpy(buf, pin, pin_size);
 	if(!buf)
 		return CHIAKI_ERR_MEMORY;
+	memcpy(buf, pin, pin_size);
 	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
 	if(session->login_pin_entered)
@@ -272,6 +272,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *sessio
 	session->login_pin = buf;
 	session->login_pin_size = pin_size;
 	chiaki_mutex_unlock(&session->state_mutex);
+	chiaki_cond_signal(&session->state_cond);
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static void session_send_event(ChiakiSession *session, ChiakiEvent *event)
@@ -306,6 +308,14 @@ static bool session_check_state_pred_pin(void *user)
 	return session->should_stop
 		   || session->ctrl_failed
 		   || session->login_pin_entered;
+}
+
+static bool session_check_state_pred_session_id(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		   || session->ctrl_failed
+		   || session->ctrl_session_id_received;
 }
 
 #define ENABLE_SENKUSHA
@@ -369,11 +379,16 @@ static void *session_thread_func(void *arg)
 			goto ctrl_failed;
 
 		assert(session->login_pin_entered && session->login_pin);
+		CHIAKI_LOGI(session->log, "Session received entered Login PIN, forwarding to Ctrl");
 		chiaki_ctrl_set_login_pin(&session->ctrl, session->login_pin, session->login_pin_size);
 		session->login_pin_entered = false;
 		free(session->login_pin);
 		session->login_pin = NULL;
 		session->login_pin_size = 0;
+
+		// wait for session id again
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_session_id, session);
+		CHECK_STOP(quit_ctrl);
 	}
 
 	if(!session->ctrl_session_id_received)
