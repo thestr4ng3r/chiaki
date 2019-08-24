@@ -19,4 +19,4 @@ if(SDL2_FOUND AND (NOT TARGET SDL2::SDL2))
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SDL2 DEFAULT_MSG)
+find_package_handle_standard_args(SDL2 CONFIG_MODE)
