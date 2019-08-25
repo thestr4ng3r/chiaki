@@ -276,7 +276,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
 	CHIAKI_LOGI(regist->log, "Regist sending search packet");
-	int r = sendto(sock, "SRC2", 4, 0, &send_addr, send_addr_len);
+	int r = sendto_broadcast(regist->log, sock, "SRC2", 4, 0, &send_addr, send_addr_len);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to send search: %s", strerror(errno));

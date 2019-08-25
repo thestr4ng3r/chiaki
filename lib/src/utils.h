@@ -19,12 +19,20 @@
 #define CHIAKI_UTILS_H
 
 #include <chiaki/common.h>
+#include <chiaki/log.h>
 #ifdef _WIN32
 #include <ws2tcpip.h>
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#endif
+
+#ifdef __FreeBSD__
+#include <ifaddrs.h>
+#include <string.h>
+#include <errno.h>
+#include <net/if.h>
 #endif
 
 #include <stdint.h>
@@ -58,6 +66,46 @@ static inline const char *sockaddr_str(struct sockaddr *addr, char *addr_buf, si
 	if(addr_src)
 		return inet_ntop(addr->sa_family, addr_src, addr_buf, addr_buf_size);
 	return NULL;
+}
+
+static inline int sendto_broadcast(ChiakiLog *log, chiaki_socket_t s, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+{
+#ifdef __FreeBSD__
+	// see https://wiki.freebsd.org/NetworkRFCCompliance
+	if(to->sa_family == AF_INET && ((const struct sockaddr_in *)to)->sin_addr.s_addr == htonl(INADDR_BROADCAST))
+	{
+		struct ifaddrs *ifap;
+		if(getifaddrs(&ifap) < 0)
+		{
+			CHIAKI_LOGE(log, "Failed to getifaddrs for Broadcast: %s", strerror(errno));
+			return -1;
+		}
+		int r = -1;
+		for(struct ifaddrs *a=ifap; a; a=a->ifa_next)
+		{
+			if(!a->ifa_broadaddr)
+				continue;
+			if(!(a->ifa_flags & IFF_BROADCAST))
+				continue;
+			if(a->ifa_broadaddr->sa_family != to->sa_family)
+				continue;
+			((struct sockaddr_in *)a->ifa_broadaddr)->sin_port = ((const struct sockaddr_in *)to)->sin_port;
+			char addr_buf[64];
+			const char *addr_str = sockaddr_str(a->ifa_broadaddr, addr_buf, sizeof(addr_buf));
+			CHIAKI_LOGV(log, "Broadcast to %s on %s", addr_str ? addr_str : "(null)", a->ifa_name);
+			int sr = sendto(s, msg, len, flags, a->ifa_broadaddr, sizeof(*a->ifa_broadaddr));
+			if(sr < 0)
+			{
+				CHIAKI_LOGE(log, "Broadcast on iface %s failed: %s", a->ifa_name, strerror(errno));
+				continue;
+			}
+			r = sr;
+		}
+		freeifaddrs(ifap);
+		return r;
+	}
+#endif
+	return sendto(s, msg, len, flags, to, tolen);
 }
 
 static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)

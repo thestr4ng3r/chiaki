@@ -163,6 +163,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	if(r < 0)
 		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt SO_BROADCAST");
 
+//#ifdef __FreeBSD__
+//	const int onesbcast = 1;
+//	r = setsockopt(discovery->socket, IPPROTO_IP, IP_ONESBCAST, &onesbcast, sizeof(onesbcast));
+//	if(r < 0)
+//		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt IP_ONESBCAST");
+//#endif
+
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -183,7 +190,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 	if((size_t)len >= sizeof(buf))
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	int rc = sendto(discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
+	int rc = sendto_broadcast(discovery->log, discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
 	if(rc < 0)
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to send: %s", strerror(errno));
