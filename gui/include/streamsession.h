@@ -92,6 +92,8 @@ class StreamSession : public QObject
 		void Start();
 		void Stop();
 
+		void SetLoginPIN(const QString &pin);
+
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *GetGamepad()	{ return gamepad; }
 #endif
@@ -103,6 +105,7 @@ class StreamSession : public QObject
 	signals:
 		void CurrentImageUpdated();
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
+		void LoginPINRequested();
 
 	private slots:
 		void UpdateGamepads();

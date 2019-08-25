@@ -104,15 +104,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl)
 	ChiakiErrorCode err = chiaki_thread_join(&ctrl->thread, NULL);
 	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
+	free(ctrl->login_pin);
 	return err;
 }
 
-CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, uint8_t *pin, size_t pin_size)
+CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pin, size_t pin_size)
 {
+	uint8_t *buf = malloc(pin_size);
+	if(!buf)
+		return;
+	memcpy(buf, pin, pin_size);
 	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->notif_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
+	if(ctrl->login_pin_entered)
+		free(ctrl->login_pin);
 	ctrl->login_pin_entered = true;
-	ctrl->login_pin = pin;
+	ctrl->login_pin = buf;
 	ctrl->login_pin_size = pin_size;
 	chiaki_stop_pipe_stop(&ctrl->notif_pipe);
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
@@ -194,8 +201,12 @@ static void *ctrl_thread_func(void *user)
 
 			if(ctrl->login_pin_entered)
 			{
+				CHIAKI_LOGI(ctrl->session->log, "Ctrl received entered Login PIN, sending to console");
 				ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_LOGIN_PIN_REP, ctrl->login_pin, ctrl->login_pin_size);
 				ctrl->login_pin_entered = false;
+				free(ctrl->login_pin);
+				ctrl->login_pin = NULL;
+				ctrl->login_pin_size = 0;
 				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
 			}
 			else
@@ -232,6 +243,21 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type,
 {
 	assert(payload_size == 0 || payload);
 
+	uint8_t *enc = NULL;
+	if(payload && payload_size)
+	{
+		enc = malloc(payload_size);
+		if(!enc)
+			return CHIAKI_ERR_MEMORY;
+		ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&ctrl->session->rpcrypt, ctrl->crypt_counter_local++, payload, enc, payload_size);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(ctrl->session->log, "Ctrl failed to encrypt payload");
+			free(enc);
+			return err;
+		}
+	}
+
 	uint8_t header[8];
 	*((uint32_t *)header) = htonl((uint32_t)payload_size);
 	*((uint16_t *)(header + 4)) = htons(type);
@@ -244,9 +270,10 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type,
 		return CHIAKI_ERR_NETWORK;
 	}
 
-	if(payload)
+	if(enc)
 	{
-		sent = send(ctrl->sock, payload, payload_size, 0);
+		sent = send(ctrl->sock, enc, payload_size, 0);
+		free(enc);
 		if(sent < 0)
 		{
 			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Payload");
@@ -437,7 +464,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 
 	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
-	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char auth_b64[CHIAKI_RPCRYPT_KEY_SIZE*2];
@@ -446,7 +473,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		goto error;
 
 	uint8_t did_enc[CHIAKI_RP_DID_SIZE];
-	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (uint8_t *)session->connect_info.did, did_enc, CHIAKI_RP_DID_SIZE);
+	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, session->connect_info.did, did_enc, CHIAKI_RP_DID_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char did_b64[CHIAKI_RP_DID_SIZE*2];
@@ -458,7 +485,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	size_t ostype_len = strlen(SESSION_OSTYPE) + 1;
 	if(ostype_len > sizeof(ostype_enc))
 		goto error;
-	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (uint8_t *)SESSION_OSTYPE, ostype_enc, ostype_len);
+	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)SESSION_OSTYPE, ostype_enc, ostype_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char ostype_b64[256];

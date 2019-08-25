@@ -124,6 +124,12 @@ void StreamSession::Stop()
 	chiaki_session_stop(&session);
 }
 
+void StreamSession::SetLoginPIN(const QString &pin)
+{
+	QByteArray data = pin.toUtf8();
+	chiaki_session_set_login_pin(&session, (const uint8_t *)data.constData(), data.size());
+}
+
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
 	uint64_t button_mask;
@@ -324,6 +330,9 @@ void StreamSession::Event(ChiakiEvent *event)
 	{
 		case CHIAKI_EVENT_QUIT:
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
+			break;
+		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
+			emit LoginPINRequested();
 			break;
 	}
 }

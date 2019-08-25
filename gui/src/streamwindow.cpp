@@ -18,6 +18,7 @@
 #include <streamwindow.h>
 #include <streamsession.h>
 #include <avopenglwidget.h>
+#include <loginpindialog.h>
 
 #include <QLabel>
 #include <QMessageBox>
@@ -29,14 +30,16 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 {
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle(qApp->applicationName());
+
+	session = nullptr;
+	av_widget = nullptr;
+
 	try
 	{
 		Init(connect_info);
 	}
 	catch(const Exception &e)
 	{
-		session = nullptr;
-		av_widget = nullptr;
 		QMessageBox::critical(this, tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
 		close();
 	}
@@ -53,6 +56,7 @@ void StreamWindow::Init(const StreamSessionConnectInfo &connect_info)
 	session = new StreamSession(connect_info, this);
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
+	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
 	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
 	setCentralWidget(av_widget);
@@ -90,13 +94,33 @@ void StreamWindow::closeEvent(QCloseEvent *)
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
 {
-	if(reason == CHIAKI_QUIT_REASON_STOPPED)
-		return;
-	QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
-	if(!reason_str.isEmpty())
-		m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
-	QMessageBox::critical(this, tr("Session has quit"), m);
+	if(reason != CHIAKI_QUIT_REASON_STOPPED)
+	{
+		QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
+		if(!reason_str.isEmpty())
+			m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
+		QMessageBox::critical(this, tr("Session has quit"), m);
+	}
 	close();
+}
+
+void StreamWindow::LoginPINRequested()
+{
+	auto dialog = new LoginPINDialog(this);
+	dialog->setAttribute(Qt::WA_DeleteOnClose);
+	connect(dialog, &QDialog::finished, this, [this, dialog](int result) {
+		grabKeyboard();
+
+		if(!session)
+			return;
+
+		if(result == QDialog::Accepted)
+			session->SetLoginPIN(dialog->GetPIN());
+		else
+			session->Stop();
+	});
+	releaseKeyboard();
+	dialog->show();
 }
 
 void StreamWindow::ToggleFullscreen()

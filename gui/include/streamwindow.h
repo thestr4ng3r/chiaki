@@ -47,6 +47,7 @@ class StreamWindow: public QMainWindow
 
 	private slots:
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
+		void LoginPINRequested();
 		void ToggleFullscreen();
 };
 
