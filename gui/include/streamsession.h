@@ -105,7 +105,7 @@ class StreamSession : public QObject
 	signals:
 		void CurrentImageUpdated();
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
-		void LoginPINRequested();
+		void LoginPINRequested(bool incorrect);
 
 	private slots:
 		void UpdateGamepads();

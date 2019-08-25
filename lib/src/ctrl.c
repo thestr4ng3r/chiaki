@@ -49,8 +49,14 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_HEARTBEAT_REQ = 0xfe,
 	CTRL_MESSAGE_TYPE_HEARTBEAT_REP = 0x1fe,
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REQ = 0x4,
-	CTRL_MESSAGE_TYPE_LOGIN_PIN_REP = 0x8004
+	CTRL_MESSAGE_TYPE_LOGIN_PIN_REP = 0x8004,
+	CTRL_MESSAGE_TYPE_LOGIN = 0x5
 } CtrlMessageType;
+
+typedef enum ctrl_login_state_t {
+	CTRL_LOGIN_STATE_SUCCESS = 0x0,
+	CTRL_LOGIN_STATE_PIN_INCORRECT = 0x1
+} CtrlLoginState;
 
 
 static void *ctrl_thread_func(void *user);
@@ -58,6 +64,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type,
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
@@ -65,6 +72,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession 
 
 	ctrl->should_stop = false;
 	ctrl->login_pin_entered = false;
+	ctrl->login_pin_requested = false;
 	ctrl->login_pin = NULL;
 	ctrl->login_pin_size = 0;
 
@@ -307,9 +315,12 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 		case CTRL_MESSAGE_TYPE_LOGIN_PIN_REQ:
 			ctrl_message_received_login_pin_req(ctrl, payload, payload_size);
 			break;
+		case CTRL_MESSAGE_TYPE_LOGIN:
+			ctrl_message_received_login(ctrl, payload, payload_size);
+			break;
 		default:
 			CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
-			chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
+			chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_WARNING, payload, payload_size);
 			break;
 	}
 }
@@ -385,12 +396,50 @@ static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *paylo
 
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login PIN request");
 
-	chiaki_mutex_lock(&ctrl->session->state_mutex);
+	ctrl->login_pin_requested = true;
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->session->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
 	ctrl->session->ctrl_login_pin_requested = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
 }
 
+static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(payload_size != 1)
+	{
+		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Login message with payload of size %llx", (unsigned long long)payload_size);
+		if(payload_size < 1)
+			return;
+	}
+
+	CtrlLoginState state = payload[0];
+	switch(state)
+	{
+		case CTRL_LOGIN_STATE_SUCCESS:
+			CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login message: success");
+			ctrl->login_pin_requested = false;
+			break;
+		case CTRL_LOGIN_STATE_PIN_INCORRECT:
+			CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login message: PIN incorrect");
+			if(ctrl->login_pin_requested)
+			{
+				CHIAKI_LOGI(ctrl->session->log, "Ctrl requesting PIN from Session again");
+				ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->session->state_mutex);
+				assert(err == CHIAKI_ERR_SUCCESS);
+				ctrl->session->ctrl_login_pin_requested = true;
+				chiaki_mutex_unlock(&ctrl->session->state_mutex);
+				chiaki_cond_signal(&ctrl->session->state_cond);
+			}
+			else
+				CHIAKI_LOGW(ctrl->session->log, "Ctrl Login PIN incorrect message, but PIN was not requested");
+			break;
+		default:
+			CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login message with state: %x", state);
+			break;
+	}
+}
 
 
 typedef struct ctrl_response_t {

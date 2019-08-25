@@ -104,9 +104,9 @@ void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_st
 	close();
 }
 
-void StreamWindow::LoginPINRequested()
+void StreamWindow::LoginPINRequested(bool incorrect)
 {
-	auto dialog = new LoginPINDialog(this);
+	auto dialog = new LoginPINDialog(incorrect, this);
 	dialog->setAttribute(Qt::WA_DeleteOnClose);
 	connect(dialog, &QDialog::finished, this, [this, dialog](int result) {
 		grabKeyboard();

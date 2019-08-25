@@ -23,15 +23,21 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#include <QLabel>
 
 #define PIN_LENGTH 4
 
 static const QRegularExpression pin_re(QString("[0-9]").repeated(PIN_LENGTH));
 
-LoginPINDialog::LoginPINDialog(QWidget *parent) : QDialog(parent)
+LoginPINDialog::LoginPINDialog(bool incorrect, QWidget *parent) : QDialog(parent)
 {
+	setWindowTitle(tr("Console Login PIN"));
+
 	auto layout = new QVBoxLayout(this);
 	setLayout(layout);
+
+	if(incorrect)
+		layout->addWidget(new QLabel(tr("Entered PIN was incorrect!"), this));
 
 	pin_edit = new QLineEdit(this);
 	pin_edit->setPlaceholderText(tr("Login PIN"));
