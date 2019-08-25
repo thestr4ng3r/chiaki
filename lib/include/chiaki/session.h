@@ -111,6 +111,7 @@ typedef struct chiaki_audio_stream_info_event_t
 
 
 typedef enum {
+	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
 	CHIAKI_EVENT_QUIT
 } ChiakiEventType;
 
@@ -164,7 +165,7 @@ typedef struct chiaki_session_t
 	ChiakiAudioSettingsCallback audio_settings_cb;
 	ChiakiAudioFrameCallback audio_frame_cb;
 	void *audio_cb_user;
-	ChiakiVideoSampleCallback  video_sample_cb;
+	ChiakiVideoSampleCallback video_sample_cb;
 	void *video_sample_cb_user;
 
 	ChiakiThread session_thread;
@@ -175,6 +176,10 @@ typedef struct chiaki_session_t
 	bool should_stop;
 	bool ctrl_failed;
 	bool ctrl_session_id_received;
+	bool ctrl_login_pin_requested;
+	bool login_pin_entered;
+	uint8_t *login_pin;
+	size_t login_pin_size;
 
 	ChiakiCtrl ctrl;
 
@@ -193,6 +198,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, uint8_t *pin, size_t pin_size);
 
 static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
 {
