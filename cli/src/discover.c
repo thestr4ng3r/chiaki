@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
+#include <netinet/in.h>
 
 static char doc[] = "Send a PS4 discovery request.";
 

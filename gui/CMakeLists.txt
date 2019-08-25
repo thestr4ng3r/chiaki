@@ -70,7 +70,7 @@ target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
 if(CHIAKI_ENABLE_CLI)
-	add_definitions(CHIAKI_ENABLE_CLI)
+	add_definitions(-DCHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 

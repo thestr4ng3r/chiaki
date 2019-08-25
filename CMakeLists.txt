@@ -7,6 +7,7 @@ option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" OFF)
 option(CHIAKI_GUI_ENABLE_QT_GAMEPAD "Use QtGamepad for Input" OFF)
 option(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER "Use SDL Gamecontroller for Input" ON)
+option(CHIAKI_CLI_ARGP_STANDALONE "Search for standalone argp lib for CLI" OFF)
 
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 0)
