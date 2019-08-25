@@ -36,7 +36,7 @@ class LoginPINDialog : public QDialog
 		void UpdateButtons();
 
 	public:
-		explicit LoginPINDialog(QWidget *parent = nullptr);
+		explicit LoginPINDialog(bool incorrect, QWidget *parent = nullptr);
 
 		QString GetPIN()	{ return pin; }
 };

@@ -365,13 +365,19 @@ static void *session_thread_func(void *arg)
 	if(session->ctrl_failed)
 		goto ctrl_failed;
 
-	if(session->ctrl_login_pin_requested)
+	bool pin_incorrect = false;
+	while(session->ctrl_login_pin_requested)
 	{
 		session->ctrl_login_pin_requested = false;
-		CHIAKI_LOGI(session->log, "Ctrl requested Login PIN");
+		if(pin_incorrect)
+			CHIAKI_LOGI(session->log, "Login PIN was incorrect, requested again by Ctrl");
+		else
+			CHIAKI_LOGI(session->log, "Ctrl requested Login PIN");
 		ChiakiEvent event = { 0 };
 		event.type = CHIAKI_EVENT_LOGIN_PIN_REQUEST;
+		event.login_pin_request.pin_incorrect = pin_incorrect;
 		session_send_event(session, &event);
+		pin_incorrect = true;
 
 		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
 		CHECK_STOP(quit_ctrl);
@@ -387,7 +393,7 @@ static void *session_thread_func(void *arg)
 		session->login_pin_size = 0;
 
 		// wait for session id again
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_session_id, session);
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 

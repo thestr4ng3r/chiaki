@@ -121,6 +121,10 @@ typedef struct chiaki_event_t
 	union
 	{
 		ChiakiQuitEvent quit;
+		struct
+		{
+			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
+		} login_pin_request;
 	};
 } ChiakiEvent;
 

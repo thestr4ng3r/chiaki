@@ -45,6 +45,8 @@ typedef struct chiaki_ctrl_t
 	ChiakiStopPipe notif_pipe;
 	ChiakiMutex notif_mutex;
 
+	bool login_pin_requested;
+
 	chiaki_socket_t sock;
 	uint8_t recv_buf[512];
 	size_t recv_buf_size;

@@ -30,6 +30,7 @@
 #include <QAudioOutput>
 
 #include <cstring>
+#include <chiaki/session.h>
 
 StreamSessionConnectInfo::StreamSessionConnectInfo()
 {
@@ -332,7 +333,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
-			emit LoginPINRequested();
+			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
 			break;
 	}
 }
