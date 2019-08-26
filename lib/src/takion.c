@@ -901,12 +901,15 @@ static void takion_handle_packet_message(ChiakiTakion *takion, uint8_t *buf, siz
 
 static void takion_flush_data_queue(ChiakiTakion *takion)
 {
+	uint64_t seq_num = 0;
+	bool ack = false;
 	while(true)
 	{
 		TakionDataPacketEntry *entry;
-		bool pulled = chiaki_reorder_queue_pull(&takion->data_queue, NULL, (void **)&entry);
+		bool pulled = chiaki_reorder_queue_pull(&takion->data_queue, &seq_num, (void **)&entry);
 		if(!pulled)
 			break;
+		ack = true;
 
 		if(entry->payload_size < 9)
 		{
@@ -939,6 +942,9 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 		free(entry->packet_buf);
 		free(entry);
 	}
+
+	if(ack)
+		chiaki_takion_send_message_data_ack(takion, (uint32_t)seq_num);
 }
 
 static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *packet_buf, size_t packet_buf_size, uint8_t type_b, uint8_t *payload, size_t payload_size)
@@ -964,7 +970,6 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *pac
 	entry->channel = ntohs(*((uint16_t *)(payload + 4)));
 	ChiakiSeqNum32 seq_num = ntohl(*((uint32_t *)(payload + 0)));
 
-	chiaki_takion_send_message_data_ack(takion, seq_num);
 	chiaki_reorder_queue_push(&takion->data_queue, seq_num, entry);
 	takion_flush_data_queue(takion);
 }
