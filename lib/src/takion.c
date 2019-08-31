@@ -307,6 +307,8 @@ CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 	chiaki_stop_pipe_stop(&takion->stop_pipe);
 	chiaki_thread_join(&takion->thread, NULL);
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
+	chiaki_mutex_fini(&takion->seq_num_local_mutex);
+	chiaki_mutex_fini(&takion->gkcrypt_local_mutex);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *takion, size_t data_size, size_t *key_pos)
