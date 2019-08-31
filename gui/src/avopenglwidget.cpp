@@ -99,9 +99,12 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 
 AVOpenGLWidget::~AVOpenGLWidget()
 {
-	frame_uploader_thread->quit();
-	frame_uploader_thread->wait();
-	delete frame_uploader_thread;
+	if(frame_uploader_thread)
+	{
+		frame_uploader_thread->quit();
+		frame_uploader_thread->wait();
+		delete frame_uploader_thread;
+	}
 	delete frame_uploader;
 	delete frame_uploader_context;
 }
