@@ -113,6 +113,8 @@ CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt)
 		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
 		chiaki_cond_signal(&gkcrypt->key_buf_cond);
 		chiaki_thread_join(&gkcrypt->key_buf_thread, NULL);
+		chiaki_cond_fini(&gkcrypt->key_buf_cond);
+		chiaki_mutex_fini(&gkcrypt->key_buf_mutex);
 		chiaki_aligned_free(gkcrypt->key_buf);
 	}
 }
