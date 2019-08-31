@@ -13,3 +13,5 @@ appdir
 /ffmpeg*
 /protoc*
 /openssl*
+.vs
+CMakeSettings.json
