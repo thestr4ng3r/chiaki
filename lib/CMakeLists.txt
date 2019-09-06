@@ -87,7 +87,7 @@ endif()
 
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
 find_package(OpenSSL REQUIRED)
