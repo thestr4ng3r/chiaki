@@ -37,6 +37,7 @@ Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (liba
 protoc and the protobuf Python library (only used during compilation for Nanopb).
 Then, Chiaki builds just like any other CMake project:
 ```
+git submodule update --init
 mkdir build && cd build
 cmake ..
 make
