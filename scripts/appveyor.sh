@@ -72,6 +72,7 @@ cd .. || exit 1
 # Deploy
 
 mkdir Chiaki && cp build/gui/chiaki.exe Chiaki || exit 1
+mkdir Chiaki-PDB && cp build/gui/chiaki.pdb Chiaki-PDB || exit 1
 
 # set CMAKE_BUILD_TYPE=RelWithDebInfo for pdbs
 # cp build/gui/chiaki.pdb Chiaki

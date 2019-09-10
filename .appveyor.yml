@@ -17,6 +17,8 @@ build_script:
 artifacts:
   - path: Chiaki
     name: Chiaki
+  - path: Chiaki-PDB
+    name: Chiaki-PDB
 
 deploy:
   description: 'Chiaki Binaries'
