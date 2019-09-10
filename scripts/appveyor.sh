@@ -53,7 +53,7 @@ cmake \
 	-G Ninja \
 	-DCMAKE_C_COMPILER=cl \
 	-DCMAKE_C_FLAGS="-we4013" \
-	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_PREFIX_PATH="$APPVEYOR_BUILD_FOLDER/ffmpeg-prefix;$APPVEYOR_BUILD_FOLDER/opus-prefix;$APPVEYOR_BUILD_FOLDER/openssl-1.1/x64;$QT_PATH;$SDL_ROOT" \
 	-DPYTHON_EXECUTABLE="$PYTHON" \
 	-DCHIAKI_ENABLE_TESTS=ON \
@@ -72,9 +72,7 @@ cd .. || exit 1
 # Deploy
 
 mkdir Chiaki && cp build/gui/chiaki.exe Chiaki || exit 1
-
-# set CMAKE_BUILD_TYPE=RelWithDebInfo for pdbs
-# cp build/gui/chiaki.pdb Chiaki
+mkdir Chiaki-PDB && cp build/gui/chiaki.pdb Chiaki-PDB || exit 1
 
 "$QT_PATH/bin/windeployqt.exe" Chiaki/chiaki.exe || exit 1
 cp -v $COPY_DLLS Chiaki
