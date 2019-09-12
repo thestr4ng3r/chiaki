@@ -17,7 +17,7 @@ matrix:
           packages:
             - libprotoc-dev
             - protobuf-compiler
-            - python3-protobuf
+            - python3-pip
             - libopus-dev
             - qt512base
             - qt512multimedia
@@ -30,6 +30,8 @@ matrix:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
         - DEPLOY_FILE="Chiaki-x86_64.AppImage"
+      before_install:
+        - sudo pip3 install protobuf
       after_success:
         - make install DESTDIR=../appdir
         - cd ..
