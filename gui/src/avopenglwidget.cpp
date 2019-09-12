@@ -218,6 +218,8 @@ AVOpenGLWidget::AVOpenGLWidget(RendererType renderer_type, VideoDecoder *decoder
 	mouse_timer = new QTimer(this);
 	connect(mouse_timer, &QTimer::timeout, this, &AVOpenGLWidget::HideMouse);
 	ResetMouseTimeout();
+
+	use_vao = false;
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
@@ -309,10 +311,14 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 
 void AVOpenGLWidget::initializeGL()
 {
-	auto f = QOpenGLContext::currentContext()->extraFunctions();
+	auto context = QOpenGLContext::currentContext();
+	auto format = context->format();
+	auto f = context->extraFunctions();
 
 	const char *gl_version = (const char *)f->glGetString(GL_VERSION);
-	CHIAKI_LOGI(decoder->GetChiakiLog(), "OpenGL initialized with version \"%s\"", gl_version ? gl_version : "(null)");
+	CHIAKI_LOGI(decoder->GetChiakiLog(), "OpenGL initialized with version \"%s\", %d, %d", gl_version ? gl_version : "(null)");
+
+	use_vao = format.majorVersion() >= 3;
 
 #ifdef DEBUG_OPENGL
 	auto logger = new QOpenGLDebugLogger(this);
@@ -393,8 +399,13 @@ void AVOpenGLWidget::initializeGL()
 		f->glUniform1i(f->glGetUniformLocation(program, plane_names[i]), i);
 	}
 
-	f->glGenVertexArrays(1, &vao);
-	f->glBindVertexArray(vao);
+	if(use_vao)
+	{
+		f->glGenVertexArrays(1, &vao);
+		f->glBindVertexArray(vao);
+	}
+	else
+		vao = 0;
 
 	f->glGenBuffers(1, &vbo);
 	f->glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -409,8 +420,8 @@ void AVOpenGLWidget::initializeGL()
 	f->glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	frame_uploader_context = new QOpenGLContext(nullptr);
-	frame_uploader_context->setFormat(context()->format());
-	frame_uploader_context->setShareContext(context());
+	frame_uploader_context->setFormat(context->format());
+	frame_uploader_context->setShareContext(context);
 	if(!frame_uploader_context->create())
 	{
 		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to create upload OpenGL context");
@@ -418,7 +429,7 @@ void AVOpenGLWidget::initializeGL()
 	}
 
 	frame_uploader_surface = new QOffscreenSurface();
-	frame_uploader_surface->setFormat(context()->format());
+	frame_uploader_surface->setFormat(context->format());
 	frame_uploader_surface->create();
 	frame_uploader = new AVOpenGLFrameUploader(decoder, this, frame_uploader_context, frame_uploader_surface);
 	frame_fg = 0;
