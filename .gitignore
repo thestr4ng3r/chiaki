@@ -11,6 +11,7 @@ appdir
 /SDL2-*
 /opus*
 /ffmpeg*
+/sdl2-*
 /protoc*
 /openssl*
 .vs
