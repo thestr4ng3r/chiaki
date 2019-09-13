@@ -10,9 +10,7 @@ DIR=SDL2-2.0.10
 if [ ! -d "$DIR" ]; then
 	wget "$URL" || exit 1
 	tar -xf "$FILE" || exit 1
-	cd "$DIR" || exit 1
 fi
-
 
 cd "$DIR" || exit 1
 

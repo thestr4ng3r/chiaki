@@ -15,13 +15,10 @@ matrix:
           sources:
             - sourceline: "ppa:beineri/opt-qt-5.12.3-xenial"
           packages:
-            - libprotoc-dev
-            - protobuf-compiler
             - python3-pip
             - libopus-dev
             - qt512base
             - qt512multimedia
-            - qt512gamepad
             - qt512svg
             - libgl1-mesa-dev
             - nasm
@@ -33,6 +30,8 @@ matrix:
         - SDL2_FROM_SRC=1
       before_install:
         - sudo pip3 install protobuf
+        - scripts/fetch-protoc.sh
+        - export PATH="$TRAVIS_BUILD_DIR/protoc/bin:$PATH"
       after_success:
         - make install DESTDIR=../appdir
         - cd ..
@@ -86,7 +85,6 @@ script:
   - mkdir build && cd build
   - cmake
       -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_VERBOSE_MAKEFILE=ON
       -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
       -DCHIAKI_ENABLE_TESTS=ON
       -DCHIAKI_ENABLE_CLI=OFF
