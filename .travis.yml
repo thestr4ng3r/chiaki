@@ -93,6 +93,8 @@ matrix:
     - name: "Source Package"
       os: linux
       dist: bionic
+      env:
+        - DEPLOY=1
       install: ~
       script:
         - find . -name ".git*" | xargs rm -rfv
