@@ -4,6 +4,8 @@ language: cpp
 branches:
   only:
     - master
+    - /^v\d.*$/
+    - /^deploy-test(-.*)?$/
 
 matrix:
   include:
