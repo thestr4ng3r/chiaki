@@ -30,10 +30,11 @@ cmake \
 	-DSDL_SHARED=ON \
 	-DSDL_STATIC=OFF \
 	-DSDL_TEST=OFF \
-	-DSDL_THREADS=ON \ # not needed, but doesn't compile without
+	-DSDL_THREADS=ON \
 	-DSDL_TIMERS=OFF \
 	-DSDL_VIDEO=OFF \
 	.. || exit 1
+# SDL_THREADS is not needed, but it doesn't compile without
 
 make -j4 || exit 1
 make install || exit 1
