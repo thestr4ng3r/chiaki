@@ -63,6 +63,7 @@ matrix:
         - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x linuxdeploy-x86_64.AppImage
         - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
         - source /opt/qt512/bin/qt512-env.sh
+        - export LD_LIBRARY_PATH="$TRAVIS_BUILD_DIR/sdl2-prefix/lib:$LD_LIBRARY_PATH"
         - ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage
         - export DEPLOY_FILE="Chiaki-Linux-${CHIAKI_VERSION}-x86_64.AppImage"
         - mv Chiaki-*-x86_64.AppImage "$DEPLOY_FILE"
