@@ -27,9 +27,10 @@ matrix:
             - nasm
             - libsdl2-dev
       env:
-        - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
+        - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;$TRAVIS_BUILD_DIR/sdl2-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
         - DEPLOY_FILE="Chiaki-x86_64.AppImage"
+        - SDL2_FROM_SRC=1
       after_success:
         - make install DESTDIR=../appdir
         - cd ..
@@ -73,6 +74,7 @@ matrix:
 
 install:
   - scripts/build-ffmpeg.sh
+  - if [ ! -z "$SDL2_FROM_SRC" ]; then scripts/build-sdl2.sh || exit 1; fi
 
 before_script:
   - export CHIAKI_VERSION="$TRAVIS_TAG"
