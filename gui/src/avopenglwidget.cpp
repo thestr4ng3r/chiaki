@@ -95,6 +95,7 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	frame_uploader_context = nullptr;
 	frame_uploader = nullptr;
 	frame_uploader_thread = nullptr;
+	frame_fg = 0;
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
