@@ -72,7 +72,7 @@ CHIAKI_EXPORT void *chiaki_aligned_alloc(size_t alignment, size_t size)
 {
 #if defined(_WIN32)
 	return _aligned_malloc(size, alignment);
-#elif __APPLE__
+#elif __APPLE__ || __ANDROID__
 	void *r;
 	if(posix_memalign(&r, alignment, size) == 0)
 		return r;

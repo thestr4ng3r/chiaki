@@ -13,6 +13,23 @@ android {
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                arguments "-DCHIAKI_ENABLE_TESTS=OFF",
+                        "-DCHIAKI_ENABLE_CLI=OFF",
+                        "-DCHIAKI_ENABLE_GUI=OFF",
+                        "-DCHIAKI_ENABLE_ANDROID=ON",
+                        "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
+                        "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON",
+                        "-DCMAKE_VERBOSE_MAKEFILE=ON"
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            version "3.10.2+"
+            path "../../CMakeLists.txt"
+        }
     }
     buildTypes {
         release {

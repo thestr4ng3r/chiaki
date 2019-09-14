@@ -18,7 +18,9 @@
 #include <chiaki/audioreceiver.h>
 #include <chiaki/session.h>
 
+#ifdef CHIAKI_LIB_ENABLE_OPUS
 #include <opus/opus.h>
+#endif
 
 #include <string.h>
 
@@ -47,7 +49,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver)
 {
+#ifdef CHIAKI_LIB_ENABLE_OPUS
 	opus_decoder_destroy(audio_receiver->opus_decoder);
+#endif
 	chiaki_mutex_fini(&audio_receiver->mutex);
 	free(audio_receiver->pcm_buf);
 }
@@ -65,6 +69,7 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	CHIAKI_LOGI(audio_receiver->log, "  unknown = %d", audio_header->unknown);
 	memcpy(&audio_receiver->audio_header, audio_header, sizeof(audio_receiver->audio_header));
 
+#ifdef CHIAKI_LIB_ENABLE_OPUS
 	opus_decoder_destroy(audio_receiver->opus_decoder);
 
 	int error;
@@ -97,6 +102,9 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 
 	if(audio_receiver->session->audio_settings_cb)
 		audio_receiver->session->audio_settings_cb(audio_header->channels, audio_header->rate, audio_receiver->session->audio_cb_user);
+#else
+	CHIAKI_LOGE(audio_receiver->log, "Opus disabled, not initializing decoder");
+#endif
 
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
@@ -160,6 +168,7 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 
 static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, uint8_t *buf, size_t buf_size)
 {
+#ifdef CHIAKI_LIB_ENABLE_OPUS
 	chiaki_mutex_lock(&audio_receiver->mutex);
 
 	if(!audio_receiver->opus_decoder)
@@ -181,4 +190,5 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
+#endif
 }

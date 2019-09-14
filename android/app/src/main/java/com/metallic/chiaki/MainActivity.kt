@@ -2,6 +2,8 @@ package com.metallic.chiaki
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.metallic.chiaki.lib.Chiaki
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()
 {
@@ -9,5 +11,7 @@ class MainActivity : AppCompatActivity()
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
+
+		testTextView.text = Chiaki.stringFromJNI()
 	}
 }

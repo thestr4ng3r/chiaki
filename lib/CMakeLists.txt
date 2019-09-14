@@ -74,8 +74,11 @@ include_directories("${NANOPB_SOURCE_DIR}")
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
 include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
 
-find_package(Opus REQUIRED)
-include_directories(${Opus_INCLUDE_DIRS})
+if(CHIAKI_LIB_ENABLE_OPUS)
+	find_package(Opus REQUIRED)
+	include_directories(${Opus_INCLUDE_DIRS})
+	add_definitions(-DCHIAKI_LIB_ENABLE_OPUS)
+endif()
 
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES})
 add_dependencies(chiaki-lib chiaki-pb)
@@ -90,10 +93,16 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
-find_package(OpenSSL REQUIRED)
-target_link_libraries(chiaki-lib OpenSSL::Crypto)
+if(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT)
+	target_link_libraries(chiaki-lib OpenSSL_Crypto)
+else()
+	find_package(OpenSSL REQUIRED)
+	target_link_libraries(chiaki-lib OpenSSL::Crypto)
+endif()
 
 target_link_libraries(chiaki-lib protobuf-nanopb-static)
 target_link_libraries(chiaki-lib jerasure)
 
-target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
+if(CHIAKI_LIB_ENABLE_OPUS)
+	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
+endif()
