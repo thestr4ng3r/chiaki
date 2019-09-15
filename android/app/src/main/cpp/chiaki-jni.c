@@ -1,5 +1,22 @@
+/*
+ * This file is part of Chiaki.
+ *
+ * Chiaki is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Chiaki is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <jni.h>
+
 #include <android/log.h>
 
 #include <chiaki/common.h>
@@ -7,6 +24,8 @@
 #include <chiaki/session.h>
 
 #include <string.h>
+
+#include "video-decoder.h"
 
 #define LOG_TAG "Chiaki"
 #define JNI_VERSION JNI_VERSION_1_6
@@ -85,6 +104,8 @@ typedef struct android_chiaki_session_t
 	jclass java_session_class;
 	jmethodID java_session_event_login_pin_request_meth;
 	jmethodID java_session_event_quit_meth;
+
+	AndroidChiakiVideoDecoder video_decoder;
 } AndroidChiakiSession;
 
 static JNIEnv *attach_thread_jni()
@@ -190,14 +211,18 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 		err = CHIAKI_ERR_MEMORY;
 		goto beach;
 	}
-
-	err = chiaki_session_init(&session->session, &connect_info, &global_log);
-
+	memset(session, 0, sizeof(AndroidChiakiSession));
+	err = android_chiaki_video_decoder_init(&session->video_decoder, &global_log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		session->java_session = NULL;
+		free(session);
+		session = NULL;
 		goto beach;
 	}
+
+	err = chiaki_session_init(&session->session, &connect_info, &global_log);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
 
 	session->java_session = E->NewGlobalRef(env, java_session);
 	session->java_session_class = E->GetObjectClass(env, session->java_session);
@@ -205,8 +230,9 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	session->java_session_event_quit_meth = E->GetMethodID(env, session->java_session_class, "eventQuit", "(ILjava/lang/String;)V");
 
 	chiaki_session_set_event_cb(&session->session, android_chiaki_event_cb, session);
+	chiaki_session_set_video_sample_cb(&session->session, android_chiaki_video_decoder_video_sample, &session->video_decoder);
 
-	beach:
+beach:
 	free(host_str);
 	E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
 	E->SetLongField(env, result, E->GetFieldID(env, result_class, "sessionPtr", "J"), (jlong)session);
@@ -220,6 +246,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 		return;
 	chiaki_session_fini(&session->session);
 	free(session);
+	android_chiaki_video_decoder_fini(&session->video_decoder);
 	E->DeleteGlobalRef(env, session->java_session);
 }
 
