@@ -8,6 +8,7 @@ import android.util.Base64
 import androidx.core.content.edit
 import androidx.core.widget.addTextChangedListener
 import com.metallic.chiaki.lib.*
+import com.metallic.chiaki.stream.StreamActivity
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()

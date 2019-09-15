@@ -215,27 +215,31 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	CHIAKI_LOGI(&global_log, "Free JNI Session");
 	if(!session)
 		return;
-	E->DeleteGlobalRef(env, session->java_session);
 	chiaki_session_fini(&session->session);
 	free(session);
+	E->DeleteGlobalRef(env, session->java_session);
 }
 
 JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStart(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	CHIAKI_LOGI(&global_log, "Start JNI Session");
 	return chiaki_session_start(&session->session);
 }
 
 JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStop(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	CHIAKI_LOGI(&global_log, "Stop JNI Session");
 	return chiaki_session_stop(&session->session);
 }
 
 JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionJoin(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	CHIAKI_LOGI(&global_log, "Join JNI Session");
 	return chiaki_session_join(&session->session);
 }

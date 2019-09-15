@@ -20,7 +20,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".StreamActivity" />
+        <activity android:name=".stream.StreamActivity" />
     </application>
 
 </manifest>
