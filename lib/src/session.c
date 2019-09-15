@@ -584,6 +584,11 @@ static bool session_thread_request_session(ChiakiSession *session)
 		session_sock = socket(ai->ai_family, SOCK_STREAM, 0);
 		if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 		{
+#ifdef _WIN32
+			CHIAKI_LOGE(session->log, "Failed to create socket to request session");
+#else
+            CHIAKI_LOGE(session->log, "Failed to create socket to request session: %s", strerror(errno));
+#endif
 			free(sa);
 			continue;
 		}

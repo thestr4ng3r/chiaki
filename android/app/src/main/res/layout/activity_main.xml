@@ -6,14 +6,49 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/testTextView"
+    <EditText
+        android:id="@+id/hostEditText"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:hint="Host"
+        app:layout_constraintBottom_toTopOf="@+id/registKeyEditText"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"/>
+
+    <EditText
+        android:id="@+id/registKeyEditText"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:hint="Regist Key"
+        app:layout_constraintBottom_toTopOf="@+id/morningEditText"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/hostEditText" />
+
+
+    <EditText
+        android:id="@+id/morningEditText"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:hint="Morning (base64)"
+        app:layout_constraintBottom_toTopOf="@+id/startButton"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/registKeyEditText" />
+
+    <Button
+        android:id="@+id/startButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="Start"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/morningEditText" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

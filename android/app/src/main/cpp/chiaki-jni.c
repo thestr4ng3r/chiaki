@@ -55,7 +55,7 @@ JNIEXPORT jstring JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_errorCodeToS
     return E->NewStringUTF(env, chiaki_error_string((ChiakiErrorCode)value));
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_createSession(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj)
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj)
 {
     ChiakiSession *session = NULL;
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -119,4 +119,10 @@ beach:
     free(host_str);
     E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
     E->SetLongField(env, result, E->GetFieldID(env, result_class, "sessionPtr", "J"), (jlong)session);
+}
+
+JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStart(JNIEnv *env, jobject obj, jlong ptr)
+{
+    ChiakiSession *session = (ChiakiSession *)ptr;
+    return chiaki_session_start(session);
 }
