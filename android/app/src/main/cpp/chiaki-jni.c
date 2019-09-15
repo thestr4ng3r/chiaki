@@ -118,12 +118,13 @@ static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
 		case CHIAKI_EVENT_QUIT:
 		{
 			char *reason_str = strdup_jni(event->quit.reason_str);
-			jstring reason_str_java = E->NewStringUTF(env, reason_str ? reason_str : "");
+			jstring reason_str_java = reason_str ? E->NewStringUTF(env, reason_str) : NULL;
 			E->CallVoidMethod(env, session->java_session,
 							  session->java_session_event_quit_meth,
 							  (jint)event->quit.reason,
 							  reason_str_java);
-			E->DeleteLocalRef(env, reason_str_java);
+			if(reason_str_java)
+				E->DeleteLocalRef(env, reason_str_java);
 			free(reason_str);
 			break;
 		}

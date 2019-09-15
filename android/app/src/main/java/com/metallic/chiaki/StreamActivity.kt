@@ -1,8 +1,10 @@
 package com.metallic.chiaki
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.lib.Event
 import com.metallic.chiaki.lib.Session
 import com.metallic.chiaki.lib.SessionCreateError
 import kotlinx.android.synthetic.main.activity_stream.*
@@ -31,6 +33,10 @@ class StreamActivity : AppCompatActivity()
 		try
 		{
 			val session = Session(connectInfo)
+			session.eventCallback = {
+				Log.i("StreamActivity", "Got Event $it")
+			}
+
 			session.start()
 			this.session = session
 		}

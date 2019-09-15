@@ -53,13 +53,19 @@ class QuitReason(val value: Int)
 
 sealed class Event
 data class LoginPinRequestEvent(val pinIncorrect: Boolean): Event()
-data class QuitEvent(val reason: QuitReason, val reasonString: String): Event()
+data class QuitEvent(val reason: QuitReason, val reasonString: String?): Event()
 
 class SessionCreateError(val errorCode: ErrorCode): Exception("Failed to create Session: $errorCode")
 
 class Session(connectInfo: ConnectInfo)
 {
+	interface EventCallback
+	{
+		fun sessionEvent(event: Event)
+	}
+
 	private var nativePtr: Long
+	var eventCallback: ((event: Event) -> Unit)? = null
 
 	init
 	{
@@ -85,8 +91,7 @@ class Session(connectInfo: ConnectInfo)
 
 	private fun event(event: Event)
 	{
-		// TODO: send to callback
-		Log.d("ChiakiJNI", "Got event $event")
+		eventCallback?.let { it(event) }
 	}
 
 	private fun eventLoginPinRequest(pinIncorrect: Boolean)
@@ -94,7 +99,7 @@ class Session(connectInfo: ConnectInfo)
 		event(LoginPinRequestEvent(pinIncorrect))
 	}
 
-	private fun eventQuit(reasonValue: Int, reasonString: String)
+	private fun eventQuit(reasonValue: Int, reasonString: String?)
 	{
 		event(QuitEvent(QuitReason(reasonValue), reasonString))
 	}
