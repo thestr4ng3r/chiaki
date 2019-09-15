@@ -121,8 +121,29 @@ beach:
     E->SetLongField(env, result, E->GetFieldID(env, result_class, "sessionPtr", "J"), (jlong)session);
 }
 
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNIEnv *env, jobject obj, jlong ptr)
+{
+    ChiakiSession *session = (ChiakiSession *)ptr;
+    if(!session)
+        return;
+    chiaki_session_fini(session);
+    free(session);
+}
+
 JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStart(JNIEnv *env, jobject obj, jlong ptr)
 {
     ChiakiSession *session = (ChiakiSession *)ptr;
     return chiaki_session_start(session);
+}
+
+JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStop(JNIEnv *env, jobject obj, jlong ptr)
+{
+    ChiakiSession *session = (ChiakiSession *)ptr;
+    return chiaki_session_stop(session);
+}
+
+JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionJoin(JNIEnv *env, jobject obj, jlong ptr)
+{
+    ChiakiSession *session = (ChiakiSession *)ptr;
+    return chiaki_session_join(session);
 }

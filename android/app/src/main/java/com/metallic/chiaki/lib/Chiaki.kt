@@ -31,7 +31,10 @@ class ChiakiNative
 		}
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun sessionCreate(result: SessionCreateResult, connectInfo: ConnectInfo)
+		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
+		@JvmStatic external fun sessionStop(ptr: Long): Int
+		@JvmStatic external fun sessionJoin(ptr: Long): Int
 	}
 }
 
@@ -45,7 +48,7 @@ class SessionCreateError(val errorCode: ErrorCode): Exception("Failed to create 
 
 class Session(connectInfo: ConnectInfo)
 {
-	private val nativePtr: Long
+	private var nativePtr: Long
 
 	init
 	{
@@ -57,8 +60,15 @@ class Session(connectInfo: ConnectInfo)
 		nativePtr = result.sessionPtr
 	}
 
-	fun start()
+	fun start() = ErrorCode(ChiakiNative.sessionStart(nativePtr))
+	fun stop() = ErrorCode(ChiakiNative.sessionStop(nativePtr))
+
+	fun dispose()
 	{
-		ChiakiNative.sessionStart(nativePtr)
+		if(nativePtr == 0L)
+			return
+		ChiakiNative.sessionJoin(nativePtr)
+		ChiakiNative.sessionFree(nativePtr)
+		nativePtr = 0L
 	}
 }

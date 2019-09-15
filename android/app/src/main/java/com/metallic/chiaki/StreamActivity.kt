@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.Session
+import com.metallic.chiaki.lib.SessionCreateError
 import kotlinx.android.synthetic.main.activity_stream.*
 
 class StreamActivity : AppCompatActivity()
@@ -13,7 +14,7 @@ class StreamActivity : AppCompatActivity()
 		const val EXTRA_CONNECT_INFO = "connect_info"
 	}
 
-	private lateinit var session: Session
+	private var session: Session? = null
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
@@ -27,8 +28,24 @@ class StreamActivity : AppCompatActivity()
 			return
 		}
 
-		session = Session(connectInfo)
-		session.start()
+		try
+		{
+			val session = Session(connectInfo)
+			session.start()
+			this.session = session
+		}
+		catch(e: SessionCreateError)
+		{
+			// TODO: handle error
+		}
+
 		testTextView.text = ""
+	}
+
+	override fun onDestroy()
+	{
+		super.onDestroy()
+		session?.stop()
+		session?.dispose()
 	}
 }
