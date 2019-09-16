@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-static void android_chiaki_video_decoder_flush(AndroidChiakiVideoDecoder *decoder);
+static void *android_chiaki_video_decoder_output_thread_func(void *user);
 
 ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log)
 {
@@ -46,8 +46,12 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 
 	if(decoder->codec)
 	{
-		// TODO: destroy old
-		CHIAKI_LOGE(decoder->log, "Video Decoder already initialized");
+		//CHIAKI_LOGE(decoder->log, "Video Decoder already initialized");
+		CHIAKI_LOGI(decoder->log, "Video decoder already initialized, swapping surface");
+		ANativeWindow *new_window = surface ? ANativeWindow_fromSurface(env, surface) : NULL;
+		AMediaCodec_setOutputSurface(decoder->codec, new_window);
+		ANativeWindow_release(decoder->window);
+		decoder->window = new_window;
 		goto beach;
 	}
 
@@ -74,6 +78,16 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 
 	AMediaFormat_delete(format);
 
+	ChiakiErrorCode err = chiaki_thread_create(&decoder->output_thread, android_chiaki_video_decoder_output_thread_func, decoder);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(decoder->log, "Failed to create output thread for AMediaCodec");
+		AMediaCodec_delete(decoder->codec);
+		decoder->codec = NULL;
+		ANativeWindow_release(decoder->window);
+		decoder->window = NULL;
+	}
+
 beach:
 	chiaki_mutex_unlock(&decoder->mutex);
 }
@@ -89,13 +103,9 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 		goto beach;
 	}
 
-	ssize_t codec_buf_index;
-
-	CHIAKI_LOGD(decoder->log, "Got video sample of size %zu", buf_size);
-
 	while(buf_size > 0)
 	{
-		codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, 100); // TODO: lower timeout?
+		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, 100); // TODO: lower timeout?
 		if(codec_buf_index < 0)
 		{
 			// TODO: handle better
@@ -116,20 +126,30 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 		buf += codec_sample_size;
 		buf_size -= codec_sample_size;
 
-		AMediaCodecBufferInfo info;
-		ssize_t status = AMediaCodec_dequeueOutputBuffer(decoder->codec, &info, 0);
-		if(status >= 0)
-		{
-			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)status, info.size != 0);
-		}
 	}
 
 beach:
-	android_chiaki_video_decoder_flush(decoder);
 	chiaki_mutex_unlock(&decoder->mutex);
 }
 
-static void android_chiaki_video_decoder_flush(AndroidChiakiVideoDecoder *decoder)
+static void *android_chiaki_video_decoder_output_thread_func(void *user)
 {
-	// decoder->mutex must be already locked
+	AndroidChiakiVideoDecoder *decoder = user;
+
+	while(1)
+	{
+		AMediaCodecBufferInfo info;
+		ssize_t status = AMediaCodec_dequeueOutputBuffer(decoder->codec, &info, -1);
+		if(status >= 0)
+		{
+			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)status, info.size != 0);
+			if(info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM)
+			{
+				CHIAKI_LOGI(decoder->log, "AMediaCodec reported EOS");
+				break;
+			}
+		}
+	}
+
+	return NULL;
 }

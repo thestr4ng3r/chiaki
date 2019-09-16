@@ -33,6 +33,7 @@ typedef struct android_chiaki_video_decoder_t
 	AMediaCodec *codec;
 	ANativeWindow *window;
 	uint64_t timestamp_cur;
+	ChiakiThread output_thread;
 } AndroidChiakiVideoDecoder;
 
 ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log);

@@ -42,14 +42,17 @@ class StreamActivity : AppCompatActivity()
 		surfaceView.holder.addCallback(object: SurfaceHolder.Callback {
 			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int)
 			{
+				Log.i("StreamActivity", "surfaceChanged")
 			}
 
 			override fun surfaceDestroyed(holder: SurfaceHolder)
 			{
+				Log.i("StreamActivity", "surfaceDestroyed!!!!!")
 			}
 
 			override fun surfaceCreated(holder: SurfaceHolder)
 			{
+				Log.i("StreamActivity", "surfaceCreated")
 				viewModel.session?.setSurface(holder.surface)
 			}
 		})
