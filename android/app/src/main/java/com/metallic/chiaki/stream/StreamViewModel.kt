@@ -1,62 +1,45 @@
+/*
+ * This file is part of Chiaki.
+ *
+ * Chiaki is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Chiaki is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.metallic.chiaki.stream
 
-import android.graphics.SurfaceTexture
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.metallic.chiaki.StreamSession
 import com.metallic.chiaki.lib.*
-
-sealed class StreamState
-object StreamStateIdle: StreamState()
-data class StreamStateCreateError(val error: SessionCreateError): StreamState()
-data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
-data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
 class StreamViewModel: ViewModel()
 {
 	var isInitialized = false
 		private set(value) { field = value}
 
-	var session: Session? = null
-		private set(value) { field = value }
-
-	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
-	val state: LiveData<StreamState> get() = _state
-
-	var surfaceTexture: SurfaceTexture? = null
+	private var _session: StreamSession? = null
+	val session: StreamSession get() = _session ?: throw UninitializedPropertyAccessException("StreamViewModel not initialized")
 
 	fun init(connectInfo: ConnectInfo)
 	{
 		if(isInitialized)
 			return
 		isInitialized = true
-		try
-		{
-			val session = Session(connectInfo)
-			session.eventCallback = this::eventCallback
-			session.start()
-			this.session = session
-		}
-		catch(e: SessionCreateError)
-		{
-			_state.value = StreamStateCreateError(e)
-		}
-	}
-
-	private fun eventCallback(event: Event)
-	{
-		when(event)
-		{
-			is QuitEvent -> _state.postValue(StreamStateQuit(event.reason, event.reasonString))
-			is LoginPinRequestEvent -> _state.postValue(StreamStateLoginPinRequest(event.pinIncorrect))
-		}
+		_session = StreamSession(connectInfo)
 	}
 
 	override fun onCleared()
 	{
 		super.onCleared()
-		session?.stop()
-		session?.dispose()
-		surfaceTexture?.release()
+		_session?.shutdown()
 	}
 }
