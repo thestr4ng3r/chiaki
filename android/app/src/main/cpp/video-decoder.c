@@ -25,6 +25,8 @@
 
 #include <string.h>
 
+#define INPUT_BUFFER_TIMEOUT_MS 10
+
 static void *android_chiaki_video_decoder_output_thread_func(void *user);
 
 ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log)
@@ -105,11 +107,11 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 
 	while(buf_size > 0)
 	{
-		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, 100); // TODO: lower timeout?
+		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, INPUT_BUFFER_TIMEOUT_MS * 1000);
 		if(codec_buf_index < 0)
 		{
-			// TODO: handle better
 			CHIAKI_LOGE(decoder->log, "Failed to get input buffer");
+			// TODO: report corrupt
 			goto beach;
 		}
 

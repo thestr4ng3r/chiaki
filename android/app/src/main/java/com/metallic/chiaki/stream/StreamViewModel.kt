@@ -1,5 +1,6 @@
 package com.metallic.chiaki.stream
 
+import android.graphics.SurfaceTexture
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -21,6 +22,8 @@ class StreamViewModel: ViewModel()
 
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state
+
+	var surfaceTexture: SurfaceTexture? = null
 
 	fun init(connectInfo: ConnectInfo)
 	{
@@ -54,5 +57,6 @@ class StreamViewModel: ViewModel()
 		super.onCleared()
 		session?.stop()
 		session?.dispose()
+		surfaceTexture?.release()
 	}
 }

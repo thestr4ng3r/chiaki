@@ -1,8 +1,11 @@
 package com.metallic.chiaki.stream
 
+import android.graphics.SurfaceTexture
 import android.os.Bundle
 import android.util.Log
+import android.view.Surface
 import android.view.SurfaceHolder
+import android.view.TextureView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -39,23 +42,28 @@ class StreamActivity : AppCompatActivity()
 			viewModel.init(connectInfo)
 		}
 
-		surfaceView.holder.addCallback(object: SurfaceHolder.Callback {
-			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int)
+		textureView.surfaceTextureListener = object: TextureView.SurfaceTextureListener {
+			override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int)
 			{
-				Log.i("StreamActivity", "surfaceChanged")
+				if(viewModel.surfaceTexture != null)
+					return
+				viewModel.surfaceTexture = surface
+				viewModel.session?.setSurface(Surface(surface))
 			}
 
-			override fun surfaceDestroyed(holder: SurfaceHolder)
+			override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean
 			{
-				Log.i("StreamActivity", "surfaceDestroyed!!!!!")
+				// return false if we want to keep the surface texture
+				return viewModel.surfaceTexture == null
 			}
 
-			override fun surfaceCreated(holder: SurfaceHolder)
-			{
-				Log.i("StreamActivity", "surfaceCreated")
-				viewModel.session?.setSurface(holder.surface)
-			}
-		})
+			override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+			override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+		}
+
+		val surfaceTexture = viewModel.surfaceTexture
+		if(surfaceTexture != null)
+			textureView.surfaceTexture = surfaceTexture
 
 		viewModel.state.observe(this, Observer {
 			stateTextView.text = "$it"

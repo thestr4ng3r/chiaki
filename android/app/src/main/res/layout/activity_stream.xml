@@ -6,8 +6,8 @@
     android:layout_height="match_parent"
     tools:context=".stream.StreamActivity">
 
-    <SurfaceView
-        android:id="@+id/surfaceView"
+    <TextureView
+        android:id="@+id/textureView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@id/stateTextView"
@@ -17,7 +17,7 @@
         android:id="@+id/stateTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/surfaceView"
+        app:layout_constraintTop_toBottomOf="@id/textureView"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
