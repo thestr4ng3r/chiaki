@@ -20,7 +20,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".stream.StreamActivity" />
+        <activity
+            android:name=".stream.StreamActivity"
+            android:theme="@style/StreamTheme"
+            android:screenOrientation="userLandscape"/>
     </application>
 
 </manifest>

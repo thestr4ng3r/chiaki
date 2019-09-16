@@ -30,7 +30,7 @@ data class StreamStateCreateError(val error: SessionCreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
-class StreamSession(connectInfo: ConnectInfo)
+class StreamSession(val connectInfo: ConnectInfo)
 {
 	var session: Session? = null
 		private set(value) { field = value }
@@ -88,7 +88,7 @@ class StreamSession(connectInfo: ConnectInfo)
 				return surfaceTexture == null
 			}
 
-			override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+			override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) { }
 			override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
 		}
 
