@@ -119,6 +119,7 @@ static JNIEnv *attach_thread_jni()
 		return env;
 
 	CHIAKI_LOGE(&global_log, "Failed to get JNIEnv from JavaVM or attach");
+	return NULL;
 }
 
 static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
@@ -269,4 +270,10 @@ JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionJoin(JNI
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	CHIAKI_LOGI(&global_log, "Join JNI Session");
 	return chiaki_session_join(&session->session);
+}
+
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetSurface(JNIEnv *env, jobject obj, jlong ptr, jobject surface)
+{
+	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	android_chiaki_video_decoder_set_surface(&session->video_decoder, env, surface);
 }

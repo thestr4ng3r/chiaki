@@ -16,7 +16,8 @@ class StreamViewModel: ViewModel()
 	var isInitialized = false
 		private set(value) { field = value}
 
-	private var session: Session? = null
+	var session: Session? = null
+		private set(value) { field = value }
 
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state

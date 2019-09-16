@@ -2,6 +2,7 @@ package com.metallic.chiaki.stream
 
 import android.os.Bundle
 import android.util.Log
+import android.view.SurfaceHolder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -37,6 +38,21 @@ class StreamActivity : AppCompatActivity()
 			}
 			viewModel.init(connectInfo)
 		}
+
+		surfaceView.holder.addCallback(object: SurfaceHolder.Callback {
+			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int)
+			{
+			}
+
+			override fun surfaceDestroyed(holder: SurfaceHolder)
+			{
+			}
+
+			override fun surfaceCreated(holder: SurfaceHolder)
+			{
+				viewModel.session?.setSurface(holder.surface)
+			}
+		})
 
 		viewModel.state.observe(this, Observer {
 			stateTextView.text = "$it"

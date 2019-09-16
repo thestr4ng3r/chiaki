@@ -2,6 +2,7 @@ package com.metallic.chiaki.lib
 
 import android.os.Parcelable
 import android.util.Log
+import android.view.Surface
 import kotlinx.android.parcel.Parcelize
 import java.lang.Exception
 
@@ -37,6 +38,7 @@ class ChiakiNative
 		@JvmStatic external fun sessionStart(ptr: Long): Int
 		@JvmStatic external fun sessionStop(ptr: Long): Int
 		@JvmStatic external fun sessionJoin(ptr: Long): Int
+		@JvmStatic external fun sessionSetSurface(ptr: Long, surface: Surface)
 	}
 }
 
@@ -102,5 +104,10 @@ class Session(connectInfo: ConnectInfo)
 	private fun eventQuit(reasonValue: Int, reasonString: String?)
 	{
 		event(QuitEvent(QuitReason(reasonValue), reasonString))
+	}
+
+	fun setSurface(surface: Surface)
+	{
+		ChiakiNative.sessionSetSurface(nativePtr, surface)
 	}
 }
