@@ -39,6 +39,7 @@ class ChiakiNative
 		@JvmStatic external fun sessionStop(ptr: Long): Int
 		@JvmStatic external fun sessionJoin(ptr: Long): Int
 		@JvmStatic external fun sessionSetSurface(ptr: Long, surface: Surface)
+		@JvmStatic external fun sessionSetControllerState(ptr: Long, controllerState: ControllerState)
 	}
 }
 
@@ -46,6 +47,36 @@ class ErrorCode(val value: Int)
 {
 	override fun toString() = ChiakiNative.errorCodeToString(value)
 	var isSuccess = value == 0
+}
+
+data class ControllerState @ExperimentalUnsignedTypes constructor(
+	var buttons: UInt = 0U,
+	var l2_state: UByte = 0U,
+	var r2_state: UByte = 0U,
+	var left_x: Short = 0,
+	var left_y: Short = 0,
+	var right_x: Short = 0,
+	var right_y: Short = 0
+){
+	companion object
+	{
+		val BUTTON_CROSS 		= (1 shl 0).toUInt()
+		val BUTTON_MOON 		= (1 shl 1).toUInt()
+		val BUTTON_BOX 		= (1 shl 2).toUInt()
+		val BUTTON_PYRAMID 	= (1 shl 3).toUInt()
+		val BUTTON_DPAD_LEFT 	= (1 shl 4).toUInt()
+		val BUTTON_DPAD_RIGHT	= (1 shl 5).toUInt()
+		val BUTTON_DPAD_UP 	= (1 shl 6).toUInt()
+		val BUTTON_DPAD_DOWN 	= (1 shl 7).toUInt()
+		val BUTTON_L1 		= (1 shl 8).toUInt()
+		val BUTTON_R1 		= (1 shl 9).toUInt()
+		val BUTTON_L3			= (1 shl 10).toUInt()
+		val BUTTON_R3			= (1 shl 11).toUInt()
+		val BUTTON_OPTIONS 	= (1 shl 12).toUInt()
+		val BUTTON_SHARE 		= (1 shl 13).toUInt()
+		val BUTTON_TOUCHPAD	= (1 shl 14).toUInt()
+		val BUTTON_PS			= (1 shl 15).toUInt()
+	}
 }
 
 class QuitReason(val value: Int)
@@ -109,5 +140,10 @@ class Session(connectInfo: ConnectInfo)
 	fun setSurface(surface: Surface)
 	{
 		ChiakiNative.sessionSetSurface(nativePtr, surface)
+	}
+
+	fun setControllerState(controllerState: ControllerState)
+	{
+		ChiakiNative.sessionSetControllerState(nativePtr, controllerState)
 	}
 }

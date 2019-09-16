@@ -20,6 +20,7 @@ package com.metallic.chiaki.stream
 import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
@@ -80,7 +81,6 @@ class StreamActivity : AppCompatActivity()
 
 	private fun hideSystemUI()
 	{
-		Log.i("StreamActivity", "HIDE!!!!!!!!!!")
 		window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 				or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 				or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -117,5 +117,12 @@ class StreamActivity : AppCompatActivity()
 			it.postTranslate((viewWidth - width) * 0.5f, (viewHeight - height) * 0.5f)
 			textureView.setTransform(it)
 		}
+	}
+
+	override fun dispatchKeyEvent(event: KeyEvent): Boolean
+	{
+		if(viewModel.session.dispatchKeyEvent(event))
+			return true
+		return super.dispatchKeyEvent(event)
 	}
 }

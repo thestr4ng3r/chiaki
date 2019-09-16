@@ -104,6 +104,13 @@ typedef struct android_chiaki_session_t
 	jclass java_session_class;
 	jmethodID java_session_event_login_pin_request_meth;
 	jmethodID java_session_event_quit_meth;
+	jfieldID java_controller_state_buttons;
+	jfieldID java_controller_state_l2_state;
+	jfieldID java_controller_state_r2_state;
+	jfieldID java_controller_state_left_x;
+	jfieldID java_controller_state_left_y;
+	jfieldID java_controller_state_right_x;
+	jfieldID java_controller_state_right_y;
 
 	AndroidChiakiVideoDecoder video_decoder;
 } AndroidChiakiSession;
@@ -200,7 +207,6 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	memcpy(connect_info.morning, bytes, sizeof(connect_info.morning));
 	E->ReleaseByteArrayElements(env, morning_array, bytes, JNI_ABORT);
 
-
 	connect_info.video_profile.width = (unsigned int)E->GetIntField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "width", "I"));
 	connect_info.video_profile.height = (unsigned int)E->GetIntField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "height", "I"));
 	connect_info.video_profile.max_fps = (unsigned int)E->GetIntField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "maxFPS", "I"));
@@ -229,6 +235,15 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	session->java_session_class = E->GetObjectClass(env, session->java_session);
 	session->java_session_event_login_pin_request_meth = E->GetMethodID(env, session->java_session_class, "eventLoginPinRequest", "(Z)V");
 	session->java_session_event_quit_meth = E->GetMethodID(env, session->java_session_class, "eventQuit", "(ILjava/lang/String;)V");
+
+	jclass controller_state_class = E->FindClass(env, "com/metallic/chiaki/lib/ControllerState");
+	session->java_controller_state_buttons = E->GetFieldID(env, controller_state_class, "buttons", "I");
+	session->java_controller_state_l2_state = E->GetFieldID(env, controller_state_class, "l2_state", "B");
+	session->java_controller_state_r2_state = E->GetFieldID(env, controller_state_class, "r2_state", "B");
+	session->java_controller_state_left_x = E->GetFieldID(env, controller_state_class, "left_x", "S");
+	session->java_controller_state_left_y = E->GetFieldID(env, controller_state_class, "left_y", "S");
+	session->java_controller_state_right_x = E->GetFieldID(env, controller_state_class, "right_x", "S");
+	session->java_controller_state_right_y = E->GetFieldID(env, controller_state_class, "right_y", "S");
 
 	chiaki_session_set_event_cb(&session->session, android_chiaki_event_cb, session);
 	chiaki_session_set_video_sample_cb(&session->session, android_chiaki_video_decoder_video_sample, &session->video_decoder);
@@ -276,4 +291,18 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetSurfa
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	android_chiaki_video_decoder_set_surface(&session->video_decoder, env, surface);
+}
+
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetControllerState(JNIEnv *env, jobject obj, jlong ptr, jobject controller_state_java)
+{
+	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	ChiakiControllerState controller_state = { 0 };
+	controller_state.buttons = (uint32_t)E->GetIntField(env, controller_state_java, session->java_controller_state_buttons);
+	controller_state.l2_state = (uint8_t)E->GetByteField(env, controller_state_java, session->java_controller_state_l2_state);
+	controller_state.r2_state = (uint8_t)E->GetByteField(env, controller_state_java, session->java_controller_state_r2_state);
+	controller_state.left_x = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_left_x);
+	controller_state.left_y = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_left_y);
+	controller_state.right_x = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_x);
+	controller_state.right_y = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_y);
+	chiaki_session_set_controller_state(&session->session, &controller_state);
 }

@@ -18,6 +18,8 @@
 package com.metallic.chiaki
 
 import android.graphics.SurfaceTexture
+import android.util.Log
+import android.view.KeyEvent
 import android.view.Surface
 import android.view.TextureView
 import androidx.lifecycle.LiveData
@@ -37,6 +39,9 @@ class StreamSession(val connectInfo: ConnectInfo)
 
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state
+
+	@ExperimentalUnsignedTypes
+	private val controllerState = ControllerState()
 
 	var surfaceTexture: SurfaceTexture? = null
 
@@ -95,5 +100,31 @@ class StreamSession(val connectInfo: ConnectInfo)
 		val surfaceTexture = surfaceTexture
 		if(surfaceTexture != null)
 			textureView.surfaceTexture = surfaceTexture
+	}
+
+	@ExperimentalUnsignedTypes
+	fun dispatchKeyEvent(event: KeyEvent): Boolean
+	{
+		val buttonMask: UInt = when(event.keyCode)
+		{
+			KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
+			KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
+			KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
+			KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
+			else -> return false
+		}
+
+		controllerState.buttons = controllerState.buttons.run {
+			when(event.action)
+			{
+				KeyEvent.ACTION_DOWN -> this or buttonMask
+				KeyEvent.ACTION_UP -> this and buttonMask.inv()
+				else -> this
+			}
+		}
+
+		session?.setControllerState(controllerState)
+
+		return true
 	}
 }
