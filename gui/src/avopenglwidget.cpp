@@ -54,13 +54,13 @@ out vec4 out_color;
 void main()
 {
 	vec3 yuv = vec3(
-		texture(tex_y, uv_var).r,
-		texture(tex_u, uv_var).r - 0.5,
-		texture(tex_v, uv_var).r - 0.5);
+		(texture(tex_y, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture(tex_u, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture(tex_v, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
 	vec3 rgb = mat3(
 		1.0,		1.0,		1.0,
-		0.0,		-0.39393,	2.02839,
-		1.14025,	-0.58081,	0.0) * yuv;
+		0.0,		-0.21482,	2.12798,
+		1.28033,	-0.38059,	0.0) * yuv;
 	out_color = vec4(rgb, 1.0);
 }
 )glsl";
