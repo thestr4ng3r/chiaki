@@ -105,12 +105,25 @@ class StreamSession(val connectInfo: ConnectInfo)
 	@ExperimentalUnsignedTypes
 	fun dispatchKeyEvent(event: KeyEvent): Boolean
 	{
+		Log.i("StreamSession", "key event $event")
 		val buttonMask: UInt = when(event.keyCode)
 		{
 			KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
 			KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
 			KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
 			KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
+			KeyEvent.KEYCODE_BUTTON_A -> ControllerState.BUTTON_CROSS
+			KeyEvent.KEYCODE_BUTTON_B -> ControllerState.BUTTON_MOON
+			KeyEvent.KEYCODE_BUTTON_X -> ControllerState.BUTTON_BOX
+			KeyEvent.KEYCODE_BUTTON_Y -> ControllerState.BUTTON_PYRAMID
+			KeyEvent.KEYCODE_BUTTON_L1 -> ControllerState.BUTTON_L1
+			KeyEvent.KEYCODE_BUTTON_R1 -> ControllerState.BUTTON_R1
+			KeyEvent.KEYCODE_BUTTON_THUMBL -> ControllerState.BUTTON_L3
+			KeyEvent.KEYCODE_BUTTON_THUMBR -> ControllerState.BUTTON_R3
+			KeyEvent.KEYCODE_BUTTON_SELECT -> ControllerState.BUTTON_SHARE
+			KeyEvent.KEYCODE_BUTTON_START -> ControllerState.BUTTON_OPTIONS
+			KeyEvent.KEYCODE_BUTTON_C -> ControllerState.BUTTON_PS
+			KeyEvent.KEYCODE_BUTTON_MODE -> ControllerState.BUTTON_PS
 			else -> return false
 		}
 
