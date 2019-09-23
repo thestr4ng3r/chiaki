@@ -90,6 +90,28 @@ matrix:
         - export DEPLOY_FILE="Chiaki-macOS-${CHIAKI_VERSION}-x86_64.dmg"
         - mv Chiaki.dmg "$DEPLOY_FILE"
 
+    - name: Android
+      language: android
+      os: linux
+      dist: trusty
+      android:
+        components:
+          - build-tools-29.0.2
+          - android-29
+      addons:
+        apt:
+          packages:
+            - python3-pip
+      install:
+        - echo y | sdkmanager "ndk-bundle"
+        - echo y | sdkmanager "cmake;3.10.2.4988404"
+        - sudo pip3 install protobuf
+        - scripts/fetch-protoc.sh
+        - export PATH="$TRAVIS_BUILD_DIR/protoc/bin:$PATH"
+      script:
+        - cd android
+        - ./gradlew assembleRelease
+
     - name: "Source Package"
       os: linux
       dist: bionic
