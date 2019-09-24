@@ -101,6 +101,8 @@ matrix:
       install:
         - echo y | sdkmanager "ndk-bundle"
         - echo y | sdkmanager "cmake;3.10.2.4988404"
+        - scripts/fetch-protoc.sh
+        - export PATH="$TRAVIS_BUILD_DIR/protoc/bin:$PATH"
       script:
         - cd android
         - ./gradlew assembleRelease
