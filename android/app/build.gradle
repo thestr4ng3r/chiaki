@@ -20,8 +20,7 @@ android {
                         "-DCHIAKI_ENABLE_GUI=OFF",
                         "-DCHIAKI_ENABLE_ANDROID=ON",
                         "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
-                        "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON",
-                        "-DCMAKE_VERBOSE_MAKEFILE=ON"
+                        "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON"
             }
         }
     }
