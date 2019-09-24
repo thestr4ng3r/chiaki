@@ -98,6 +98,10 @@ matrix:
         components:
           - build-tools-29.0.2
           - android-29
+      addons:
+        apt:
+          packages:
+            - python3-pip
       install:
         - echo y | sdkmanager "ndk-bundle"
         - echo y | sdkmanager "cmake;3.10.2.4988404"
