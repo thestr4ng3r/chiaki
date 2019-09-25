@@ -46,6 +46,8 @@ class MainWindow : public QMainWindow
 	private:
 		Settings *settings;
 
+		QIcon discover_action_icon;
+		QIcon discover_action_off_icon;
 		QAction *discover_action;
 
 		DynamicGridWidget *grid_widget;

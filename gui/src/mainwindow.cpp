@@ -36,6 +36,10 @@
 #include <QSvgRenderer>
 #include <QApplication>
 
+#ifdef CHIAKI_GUI_ENABLE_QT_MACEXTRAS
+#include <QMacToolBar>
+#endif
+
 class IconEngine : public QIconEngine
 {
 	private:
@@ -99,25 +103,54 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 		return QIcon(new IconEngine(filename));
 	};
 
+#ifdef CHIAKI_GUI_ENABLE_QT_MACEXTRAS
+	auto tool_bar = new QMacToolBar(this);
+#else
 	auto tool_bar = new QToolBar(this);
 	tool_bar->setMovable(false);
 	addToolBar(tool_bar);
 	setUnifiedTitleAndToolBarOnMac(true);
+#endif
 
-	discover_action = new QAction(tr("Automatically Search for Consoles"), this);
-	discover_action->setIcon(LoadIcon(":/icons/discover-24px.svg"));
+	auto AddToolBarAction = [&](QAction *action) {
+#ifdef CHIAKI_GUI_ENABLE_QT_MACEXTRAS
+		auto item = tool_bar->addItem(action->icon(), action->text());
+		connect(item, &QMacToolBarItem::activated, action, &QAction::trigger);
+		if(action->isCheckable())
+		{
+			connect(action, &QAction::toggled, item, [action, item]() {
+				item->setIcon(action->icon());
+			});
+		}
+#else
+		tool_bar->addAction(action);
+#endif
+	};
+
+	discover_action = new QAction(tr("Search for Consoles"), this);
+	discover_action_icon = LoadIcon(":/icons/discover-24px.svg");
+	discover_action_off_icon = LoadIcon(":/icons/discover-off-24px.svg");
 	discover_action->setCheckable(true);
 	discover_action->setChecked(settings->GetDiscoveryEnabled());
-	tool_bar->addAction(discover_action);
+	auto UpdateDiscoverActionIcon = [this]() {
+		discover_action->setIcon(discover_action->isChecked() ? discover_action_icon : discover_action_off_icon);
+	};
+	UpdateDiscoverActionIcon();
+	connect(discover_action, &QAction::toggled, this, UpdateDiscoverActionIcon);
+	AddToolBarAction(discover_action);
 	connect(discover_action, &QAction::triggered, this, &MainWindow::UpdateDiscoveryEnabled);
 
 	auto tool_bar_spacer = new QWidget();
 	tool_bar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
+#ifdef CHIAKI_GUI_ENABLE_QT_MACEXTRAS
+	tool_bar->addStandardItem(QMacToolBarItem::StandardItem::FlexibleSpace);
+#else
 	tool_bar->addWidget(tool_bar_spacer);
+#endif
 
 	auto add_manual_action = new QAction(tr("Add Console manually"), this);
 	add_manual_action->setIcon(LoadIcon(":/icons/add-24px.svg"));
-	tool_bar->addAction(add_manual_action);
+	AddToolBarAction(add_manual_action);
 	connect(add_manual_action, &QAction::triggered, this, [this]() {
 		ManualHostDialog dialog(this->settings, -1, this);
 		dialog.exec();
@@ -125,7 +158,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 
 	auto settings_action = new QAction(tr("Settings"), this);
 	settings_action->setIcon(LoadIcon(":/icons/settings-20px.svg"));
-	tool_bar->addAction(settings_action);
+	AddToolBarAction(settings_action);
 	connect(settings_action, &QAction::triggered, this, &MainWindow::ShowSettings);
 
 	auto scroll_area = new QScrollArea(this);
@@ -137,6 +170,11 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto scroll_content_layout = new QVBoxLayout(scroll_content_widget);
 	scroll_content_widget->setLayout(scroll_content_layout);
 	scroll_area->setWidget(scroll_content_widget);
+
+#ifdef CHIAKI_GUI_ENABLE_QT_MACEXTRAS
+	this->window()->winId();
+	tool_bar->attachToWindow(this->window()->windowHandle());
+#endif
 
 	grid_widget = new DynamicGridWidget(200, scroll_content_widget);
 	scroll_content_layout->addWidget(grid_widget);
