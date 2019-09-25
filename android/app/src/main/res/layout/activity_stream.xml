@@ -17,4 +17,24 @@
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
+    <com.metallic.chiaki.touchcontrols.ControlsBackgroundView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.metallic.chiaki.touchcontrols.DPadView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginLeft="32dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <com.metallic.chiaki.touchcontrols.DPadView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginRight="32dp"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
