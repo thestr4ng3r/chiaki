@@ -32,7 +32,8 @@ set(HEADER_FILES
 		include/chiaki/takionsendbuffer.h
 		include/chiaki/time.h
 		include/chiaki/fec.h
-		include/chiaki/regist.h)
+		include/chiaki/regist.h
+		include/chiaki/opusdecoder.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -67,7 +68,8 @@ set(SOURCE_FILES
 		src/takionsendbuffer.c
 		src/time.c
 		src/fec
-		src/regist.c)
+		src/regist.c
+		src/opusdecoder.c)
 
 add_subdirectory(protobuf)
 include_directories("${NANOPB_SOURCE_DIR}")
@@ -77,10 +79,12 @@ include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
 if(CHIAKI_LIB_ENABLE_OPUS)
 	find_package(Opus REQUIRED)
 	include_directories(${Opus_INCLUDE_DIRS})
-	add_definitions(-DCHIAKI_LIB_ENABLE_OPUS)
 endif()
 
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES})
+configure_file(config.h.in include/chiaki/config.h)
+target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
+
 add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 

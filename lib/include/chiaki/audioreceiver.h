@@ -28,18 +28,26 @@
 extern "C" {
 #endif
 
+typedef void (*ChiakiAudioSinkHeader)(ChiakiAudioHeader *header, void *user);
+typedef void (*ChiakiAudioSinkFrame)(uint8_t *buf, size_t buf_size, void *user);
+
+/**
+ * Sink that receives Audio encoded as Opus
+ */
+typedef struct chiaki_audio_sink_t
+{
+	void *user;
+	ChiakiAudioSinkHeader header_cb;
+	ChiakiAudioSinkFrame frame_cb;
+} ChiakiAudioSink;
 
 typedef struct chiaki_audio_receiver_t
 {
 	struct chiaki_session_t *session;
 	ChiakiLog *log;
 	ChiakiMutex mutex;
-	struct OpusDecoder *opus_decoder;
-	ChiakiAudioHeader audio_header;
 	ChiakiSeqNum16 frame_index_prev;
 	bool frame_index_startup; // whether frame_index_prev has definitely not wrapped yet
-	int16_t *pcm_buf;
-	size_t pcm_buf_size;
 } ChiakiAudioReceiver;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);

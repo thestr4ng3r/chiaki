@@ -64,6 +64,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_output(nullptr),
 	audio_io(nullptr)
 {
+	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
+
 	QByteArray host_str = connect_info.host.toUtf8();
 
 	ChiakiConnectInfo chiaki_connect_info;
@@ -84,7 +86,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 
-	chiaki_session_set_audio_cb(&session, AudioSettingsCb, AudioFrameCb, this);
+	chiaki_opus_decoder_set_cb(&opus_decoder, AudioSettingsCb, AudioFrameCb, this);
+	ChiakiAudioSink audio_sink;
+	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
+	chiaki_session_set_audio_sink(&session, &audio_sink);
+
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
 	chiaki_session_set_event_cb(&session, EventCb, this);
 
@@ -102,6 +108,7 @@ StreamSession::~StreamSession()
 {
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
+	chiaki_opus_decoder_fini(&opus_decoder);
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 	delete gamepad;
 #endif

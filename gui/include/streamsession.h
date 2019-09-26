@@ -19,6 +19,7 @@
 #define CHIAKI_STREAMSESSION_H
 
 #include <chiaki/session.h>
+#include <chiaki/opusdecoder.h>
 
 #include "videodecoder.h"
 #include "exception.h"
@@ -65,6 +66,7 @@ class StreamSession : public QObject
 	private:
 		SessionLog log;
 		ChiakiSession session;
+		ChiakiOpusDecoder opus_decoder;
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 		QGamepad *gamepad;
