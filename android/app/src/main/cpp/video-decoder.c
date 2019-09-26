@@ -39,6 +39,7 @@ ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *dec
 
 void android_chiaki_video_decoder_fini(AndroidChiakiVideoDecoder *decoder)
 {
+	// TODO: shutdown (thread may or may not be running!)
 	chiaki_mutex_fini(&decoder->mutex);
 }
 
@@ -75,8 +76,8 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280); // TODO: correct values
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
 
-	AMediaCodec_configure(decoder->codec, format, decoder->window, NULL, 0);
-	AMediaCodec_start(decoder->codec);
+	AMediaCodec_configure(decoder->codec, format, decoder->window, NULL, 0); // TODO: check result
+	AMediaCodec_start(decoder->codec); // TODO: check result
 
 	AMediaFormat_delete(format);
 

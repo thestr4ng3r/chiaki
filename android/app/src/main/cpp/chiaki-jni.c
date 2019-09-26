@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "video-decoder.h"
+#include "audio-decoder.h"
 
 #define LOG_TAG "Chiaki"
 #define JNI_VERSION JNI_VERSION_1_6
@@ -113,6 +114,7 @@ typedef struct android_chiaki_session_t
 	jfieldID java_controller_state_right_y;
 
 	AndroidChiakiVideoDecoder video_decoder;
+	AndroidChiakiAudioDecoder audio_decoder;
 } AndroidChiakiSession;
 
 static JNIEnv *attach_thread_jni()
@@ -227,9 +229,21 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 		goto beach;
 	}
 
+	err = android_chiaki_audio_decoder_init(&session->audio_decoder, &global_log);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		android_chiaki_video_decoder_fini(&session->video_decoder);
+		free(session);
+		session = NULL;
+		goto beach;
+	}
+
 	err = chiaki_session_init(&session->session, &connect_info, &global_log);
 	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		// TODO: free audio and video decoders and session (?)
 		goto beach;
+	}
 
 	session->java_session = E->NewGlobalRef(env, java_session);
 	session->java_session_class = E->GetObjectClass(env, session->java_session);
@@ -248,6 +262,10 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	chiaki_session_set_event_cb(&session->session, android_chiaki_event_cb, session);
 	chiaki_session_set_video_sample_cb(&session->session, android_chiaki_video_decoder_video_sample, &session->video_decoder);
 
+	ChiakiAudioSink audio_sink;
+	android_chiaki_audio_decoder_get_sink(&session->audio_decoder, &audio_sink);
+	chiaki_session_set_audio_sink(&session->session, &audio_sink);
+
 beach:
 	free(host_str);
 	E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
@@ -263,6 +281,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 	chiaki_session_fini(&session->session);
 	free(session);
 	android_chiaki_video_decoder_fini(&session->video_decoder);
+	android_chiaki_audio_decoder_fini(&session->audio_decoder);
 	E->DeleteGlobalRef(env, session->java_session);
 }
 

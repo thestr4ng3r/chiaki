@@ -608,6 +608,9 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 		return;
 	}
 
+	CHIAKI_LOGD(stream_connection->log, "StreamConnection received audio header:");
+	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, audio_header, audio_header_buf.size);
+
 	if(audio_header_buf.size != CHIAKI_AUDIO_HEADER_SIZE)
 	{
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection received invalid audio header in streaminfo");
