@@ -10,3 +10,6 @@
 [submodule "third-party/gf-complete"]
 	path = third-party/gf-complete
 	url = https://github.com/thestr4ng3r/gf-complete.git
+[submodule "android/app/src/main/cpp/oboe"]
+	path = android/app/src/main/cpp/oboe
+	url = https://github.com/google/oboe

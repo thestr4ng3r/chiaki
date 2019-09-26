@@ -27,6 +27,7 @@
 
 #include "video-decoder.h"
 #include "audio-decoder.h"
+#include "audio-output.h"
 
 #define LOG_TAG "Chiaki"
 #define JNI_VERSION JNI_VERSION_1_6
@@ -115,6 +116,7 @@ typedef struct android_chiaki_session_t
 
 	AndroidChiakiVideoDecoder video_decoder;
 	AndroidChiakiAudioDecoder audio_decoder;
+	void *audio_output;
 } AndroidChiakiSession;
 
 static JNIEnv *attach_thread_jni()
@@ -238,6 +240,10 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 		goto beach;
 	}
 
+	session->audio_output = android_chiaki_audio_output_new(&global_log);
+
+	android_chiaki_audio_decoder_set_cb(&session->audio_decoder, android_chiaki_audio_output_settings, android_chiaki_audio_output_frame, session->audio_output);
+
 	err = chiaki_session_init(&session->session, &connect_info, &global_log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
@@ -282,6 +288,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 	free(session);
 	android_chiaki_video_decoder_fini(&session->video_decoder);
 	android_chiaki_audio_decoder_fini(&session->audio_decoder);
+	android_chiaki_audio_output_free(session->audio_output);
 	E->DeleteGlobalRef(env, session->java_session);
 }
 

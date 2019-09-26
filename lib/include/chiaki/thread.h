@@ -107,6 +107,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_bool_pred_cond_broadcast(ChiakiBoolPredCond
 
 #ifdef __cplusplus
 }
+
+class ChiakiMutexLock
+{
+	private:
+		ChiakiMutex * const mutex;
+
+	public:
+		ChiakiMutexLock(ChiakiMutex *mutex) : mutex(mutex) { chiaki_mutex_lock(mutex); }
+		~ChiakiMutexLock() { chiaki_mutex_unlock(mutex); }
+};
 #endif
 
 #endif // CHIAKI_THREAD_H

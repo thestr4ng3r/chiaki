@@ -21,7 +21,6 @@
 
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include <android/native_window_jni.h>
 
 #include <string.h>
 
@@ -37,6 +36,11 @@ ChiakiErrorCode android_chiaki_audio_decoder_init(AndroidChiakiAudioDecoder *dec
 	memset(&decoder->audio_header, 0, sizeof(decoder->audio_header));
 	decoder->codec = NULL;
 	decoder->timestamp_cur = 0;
+
+	decoder->cb_user = NULL;
+	decoder->settings_cb = NULL;
+	decoder->frame_cb = NULL;
+
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -59,11 +63,17 @@ static void *android_chiaki_audio_decoder_output_thread_func(void *user)
 	while(1)
 	{
 		AMediaCodecBufferInfo info;
-		ssize_t status = AMediaCodec_dequeueOutputBuffer(decoder->codec, &info, -1);
-		if(status >= 0)
+		ssize_t codec_buf_index = AMediaCodec_dequeueOutputBuffer(decoder->codec, &info, -1);
+		if(codec_buf_index >= 0)
 		{
 			CHIAKI_LOGD(decoder->log, "Got decoded audio of size %d", (int)info.size);
-			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)status, info.size != 0);
+			if(decoder->settings_cb)
+			{
+				size_t codec_buf_size;
+				uint8_t *codec_buf = AMediaCodec_getOutputBuffer(decoder->codec, (size_t)codec_buf_index, &codec_buf_size);
+				decoder->frame_cb((int16_t *)codec_buf, codec_buf_size / 2, decoder->cb_user);
+			}
+			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)codec_buf_index, info.size != 0);
 			if(info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM)
 			{
 				CHIAKI_LOGI(decoder->log, "AMediaCodec for Audio Decoder reported EOS");
@@ -100,6 +110,7 @@ static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void 
 	AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, mime);
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CHANNEL_COUNT, header->channels);
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_SAMPLE_RATE, header->rate);
+	// AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PCM_ENCODING)
 
 	AMediaCodec_configure(decoder->codec, format, NULL, NULL, 0); // TODO: check result
 	AMediaCodec_start(decoder->codec); // TODO: check result
@@ -142,6 +153,9 @@ static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void 
 	uint8_t csd2[8] = { (uint8_t)(pre_roll_ns & 0xff), (uint8_t)((pre_roll_ns >> 0x8) & 0xff), (uint8_t)((pre_roll_ns >> 0x10) & 0xff), (uint8_t)((pre_roll_ns >> 0x18) & 0xff),
 						(uint8_t)((pre_roll_ns >> 0x20) & 0xff), (uint8_t)((pre_roll_ns >> 0x28) & 0xff), (uint8_t)((pre_roll_ns >> 0x30) & 0xff), (uint8_t)(pre_roll_ns >> 0x38)};
 	android_chiaki_audio_decoder_frame(csd2, sizeof(csd2), decoder);
+
+	if(decoder->settings_cb)
+		decoder->settings_cb(header->channels, header->rate, decoder->cb_user);
 }
 
 static void android_chiaki_audio_decoder_frame(uint8_t *buf, size_t buf_size, void *user)
