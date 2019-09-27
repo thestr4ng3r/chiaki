@@ -66,14 +66,15 @@ static void *android_chiaki_audio_decoder_output_thread_func(void *user)
 		ssize_t codec_buf_index = AMediaCodec_dequeueOutputBuffer(decoder->codec, &info, -1);
 		if(codec_buf_index >= 0)
 		{
-			CHIAKI_LOGD(decoder->log, "Got decoded audio of size %d", (int)info.size);
 			if(decoder->settings_cb)
 			{
 				size_t codec_buf_size;
 				uint8_t *codec_buf = AMediaCodec_getOutputBuffer(decoder->codec, (size_t)codec_buf_index, &codec_buf_size);
-				decoder->frame_cb((int16_t *)codec_buf, codec_buf_size / 2, decoder->cb_user);
+				size_t samples_count = info.size / sizeof(int16_t);
+				//CHIAKI_LOGD(decoder->log, "Got %llu samples => %f ms of audio", (unsigned long long)samples_count, 1000.0f * (float)(samples_count / 2) / (float)decoder->audio_header.rate);
+				decoder->frame_cb((int16_t *)codec_buf, samples_count, decoder->cb_user);
 			}
-			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)codec_buf_index, info.size != 0);
+			AMediaCodec_releaseOutputBuffer(decoder->codec, (size_t)codec_buf_index, false);
 			if(info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM)
 			{
 				CHIAKI_LOGI(decoder->log, "AMediaCodec for Audio Decoder reported EOS");

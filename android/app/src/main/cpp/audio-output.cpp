@@ -17,12 +17,17 @@
 
 #include "audio-output.h"
 
+#include "circular-buf.hpp"
+
 #include <chiaki/log.h>
 #include <chiaki/thread.h>
 
 #include <oboe/Oboe.h>
 
-#define BUFFER_SIZE_DEFAULT 409600
+#define BUFFER_CHUNK_SIZE 512
+#define BUFFER_CHUNKS_COUNT 128
+
+using AudioBuffer = CircularBuffer<BUFFER_CHUNKS_COUNT, BUFFER_CHUNK_SIZE>;
 
 class AudioOutput;
 
@@ -43,12 +48,7 @@ struct AudioOutput
 	ChiakiLog *log;
 	oboe::ManagedStream stream;
 	AudioOutputCallback stream_callback;
-
-	ChiakiMutex buffer_mutex; // TODO: make lockless
-	uint8_t *buffer;
-	size_t buffer_size; // total size
-	size_t buffer_start;
-	size_t buffer_length; // filled size
+	AudioBuffer buf;
 
 	AudioOutput() : stream_callback(this) {}
 };
@@ -57,23 +57,6 @@ extern "C" void *android_chiaki_audio_output_new(ChiakiLog *log)
 {
 	auto r = new AudioOutput();
 	r->log = log;
-
-	if(chiaki_mutex_init(&r->buffer_mutex, false) != CHIAKI_ERR_SUCCESS)
-	{
-		delete r;
-		return nullptr;
-	}
-	r->buffer_size = BUFFER_SIZE_DEFAULT;
-	r->buffer = (uint8_t *)malloc(r->buffer_size);
-	if(!r->buffer)
-	{
-		chiaki_mutex_fini(&r->buffer_mutex);
-		delete r;
-		return nullptr;
-	}
-	r->buffer_start = 0;
-	r->buffer_length = 0;
-
 	return r;
 }
 
@@ -83,8 +66,6 @@ extern "C" void android_chiaki_audio_output_free(void *audio_output)
 		return;
 	auto ao = reinterpret_cast<AudioOutput *>(audio_output);
 	ao->stream = nullptr;
-	free(ao->buffer);
-	chiaki_mutex_fini(&ao->buffer_mutex);
 	delete ao;
 }
 
@@ -116,29 +97,11 @@ extern "C" void android_chiaki_audio_output_settings(uint32_t channels, uint32_t
 extern "C" void android_chiaki_audio_output_frame(int16_t *buf, size_t samples_count, void *audio_output)
 {
 	auto ao = reinterpret_cast<AudioOutput *>(audio_output);
-	ChiakiMutexLock lock(&ao->buffer_mutex);
 
 	size_t buf_size = samples_count * sizeof(int16_t);
-	if(ao->buffer_size - ao->buffer_length < buf_size)
-	{
+	size_t pushed = ao->buf.Push(reinterpret_cast<uint8_t *>(buf), buf_size);
+	if(pushed < buf_size)
 		CHIAKI_LOGW(ao->log, "Audio Output Buffer Overflow!");
-		buf_size = ao->buffer_size - ao->buffer_length;
-	}
-
-	if(!buf_size)
-		return;
-
-	size_t end = (ao->buffer_start + ao->buffer_length) % ao->buffer_size;
-	ao->buffer_length += buf_size;
-	if(end + buf_size > ao->buffer_size)
-	{
-		size_t part = ao->buffer_size - end;
-		memcpy(ao->buffer + end, buf, part);
-		buf_size -= part;
-		buf = (int16_t *)(((uint8_t *)buf) + part);
-		end = 0;
-	}
-	memcpy(ao->buffer + end, buf, buf_size);
 }
 
 oboe::DataCallbackResult AudioOutputCallback::onAudioReady(oboe::AudioStream *stream, void *audio_data, int32_t num_frames)
@@ -151,33 +114,16 @@ oboe::DataCallbackResult AudioOutputCallback::onAudioReady(oboe::AudioStream *st
 
 	int32_t bytes_per_frame = stream->getBytesPerFrame();
 	size_t buf_size_requested = static_cast<size_t>(bytes_per_frame * num_frames);
+	auto buf = reinterpret_cast<uint8_t *>(audio_data);
 
-	size_t buf_size_delivered = buf_size_requested;
-	uint8_t *buf = (uint8_t *)audio_data;
-
-	{
-		ChiakiMutexLock lock(&audio_output->buffer_mutex);
-		if(audio_output->buffer_length < buf_size_delivered)
-		{
-			CHIAKI_LOGW(audio_output->log, "Audio Output Buffer Underflow!");
-			buf_size_delivered = audio_output->buffer_length;
-		}
-
-		if(audio_output->buffer_start + buf_size_delivered > audio_output->buffer_size)
-		{
-			size_t part = audio_output->buffer_size - audio_output->buffer_start;
-			memcpy(buf, audio_output->buffer + audio_output->buffer_start, part);
-			memcpy(buf + part, audio_output->buffer, buf_size_delivered - part);
-		}
-		else
-			memcpy(buf, audio_output->buffer + audio_output->buffer_start, buf_size_delivered);
-
-		audio_output->buffer_start = (audio_output->buffer_start + buf_size_delivered) % audio_output->buffer_size;
-		audio_output->buffer_length -= buf_size_delivered;
-	}
+	size_t buf_size_delivered = audio_output->buf.Pop(buf, buf_size_requested);
+	//CHIAKI_LOGW(audio_output->log, "Delivered %llu", (unsigned long long)buf_size_delivered);
 
 	if(buf_size_delivered < buf_size_requested)
+	{
+		CHIAKI_LOGW(audio_output->log, "Audio Output Buffer Underflow!");
 		memset(buf + buf_size_delivered, 0, buf_size_requested - buf_size_delivered);
+	}
 
 	return oboe::DataCallbackResult::Continue;
 }

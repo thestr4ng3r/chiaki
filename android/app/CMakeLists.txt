@@ -1,6 +1,8 @@
 
 cmake_minimum_required(VERSION 3.2)
 
+set(CMAKE_CXX_STANDARD 14)
+
 add_library(chiaki-jni SHARED
         src/main/cpp/chiaki-jni.c
         src/main/cpp/video-decoder.h
@@ -8,7 +10,8 @@ add_library(chiaki-jni SHARED
         src/main/cpp/audio-decoder.h
         src/main/cpp/audio-decoder.c
         src/main/cpp/audio-output.h
-        src/main/cpp/audio-output.cpp)
+        src/main/cpp/audio-output.cpp
+        src/main/cpp/circular-fifo.hpp)
 target_link_libraries(chiaki-jni chiaki-lib)
 
 find_library(ANDROID_LIB_LOG log)
