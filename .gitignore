@@ -16,3 +16,4 @@ appdir
 /openssl*
 .vs
 CMakeSettings.json
+chiaki.rb

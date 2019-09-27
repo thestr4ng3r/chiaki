@@ -1,0 +1,15 @@
+cask 'chiaki' do
+  version '@CHIAKI_VERSION@'
+  sha256 '@CHIAKI_DMG_SHA256@'
+
+  url "https://github.com/thestr4ng3r/chiaki/releases/download/v@CHIAKI_VERSION@/@CHIAKI_DMG_FILENAME@"
+  name 'Chiaki'
+  homepage 'https://github.com/thestr4ng3r/chiaki'
+
+  app "Chiaki.app"
+
+  zap trash: [
+               '~/Library/Application Support/Chiaki',
+               '~/Library/Preferences/com.chiaki.Chiaki.plist'
+             ]
+end
