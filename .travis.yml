@@ -89,7 +89,7 @@ matrix:
         - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
         - export DEPLOY_FILE="Chiaki-macOS-${CHIAKI_VERSION}-x86_64.dmg"
         - mv Chiaki.dmg "$DEPLOY_FILE"
-        - cmake -DCHIAKI_VERSION="${CHIAKI_VERSION}" -DCHIAKI_DMG="${DEPLOY_FILE}" -DCHIAKI_DMG_FILENAME="${DEPLOY_FILE}" -DCHIAKI_CASK_OUT=chiaki.rb -P scripts/configure-cask.cmake
+        - cmake -DCHIAKI_VERSION="${CHIAKI_VERSION}" -DCHIAKI_DMG="${DEPLOY_FILE}" -DCHIAKI_CASK_OUT=chiaki.rb -P scripts/configure-cask.cmake
         - echo "------------------- chiaki.rb cask -------------------"
         - cat chiaki.rb
         - echo "------------------------------------------------------"
