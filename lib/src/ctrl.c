@@ -578,7 +578,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err != CHIAKI_ERR_CANCELED)
-			CHIAKI_LOGE(session->log, "Failed to receive ctrl request response");
+			CHIAKI_LOGE(session->log, "Failed to receive ctrl request response: %s", chiaki_error_string(err));
 		goto error;
 	}
 
