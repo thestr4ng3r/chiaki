@@ -8,4 +8,5 @@
     <color name="stream_background">@android:color/black</color>
 
     <color name="control_primary">@android:color/white</color>
+    <color name="control_pressed">#8888ff</color>
 </resources>

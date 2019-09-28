@@ -18,10 +18,7 @@
 package com.metallic.chiaki.touchcontrols
 
 import android.content.Context
-import android.graphics.BlendMode
 import android.graphics.Canvas
-import android.graphics.PorterDuff
-import android.graphics.drawable.VectorDrawable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -36,17 +33,35 @@ class DPadView @JvmOverloads constructor(
 {
 	enum class Direction { LEFT, RIGHT, UP, DOWN }
 
-	private val colorPrimary = resources.getColor(R.color.control_primary, null)
-	private val dpadDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad, null)
+	var state: Direction? = null
+		private set
+
+	private val dpadIdleDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_idle, null)
+	private val dpadLeftDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_left, null)
 
 	override fun onDraw(canvas: Canvas)
 	{
 		super.onDraw(canvas)
-		dpadDrawable?.setBounds(0, 0, width, height)
-		//dpadDrawable?.setTint(colorPrimary)
-		//dpadDrawable?.setTintBlendMode(BlendMode.SRC_ATOP)
-		//dpadDrawable?.setTintMode(PorterDuff.Mode.SRC_ATOP)
-		dpadDrawable?.draw(canvas)
+
+		val state = state
+		val drawable: VectorDrawableCompat?
+		if(state != null)
+		{
+			drawable = dpadLeftDrawable
+			when(state)
+			{
+				Direction.UP -> canvas.rotate(90f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+				Direction.DOWN -> canvas.rotate(90f*3f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+				Direction.LEFT -> {}
+				Direction.RIGHT -> canvas.rotate(90f*2f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+			}
+		}
+		else
+			drawable = dpadIdleDrawable
+
+		drawable?.setBounds(0, 0, width, height)
+		drawable?.alpha = 127
+		drawable?.draw(canvas)
 	}
 
 	fun directionForPosition(x: Float, y: Float): Direction
@@ -64,7 +79,12 @@ class DPadView @JvmOverloads constructor(
 
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
-		Log.i("DPadView", "direction: ${directionForPosition(event.x, event.y)}")
+		val dir = directionForPosition(event.x, event.y)
+		if(event.action == MotionEvent.ACTION_UP)
+			state = null
+		else if(event.action == MotionEvent.ACTION_DOWN)
+			state = dir
+		invalidate()
 		return true
 	}
 

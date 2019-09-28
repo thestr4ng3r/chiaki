@@ -35,7 +35,7 @@ data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 class StreamSession(val connectInfo: ConnectInfo)
 {
 	var session: Session? = null
-		private set(value) { field = value }
+		private set
 
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state
