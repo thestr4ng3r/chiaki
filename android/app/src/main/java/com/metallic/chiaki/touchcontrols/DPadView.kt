@@ -26,6 +26,7 @@ import android.view.View
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
 import com.metallic.chiaki.R
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 class DPadView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -36,8 +37,16 @@ class DPadView @JvmOverloads constructor(
 	var state: Direction? = null
 		private set
 
+	/**
+	 * Radius (as a fraction of the entire DPad Radius)
+	 * to be used as a deadzone in the center on move events
+	 */
+	private val deadzoneRadius = 0.3f
+
 	private val dpadIdleDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_idle, null)
 	private val dpadLeftDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_left, null)
+
+	private var pointerId: Int? = null
 
 	override fun onDraw(canvas: Canvas)
 	{
@@ -64,7 +73,7 @@ class DPadView @JvmOverloads constructor(
 		drawable?.draw(canvas)
 	}
 
-	fun directionForPosition(x: Float, y: Float): Direction
+	private fun directionForPosition(x: Float, y: Float): Direction
 	{
 		val dx = x - width * 0.5f
 		val dy = y - height * 0.5f
@@ -72,19 +81,68 @@ class DPadView @JvmOverloads constructor(
 		{
 			dx > abs(dy) -> Direction.RIGHT
 			dx <= -abs(dy) -> Direction.LEFT
-			dy > abs(dx) -> Direction.DOWN
-			else /*dy <= -abs(dx)*/ -> Direction.UP
+			dy >= abs(dx) -> Direction.DOWN
+			else /*dy < -abs(dx)*/ -> Direction.UP
+		}
+	}
+
+	private fun updateState(x: Float?, y: Float?)
+	{
+		val newState =
+			if(x == null || y == null)
+				null
+			else
+			{
+				val xFrac = 2.0f * (x / width.toFloat() - 0.5f)
+				val yFrac = 2.0f * (y / height.toFloat() - 0.5f)
+				val radiusSq = xFrac * xFrac + yFrac * yFrac
+				if(radiusSq < deadzoneRadius * deadzoneRadius && state != null)
+					state
+				else
+					directionForPosition(x, y)
+			}
+
+		if(state != newState)
+		{
+			state = newState
+			invalidate()
+			// TODO: callback
 		}
 	}
 
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
-		val dir = directionForPosition(event.x, event.y)
-		if(event.action == MotionEvent.ACTION_UP)
-			state = null
-		else if(event.action == MotionEvent.ACTION_DOWN)
-			state = dir
-		invalidate()
+		when(event.actionMasked)
+		{
+			MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN ->
+			{
+				if(pointerId == null)
+				{
+					pointerId = event.getPointerId(event.actionIndex)
+					updateState(event.x, event.y)
+				}
+			}
+
+			MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP ->
+			{
+				if(event.getPointerId(event.actionIndex) == pointerId)
+				{
+					pointerId = null
+					updateState(null, null)
+				}
+			}
+
+			MotionEvent.ACTION_MOVE ->
+			{
+				val pointerId = pointerId
+				if(pointerId != null)
+				{
+					val pointerIndex = event.findPointerIndex(pointerId)
+					if(pointerIndex >= 0)
+						updateState(event.getX(pointerIndex), event.getY(pointerIndex))
+				}
+			}
+		}
 		return true
 	}
 
