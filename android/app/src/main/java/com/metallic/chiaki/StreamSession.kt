@@ -45,26 +45,37 @@ class StreamSession(val connectInfo: ConnectInfo)
 
 	var surfaceTexture: SurfaceTexture? = null
 
-	init
+	fun shutdown()
 	{
+		session?.stop()
+		session?.dispose()
+		session = null
+		//surfaceTexture?.release()
+	}
+
+	fun pause()
+	{
+		shutdown()
+	}
+
+	fun resume()
+	{
+		if(session != null)
+			return
 		try
 		{
 			val session = Session(connectInfo)
 			session.eventCallback = this::eventCallback
 			session.start()
+			val surfaceTexture = surfaceTexture
+			if(surfaceTexture != null)
+				session.setSurface(Surface(surfaceTexture))
 			this.session = session
 		}
 		catch(e: SessionCreateError)
 		{
 			_state.value = StreamStateCreateError(e)
 		}
-	}
-
-	fun shutdown()
-	{
-		session?.stop()
-		session?.dispose()
-		surfaceTexture?.release()
 	}
 
 	private fun eventCallback(event: Event)

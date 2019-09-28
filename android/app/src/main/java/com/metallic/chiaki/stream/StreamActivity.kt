@@ -23,8 +23,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ConnectInfo
 import kotlinx.android.synthetic.main.activity_stream.*
@@ -70,6 +69,13 @@ class StreamActivity : AppCompatActivity()
 	{
 		super.onResume()
 		hideSystemUI()
+		viewModel.session.resume()
+	}
+
+	override fun onPause()
+	{
+		super.onPause()
+		viewModel.session.pause()
 	}
 
 	override fun onWindowFocusChanged(hasFocus: Boolean)

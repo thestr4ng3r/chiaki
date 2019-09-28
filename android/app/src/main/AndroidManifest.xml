@@ -23,6 +23,7 @@
         <activity
             android:name=".stream.StreamActivity"
             android:theme="@style/StreamTheme"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:screenOrientation="userLandscape"/>
     </application>
 

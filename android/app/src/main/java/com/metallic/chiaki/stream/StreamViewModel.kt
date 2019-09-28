@@ -23,17 +23,15 @@ import com.metallic.chiaki.lib.*
 
 class StreamViewModel: ViewModel()
 {
-	var isInitialized = false
-		private set(value) { field = value}
-
+	private var connectInfo: ConnectInfo? = null
 	private var _session: StreamSession? = null
 	val session: StreamSession get() = _session ?: throw UninitializedPropertyAccessException("StreamViewModel not initialized")
+	val isInitialized get() = connectInfo != null
 
 	fun init(connectInfo: ConnectInfo)
 	{
 		if(isInitialized)
 			return
-		isInitialized = true
 		_session = StreamSession(connectInfo)
 	}
 
