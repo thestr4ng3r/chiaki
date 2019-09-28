@@ -258,12 +258,12 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 
 	jclass controller_state_class = E->FindClass(env, "com/metallic/chiaki/lib/ControllerState");
 	session->java_controller_state_buttons = E->GetFieldID(env, controller_state_class, "buttons", "I");
-	session->java_controller_state_l2_state = E->GetFieldID(env, controller_state_class, "l2_state", "B");
-	session->java_controller_state_r2_state = E->GetFieldID(env, controller_state_class, "r2_state", "B");
-	session->java_controller_state_left_x = E->GetFieldID(env, controller_state_class, "left_x", "S");
-	session->java_controller_state_left_y = E->GetFieldID(env, controller_state_class, "left_y", "S");
-	session->java_controller_state_right_x = E->GetFieldID(env, controller_state_class, "right_x", "S");
-	session->java_controller_state_right_y = E->GetFieldID(env, controller_state_class, "right_y", "S");
+	session->java_controller_state_l2_state = E->GetFieldID(env, controller_state_class, "l2State", "B");
+	session->java_controller_state_r2_state = E->GetFieldID(env, controller_state_class, "r2State", "B");
+	session->java_controller_state_left_x = E->GetFieldID(env, controller_state_class, "leftX", "S");
+	session->java_controller_state_left_y = E->GetFieldID(env, controller_state_class, "leftY", "S");
+	session->java_controller_state_right_x = E->GetFieldID(env, controller_state_class, "rightX", "S");
+	session->java_controller_state_right_y = E->GetFieldID(env, controller_state_class, "rightY", "S");
 
 	chiaki_session_set_event_cb(&session->session, android_chiaki_event_cb, session);
 	chiaki_session_set_video_sample_cb(&session->session, android_chiaki_video_decoder_video_sample, &session->video_decoder);

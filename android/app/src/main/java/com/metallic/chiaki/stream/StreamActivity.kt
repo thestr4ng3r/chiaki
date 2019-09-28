@@ -19,15 +19,17 @@ package com.metallic.chiaki.stream
 
 import android.graphics.Matrix
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
 
+@ExperimentalUnsignedTypes
 class StreamActivity : AppCompatActivity()
 {
 	companion object
@@ -40,7 +42,6 @@ class StreamActivity : AppCompatActivity()
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_stream)
 
 		viewModel = ViewModelProviders.of(this)[StreamViewModel::class.java]
 		if(!viewModel.isInitialized)
@@ -54,6 +55,8 @@ class StreamActivity : AppCompatActivity()
 			viewModel.init(connectInfo)
 		}
 
+		setContentView(R.layout.activity_stream)
+
 		viewModel.session.attachToTextureView(textureView)
 
 		viewModel.session.state.observe(this, Observer {
@@ -63,6 +66,13 @@ class StreamActivity : AppCompatActivity()
 		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
 			adjustTextureViewAspect()
 		}
+	}
+
+	@ExperimentalUnsignedTypes
+	override fun onAttachFragment(fragment: Fragment)
+	{
+		super.onAttachFragment(fragment)
+		(fragment as? TouchControlsFragment)?.controllerStateCallback = viewModel.session::updateTouchControllerState
 	}
 
 	override fun onResume()

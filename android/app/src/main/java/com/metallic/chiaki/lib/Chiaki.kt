@@ -1,10 +1,10 @@
 package com.metallic.chiaki.lib
 
 import android.os.Parcelable
-import android.util.Log
 import android.view.Surface
 import kotlinx.android.parcel.Parcelize
 import java.lang.Exception
+import kotlin.math.abs
 
 @Parcelize
 data class ConnectVideoProfile(
@@ -49,14 +49,17 @@ class ErrorCode(val value: Int)
 	var isSuccess = value == 0
 }
 
-data class ControllerState @ExperimentalUnsignedTypes constructor(
+private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a else b
+
+@ExperimentalUnsignedTypes
+data class ControllerState constructor(
 	var buttons: UInt = 0U,
-	var l2_state: UByte = 0U,
-	var r2_state: UByte = 0U,
-	var left_x: Short = 0,
-	var left_y: Short = 0,
-	var right_x: Short = 0,
-	var right_y: Short = 0
+	var l2State: UByte = 0U,
+	var r2State: UByte = 0U,
+	var leftX: Short = 0,
+	var leftY: Short = 0,
+	var rightX: Short = 0,
+	var rightY: Short = 0
 ){
 	companion object
 	{
@@ -77,6 +80,16 @@ data class ControllerState @ExperimentalUnsignedTypes constructor(
 		val BUTTON_TOUCHPAD	= (1 shl 14).toUInt()
 		val BUTTON_PS			= (1 shl 15).toUInt()
 	}
+
+	infix fun or(o: ControllerState) = ControllerState(
+		buttons = buttons or o.buttons,
+		l2State = maxOf(l2State, o.l2State),
+		r2State = maxOf(r2State, o.r2State),
+		leftX = maxAbs(leftX, o.leftX),
+		leftY = maxAbs(leftY, o.leftY),
+		rightX = maxAbs(rightX, o.rightX),
+		rightY = maxAbs(rightY, o.rightY)
+	)
 }
 
 class QuitReason(val value: Int)

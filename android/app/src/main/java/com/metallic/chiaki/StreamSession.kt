@@ -32,6 +32,7 @@ data class StreamStateCreateError(val error: SessionCreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
+@ExperimentalUnsignedTypes
 class StreamSession(val connectInfo: ConnectInfo)
 {
 	var session: Session? = null
@@ -40,8 +41,8 @@ class StreamSession(val connectInfo: ConnectInfo)
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state
 
-	@ExperimentalUnsignedTypes
 	private val controllerState = ControllerState()
+	private var touchControllerState = ControllerState()
 
 	var surfaceTexture: SurfaceTexture? = null
 
@@ -147,8 +148,18 @@ class StreamSession(val connectInfo: ConnectInfo)
 			}
 		}
 
-		session?.setControllerState(controllerState)
-
+		sendControllerState()
 		return true
+	}
+
+	fun updateTouchControllerState(controllerState: ControllerState)
+	{
+		touchControllerState = controllerState
+		sendControllerState()
+	}
+
+	private fun sendControllerState()
+	{
+		session?.setControllerState(controllerState or touchControllerState)
 	}
 }

@@ -37,6 +37,8 @@ class DPadView @JvmOverloads constructor(
 	var state: Direction? = null
 		private set
 
+	var stateChangeCallback: ((Direction?) -> Unit)? = null
+
 	/**
 	 * Radius (as a fraction of the entire DPad Radius)
 	 * to be used as a deadzone in the center on move events
@@ -69,7 +71,7 @@ class DPadView @JvmOverloads constructor(
 			drawable = dpadIdleDrawable
 
 		drawable?.setBounds(0, 0, width, height)
-		drawable?.alpha = 127
+		//drawable?.alpha = 127
 		drawable?.draw(canvas)
 	}
 
@@ -106,7 +108,7 @@ class DPadView @JvmOverloads constructor(
 		{
 			state = newState
 			invalidate()
-			// TODO: callback
+			stateChangeCallback?.let { it(state) }
 		}
 	}
 
