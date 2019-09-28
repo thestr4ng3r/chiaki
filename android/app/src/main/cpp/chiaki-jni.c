@@ -281,7 +281,7 @@ beach:
 JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
-	CHIAKI_LOGI(&global_log, "Free JNI Session");
+	CHIAKI_LOGI(&global_log, "Shutting down JNI Session");
 	if(!session)
 		return;
 	chiaki_session_fini(&session->session);
@@ -290,6 +290,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 	android_chiaki_audio_decoder_fini(&session->audio_decoder);
 	android_chiaki_audio_output_free(session->audio_output);
 	E->DeleteGlobalRef(env, session->java_session);
+	CHIAKI_LOGI(&global_log, "JNI Session has quit");
 }
 
 JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStart(JNIEnv *env, jobject obj, jlong ptr)

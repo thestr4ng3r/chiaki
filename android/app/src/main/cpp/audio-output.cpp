@@ -121,7 +121,7 @@ oboe::DataCallbackResult AudioOutputCallback::onAudioReady(oboe::AudioStream *st
 
 	if(buf_size_delivered < buf_size_requested)
 	{
-		CHIAKI_LOGW(audio_output->log, "Audio Output Buffer Underflow!");
+		CHIAKI_LOGV(audio_output->log, "Audio Output Buffer Underflow!");
 		memset(buf + buf_size_delivered, 0, buf_size_requested - buf_size_delivered);
 	}
 

@@ -41,12 +41,31 @@ ChiakiErrorCode android_chiaki_audio_decoder_init(AndroidChiakiAudioDecoder *dec
 	decoder->settings_cb = NULL;
 	decoder->frame_cb = NULL;
 
-	return CHIAKI_ERR_SUCCESS;
+	return chiaki_mutex_init(&decoder->codec_mutex, true);
+}
+
+void android_chiaki_audio_decoder_shutdown_codec(AndroidChiakiAudioDecoder *decoder)
+{
+	chiaki_mutex_lock(&decoder->codec_mutex);
+	ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, -1);
+	if(codec_buf_index >= 0)
+	{
+		CHIAKI_LOGI(decoder->log, "Audio Decoder sending EOS buffer");
+		AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, 0, decoder->timestamp_cur++, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
+	}
+	else
+		CHIAKI_LOGE(decoder->log, "Failed to get input buffer for shutting down Audio Decoder!");
+	chiaki_mutex_unlock(&decoder->codec_mutex);
+	chiaki_thread_join(&decoder->output_thread, NULL);
+	AMediaCodec_delete(decoder->codec);
+	decoder->codec = NULL;
 }
 
 void android_chiaki_audio_decoder_fini(AndroidChiakiAudioDecoder *decoder)
 {
-	// TODO: shutdown (thread may or may not be running!)
+	if(decoder->codec)
+		android_chiaki_audio_decoder_shutdown_codec(decoder);
+	chiaki_mutex_fini(&decoder->codec_mutex);
 }
 
 void android_chiaki_audio_decoder_get_sink(AndroidChiakiAudioDecoder *decoder, ChiakiAudioSink *sink)
@@ -83,20 +102,21 @@ static void *android_chiaki_audio_decoder_output_thread_func(void *user)
 		}
 	}
 
+	CHIAKI_LOGI(decoder->log, "Audio Decoder Output Thread exiting");
+
 	return NULL;
 }
 
 static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void *user)
 {
 	AndroidChiakiAudioDecoder *decoder = user;
+	chiaki_mutex_lock(&decoder->codec_mutex);
 	memcpy(&decoder->audio_header, header, sizeof(decoder->audio_header));
 
 	if(decoder->codec)
 	{
-		CHIAKI_LOGI(decoder->log, "Audio decoder already initialized, re-creating");
-		// TODO: stop thread
-		AMediaCodec_delete(decoder->codec);
-		decoder->codec = NULL;
+		CHIAKI_LOGI(decoder->log, "Audio decoder already initialized, shutting down the old one");
+		android_chiaki_audio_decoder_shutdown_codec(decoder);
 	}
 
 	const char *mime = "audio/opus";
@@ -104,7 +124,7 @@ static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void 
 	if(!decoder->codec)
 	{
 		CHIAKI_LOGE(decoder->log, "Failed to create AMediaCodec for mime type %s", mime);
-		return;
+		goto beach;
 	}
 
 	AMediaFormat *format = AMediaFormat_new();
@@ -125,7 +145,6 @@ static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void 
 		AMediaCodec_delete(decoder->codec);
 		decoder->codec = NULL;
 	}
-
 
 	uint8_t opus_id_head[0x13];
 	memcpy(opus_id_head, "OpusHead", 8);
@@ -157,16 +176,20 @@ static void android_chiaki_audio_decoder_header(ChiakiAudioHeader *header, void 
 
 	if(decoder->settings_cb)
 		decoder->settings_cb(header->channels, header->rate, decoder->cb_user);
+
+beach:
+	chiaki_mutex_unlock(&decoder->codec_mutex);
 }
 
 static void android_chiaki_audio_decoder_frame(uint8_t *buf, size_t buf_size, void *user)
 {
 	AndroidChiakiAudioDecoder *decoder = user;
+	chiaki_mutex_lock(&decoder->codec_mutex);
 
 	if(!decoder->codec)
 	{
 		CHIAKI_LOGE(decoder->log, "Received audio data, but decoder is not initialized!");
-		return;
+		goto beach;
 	}
 
 	while(buf_size > 0)
@@ -191,4 +214,7 @@ static void android_chiaki_audio_decoder_frame(uint8_t *buf, size_t buf_size, vo
 		buf += codec_sample_size;
 		buf_size -= codec_sample_size;
 	}
+
+beach:
+	chiaki_mutex_unlock(&decoder->codec_mutex);
 }

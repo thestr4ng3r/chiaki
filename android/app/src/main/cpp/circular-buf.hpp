@@ -63,7 +63,7 @@ class CircularBuffer
 
 		~CircularBuffer()
 		{
-			delete buffer;
+			delete [] buffer;
 		}
 
 		/**

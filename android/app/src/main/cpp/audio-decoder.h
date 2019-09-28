@@ -31,6 +31,8 @@ typedef struct android_chiaki_audio_decoder_t
 {
 	ChiakiLog *log;
 	ChiakiAudioHeader audio_header;
+
+	ChiakiMutex codec_mutex;
 	struct AMediaCodec *codec;
 	uint64_t timestamp_cur;
 	ChiakiThread output_thread;

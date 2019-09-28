@@ -34,18 +34,32 @@ ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *dec
 	decoder->log = log;
 	decoder->codec = NULL;
 	decoder->timestamp_cur = 0;
-	return chiaki_mutex_init(&decoder->mutex, false);
+	return chiaki_mutex_init(&decoder->codec_mutex, false);
 }
 
 void android_chiaki_video_decoder_fini(AndroidChiakiVideoDecoder *decoder)
 {
-	// TODO: shutdown (thread may or may not be running!)
-	chiaki_mutex_fini(&decoder->mutex);
+	if(decoder->codec)
+	{
+		chiaki_mutex_lock(&decoder->codec_mutex);
+		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, -1);
+		if(codec_buf_index >= 0)
+		{
+			CHIAKI_LOGI(decoder->log, "Video Decoder sending EOS buffer");
+			AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, 0, decoder->timestamp_cur++, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
+		}
+		else
+			CHIAKI_LOGE(decoder->log, "Failed to get input buffer for shutting down Video Decoder!");
+		chiaki_mutex_unlock(&decoder->codec_mutex);
+		chiaki_thread_join(&decoder->output_thread, NULL);
+		AMediaCodec_delete(decoder->codec);
+	}
+	chiaki_mutex_fini(&decoder->codec_mutex);
 }
 
 void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder, JNIEnv *env, jobject surface)
 {
-	chiaki_mutex_lock(&decoder->mutex);
+	chiaki_mutex_lock(&decoder->codec_mutex);
 
 	if(decoder->codec)
 	{
@@ -92,13 +106,13 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 	}
 
 beach:
-	chiaki_mutex_unlock(&decoder->mutex);
+	chiaki_mutex_unlock(&decoder->codec_mutex);
 }
 
 void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, void *user)
 {
 	AndroidChiakiVideoDecoder *decoder = user;
-	chiaki_mutex_lock(&decoder->mutex);
+	chiaki_mutex_lock(&decoder->codec_mutex);
 
 	if(!decoder->codec)
 	{
@@ -121,7 +135,7 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 		size_t codec_sample_size = buf_size;
 		if(codec_sample_size > codec_buf_size)
 		{
-			CHIAKI_LOGD(decoder->log, "Sample is bigger than buffer, splitting");
+			//CHIAKI_LOGD(decoder->log, "Sample is bigger than buffer, splitting");
 			codec_sample_size = codec_buf_size;
 		}
 		memcpy(codec_buf, buf, codec_sample_size);
@@ -132,7 +146,7 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 	}
 
 beach:
-	chiaki_mutex_unlock(&decoder->mutex);
+	chiaki_mutex_unlock(&decoder->codec_mutex);
 }
 
 static void *android_chiaki_video_decoder_output_thread_func(void *user)
@@ -153,6 +167,8 @@ static void *android_chiaki_video_decoder_output_thread_func(void *user)
 			}
 		}
 	}
+
+	CHIAKI_LOGI(decoder->log, "Video Decoder Output Thread exiting");
 
 	return NULL;
 }

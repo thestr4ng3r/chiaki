@@ -29,7 +29,7 @@ typedef struct ANativeWindow ANativeWindow;
 typedef struct android_chiaki_video_decoder_t
 {
 	ChiakiLog *log;
-	ChiakiMutex mutex;
+	ChiakiMutex codec_mutex;
 	AMediaCodec *codec;
 	ANativeWindow *window;
 	uint64_t timestamp_cur;
