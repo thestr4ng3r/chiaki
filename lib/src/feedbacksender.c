@@ -123,10 +123,24 @@ static bool controller_state_equals_for_feedback_history(ChiakiControllerState *
 		&& a->r2_state == b->r2_state;
 }
 
+static void feedback_sender_send_history_packet(ChiakiFeedbackSender *feedback_sender)
+{
+	uint8_t buf[0x300];
+	size_t buf_size = sizeof(buf);
+	ChiakiErrorCode err = chiaki_feedback_history_buffer_format(&feedback_sender->history_buf, buf, &buf_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format history buffer");
+		return;
+	}
+
+	//CHIAKI_LOGD(feedback_sender->log, "Feedback History:");
+	//chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
+	chiaki_takion_send_feedback_history(feedback_sender->takion, feedback_sender->history_seq_num++, buf, buf_size);
+}
+
 static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 {
-	// TODO: Is it legal to have more than one new event per packet?
-	size_t new_events_count = 0;
 	ChiakiControllerState *state_prev = &feedback_sender->controller_state_prev;
 	ChiakiControllerState *state_now = &feedback_sender->controller_state;
 	uint64_t buttons_prev = state_prev->buttons;
@@ -146,7 +160,7 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 				continue;
 			}
 			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
-			new_events_count++;
+			feedback_sender_send_history_packet(feedback_sender);
 		}
 	}
 
@@ -157,7 +171,7 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 		if(err == CHIAKI_ERR_SUCCESS)
 		{
 			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
-			new_events_count++;
+			feedback_sender_send_history_packet(feedback_sender);
 		}
 		else
 			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for L2");
@@ -170,27 +184,11 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 		if(err == CHIAKI_ERR_SUCCESS)
 		{
 			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
-			new_events_count++;
+			feedback_sender_send_history_packet(feedback_sender);
 		}
 		else
 			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for R2");
 	}
-
-	if(!new_events_count) // TODO: also send on timeout sometimes?
-		return;
-
-	uint8_t buf[0x300];
-	size_t buf_size = sizeof(buf);
-	ChiakiErrorCode err = chiaki_feedback_history_buffer_format(&feedback_sender->history_buf, buf, &buf_size);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format history buffer");
-		return;
-	}
-
-	//CHIAKI_LOGD(feedback_sender->log, "Feedback History:");
-	//chiaki_log_hexdump(feedback_sender->log, CHIAKI_LOG_DEBUG, buf, buf_size);
-	chiaki_takion_send_feedback_history(feedback_sender->takion, feedback_sender->history_seq_num++, buf, buf_size);
 }
 
 static bool state_cond_check(void *user)
