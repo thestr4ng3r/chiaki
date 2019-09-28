@@ -47,6 +47,11 @@ class TouchControlsFragment : Fragment()
 	{
 		super.onViewCreated(view, savedInstanceState)
 		dpadView.stateChangeCallback = this::dpadStateChanged
+		crossButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_CROSS)
+		moonButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_MOON)
+		pyramidButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_PYRAMID)
+		boxButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_BOX)
+		psButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_PS)
 	}
 
 	private fun dpadStateChanged(direction: DPadView.Direction?)
@@ -65,6 +70,17 @@ class TouchControlsFragment : Fragment()
 						DPadView.Direction.RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
 						null -> 0U
 					})
+		}
+	}
+
+	private fun buttonStateChanged(buttonMask: UInt) = { pressed: Boolean ->
+		controllerState = controllerState.copy().apply {
+			buttons =
+				if(pressed)
+					buttons or buttonMask
+				else
+					buttons and buttonMask.inv()
+
 		}
 	}
 }

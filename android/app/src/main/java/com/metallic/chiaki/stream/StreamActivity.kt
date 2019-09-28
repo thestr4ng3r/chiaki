@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.metallic.chiaki.R
+import com.metallic.chiaki.StreamStateIdle
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
@@ -60,7 +61,7 @@ class StreamActivity : AppCompatActivity()
 		viewModel.session.attachToTextureView(textureView)
 
 		viewModel.session.state.observe(this, Observer {
-			stateTextView.text = "$it"
+			stateTextView.text = if(it != StreamStateIdle) "$it" else ""
 		})
 
 		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->

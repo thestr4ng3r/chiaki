@@ -10,11 +10,77 @@
 
     <com.metallic.chiaki.touchcontrols.DPadView
         android:id="@+id/dpadView"
-        android:layout_width="130dp"
-        android:layout_height="130dp"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
         android:layout_marginLeft="32dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="144dp"
+        android:layout_height="144dp"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.metallic.chiaki.touchcontrols.ButtonView
+            android:id="@+id/crossButtonView"
+            android:layout_width="@dimen/control_face_button_size"
+            android:layout_height="@dimen/control_face_button_size"
+            android:padding="8dp"
+            app:drawableIdle="@drawable/control_button_cross"
+            app:drawablePressed="@drawable/control_button_cross_pressed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <com.metallic.chiaki.touchcontrols.ButtonView
+            android:id="@+id/moonButtonView"
+            android:layout_width="@dimen/control_face_button_size"
+            android:layout_height="@dimen/control_face_button_size"
+            android:padding="8dp"
+            app:drawableIdle="@drawable/control_button_moon"
+            app:drawablePressed="@drawable/control_button_moon_pressed"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <com.metallic.chiaki.touchcontrols.ButtonView
+            android:id="@+id/pyramidButtonView"
+            android:layout_width="@dimen/control_face_button_size"
+            android:layout_height="@dimen/control_face_button_size"
+            android:padding="8dp"
+            app:drawableIdle="@drawable/control_button_pyramid"
+            app:drawablePressed="@drawable/control_button_pyramid_pressed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <com.metallic.chiaki.touchcontrols.ButtonView
+            android:id="@+id/boxButtonView"
+            android:layout_width="@dimen/control_face_button_size"
+            android:layout_height="@dimen/control_face_button_size"
+            android:padding="8dp"
+            app:drawableIdle="@drawable/control_button_box"
+            app:drawablePressed="@drawable/control_button_box_pressed"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <com.metallic.chiaki.touchcontrols.ButtonView
+        android:id="@+id/psButtonView"
+        android:layout_width="@dimen/control_face_button_size"
+        android:layout_height="@dimen/control_face_button_size"
+        android:padding="8dp"
+        android:layout_marginTop="8dp"
+        app:drawableIdle="@drawable/control_button_pyramid"
+        app:drawablePressed="@drawable/control_button_pyramid_pressed"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
