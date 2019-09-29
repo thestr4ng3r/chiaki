@@ -51,7 +51,41 @@ class TouchControlsFragment : Fragment()
 		moonButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_MOON)
 		pyramidButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_PYRAMID)
 		boxButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_BOX)
+		l1ButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_L1)
+		r1ButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_R1)
+		optionsButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_OPTIONS)
+		shareButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_SHARE)
 		psButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_PS)
+		touchpadButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_TOUCHPAD)
+
+		l2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { l2State = if(it) 255U else 0U } }
+		r2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { r2State = if(it) 255U else 0U } }
+
+		leftDpadView.stateChangeCallback = { controllerState = controllerState.copy().apply {
+			val pos: Pair<Short, Short> = when(it)
+			{
+				DPadView.Direction.UP -> Pair(0, Short.MIN_VALUE)
+				DPadView.Direction.DOWN -> Pair(0, Short.MAX_VALUE)
+				DPadView.Direction.LEFT -> Pair(Short.MIN_VALUE, 0)
+				DPadView.Direction.RIGHT -> Pair(Short.MAX_VALUE, 0)
+				null -> Pair(0, 0)
+			}
+			leftX = pos.first
+			leftY = pos.second
+		}}
+
+		rightDpadView.stateChangeCallback = { controllerState = controllerState.copy().apply {
+			val pos: Pair<Short, Short> = when(it)
+			{
+				DPadView.Direction.UP -> Pair(0, Short.MIN_VALUE)
+				DPadView.Direction.DOWN -> Pair(0, Short.MAX_VALUE)
+				DPadView.Direction.LEFT -> Pair(Short.MIN_VALUE, 0)
+				DPadView.Direction.RIGHT -> Pair(Short.MAX_VALUE, 0)
+				null -> Pair(0, 0)
+			}
+			rightX = pos.first
+			rightY = pos.second
+		}}
 	}
 
 	private fun dpadStateChanged(direction: DPadView.Direction?)

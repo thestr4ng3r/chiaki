@@ -25,7 +25,7 @@
 #include <oboe/Oboe.h>
 
 #define BUFFER_CHUNK_SIZE 512
-#define BUFFER_CHUNKS_COUNT 128
+#define BUFFER_CHUNKS_COUNT 32
 
 using AudioBuffer = CircularBuffer<BUFFER_CHUNKS_COUNT, BUFFER_CHUNK_SIZE>;
 
