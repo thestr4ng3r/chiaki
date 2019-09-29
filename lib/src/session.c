@@ -276,7 +276,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *sessio
 	return CHIAKI_ERR_SUCCESS;
 }
 
-static void session_send_event(ChiakiSession *session, ChiakiEvent *event)
+void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event)
 {
 	if(!session->event_cb)
 		return;
@@ -376,7 +376,7 @@ static void *session_thread_func(void *arg)
 		ChiakiEvent event = { 0 };
 		event.type = CHIAKI_EVENT_LOGIN_PIN_REQUEST;
 		event.login_pin_request.pin_incorrect = pin_incorrect;
-		session_send_event(session, &event);
+		chiaki_session_send_event(session, &event);
 		pin_incorrect = true;
 
 		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
@@ -502,7 +502,7 @@ quit:
 	quit_event.type = CHIAKI_EVENT_QUIT;
 	quit_event.quit.reason = session->quit_reason;
 	quit_event.quit.reason_str = session->quit_reason_str;
-	session_send_event(session, &quit_event);
+	chiaki_session_send_event(session, &quit_event);
 	return NULL;
 
 #undef CHECK_STOP

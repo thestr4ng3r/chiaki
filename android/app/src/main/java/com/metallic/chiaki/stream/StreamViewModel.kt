@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModel
 import com.metallic.chiaki.StreamSession
 import com.metallic.chiaki.lib.*
 
+@ExperimentalUnsignedTypes
 class StreamViewModel: ViewModel()
 {
 	private var connectInfo: ConnectInfo? = null

@@ -111,6 +111,7 @@ typedef struct chiaki_audio_stream_info_event_t
 
 
 typedef enum {
+	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
 	CHIAKI_EVENT_QUIT
 } ChiakiEventType;

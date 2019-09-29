@@ -40,6 +40,7 @@ class ChiakiNative
 		@JvmStatic external fun sessionJoin(ptr: Long): Int
 		@JvmStatic external fun sessionSetSurface(ptr: Long, surface: Surface)
 		@JvmStatic external fun sessionSetControllerState(ptr: Long, controllerState: ControllerState)
+		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
 	}
 }
 
@@ -98,6 +99,7 @@ class QuitReason(val value: Int)
 }
 
 sealed class Event
+object ConnectedEvent: Event()
 data class LoginPinRequestEvent(val pinIncorrect: Boolean): Event()
 data class QuitEvent(val reason: QuitReason, val reasonString: String?): Event()
 
@@ -140,6 +142,11 @@ class Session(connectInfo: ConnectInfo)
 		eventCallback?.let { it(event) }
 	}
 
+	private fun eventConnected()
+	{
+		event(ConnectedEvent)
+	}
+
 	private fun eventLoginPinRequest(pinIncorrect: Boolean)
 	{
 		event(LoginPinRequestEvent(pinIncorrect))
@@ -158,5 +165,10 @@ class Session(connectInfo: ConnectInfo)
 	fun setControllerState(controllerState: ControllerState)
 	{
 		ChiakiNative.sessionSetControllerState(nativePtr, controllerState)
+	}
+
+	fun setLoginPin(pin: String)
+	{
+		ChiakiNative.sessionSetLoginPin(nativePtr, pin)
 	}
 }

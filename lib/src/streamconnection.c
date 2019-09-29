@@ -55,6 +55,7 @@ typedef enum {
 	STATE_EXPECT_STREAMINFO
 } StreamConnectionState;
 
+void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
 
 static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user);
 static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
@@ -243,6 +244,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state = STATE_IDLE;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
+
+	ChiakiEvent event = { 0 };
+	event.type = CHIAKI_EVENT_CONNECTED;
+	chiaki_mutex_unlock(&stream_connection->state_mutex);
+	chiaki_session_send_event(session, &event);
+	err = chiaki_mutex_lock(&stream_connection->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
 	while(true)
 	{
 		err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, HEARTBEAT_INTERVAL_MS, state_finished_cond_check, stream_connection);

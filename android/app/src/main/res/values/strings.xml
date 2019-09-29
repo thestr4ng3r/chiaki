@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Chiaki</string>
+    <string name="alert_message_session_quit">Session has quit: %s</string>
+    <string name="alert_message_session_create_error">Failed to create Session: %s</string>
+    <string name="alert_message_login_pin_request">Login PIN:</string>
+    <string name="alert_message_login_pin_request_incorrect">Entered PIN was incorrect!\nLogin PIN:</string>
+    <string name="action_reconnect">Reconnect</string>
+    <string name="action_quit_session">Quit</string>
+    <string name="action_login_pin_connect">Connect</string>
 </resources>

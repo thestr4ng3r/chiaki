@@ -25,9 +25,12 @@ import android.view.TextureView
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.metallic.chiaki.lib.*
+import java.util.stream.Stream
 
 sealed class StreamState
 object StreamStateIdle: StreamState()
+object StreamStateConnecting: StreamState()
+object StreamStateConnected: StreamState()
 data class StreamStateCreateError(val error: SessionCreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
@@ -51,6 +54,7 @@ class StreamSession(val connectInfo: ConnectInfo)
 		session?.stop()
 		session?.dispose()
 		session = null
+		_state.value = StreamStateIdle
 		//surfaceTexture?.release()
 	}
 
@@ -66,6 +70,7 @@ class StreamSession(val connectInfo: ConnectInfo)
 		try
 		{
 			val session = Session(connectInfo)
+			_state.value = StreamStateConnecting
 			session.eventCallback = this::eventCallback
 			session.start()
 			val surfaceTexture = surfaceTexture
@@ -83,6 +88,7 @@ class StreamSession(val connectInfo: ConnectInfo)
 	{
 		when(event)
 		{
+			is ConnectedEvent -> _state.postValue(StreamStateConnected)
 			is QuitEvent -> _state.postValue(StreamStateQuit(event.reason, event.reasonString))
 			is LoginPinRequestEvent -> _state.postValue(StreamStateLoginPinRequest(event.pinIncorrect))
 		}
@@ -112,6 +118,11 @@ class StreamSession(val connectInfo: ConnectInfo)
 		val surfaceTexture = surfaceTexture
 		if(surfaceTexture != null)
 			textureView.surfaceTexture = surfaceTexture
+	}
+
+	fun setLoginPin(pin: String)
+	{
+		session?.setLoginPin(pin)
 	}
 
 	@ExperimentalUnsignedTypes

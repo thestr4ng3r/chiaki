@@ -10,6 +10,5 @@
         <item name="colorPrimaryDark">@color/primary_dark</item>
         <item name="colorAccent">@color/accent</item>
         <item name="android:windowBackground">@color/stream_background</item>
-        <item name="android:textColor">@color/stream_text</item>
     </style>
 </resources>

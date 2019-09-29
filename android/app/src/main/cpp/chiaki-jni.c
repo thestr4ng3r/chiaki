@@ -104,6 +104,7 @@ typedef struct android_chiaki_session_t
 	ChiakiSession session;
 	jobject java_session;
 	jclass java_session_class;
+	jmethodID java_session_event_connected_meth;
 	jmethodID java_session_event_login_pin_request_meth;
 	jmethodID java_session_event_quit_meth;
 	jfieldID java_controller_state_buttons;
@@ -143,6 +144,10 @@ static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
 
 	switch(event->type)
 	{
+		case CHIAKI_EVENT_CONNECTED:
+			E->CallVoidMethod(env, session->java_session,
+							  session->java_session_event_connected_meth);
+			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			E->CallVoidMethod(env, session->java_session,
 							  session->java_session_event_login_pin_request_meth,
@@ -253,6 +258,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 
 	session->java_session = E->NewGlobalRef(env, java_session);
 	session->java_session_class = E->GetObjectClass(env, session->java_session);
+	session->java_session_event_connected_meth = E->GetMethodID(env, session->java_session_class, "eventConnected", "()V");
 	session->java_session_event_login_pin_request_meth = E->GetMethodID(env, session->java_session_class, "eventLoginPinRequest", "(Z)V");
 	session->java_session_event_quit_meth = E->GetMethodID(env, session->java_session_class, "eventQuit", "(ILjava/lang/String;)V");
 
@@ -332,4 +338,12 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetContr
 	controller_state.right_x = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_x);
 	controller_state.right_y = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_y);
 	chiaki_session_set_controller_state(&session->session, &controller_state);
+}
+
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetLoginPin(JNIEnv *env, jobject obj, jlong ptr, jstring pin_java)
+{
+	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	const char *pin = E->GetStringUTFChars(env, pin_java, NULL);
+	chiaki_session_set_login_pin(&session->session, (const uint8_t *)pin, strlen(pin));
+	E->ReleaseStringUTFChars(env, pin_java, pin);
 }

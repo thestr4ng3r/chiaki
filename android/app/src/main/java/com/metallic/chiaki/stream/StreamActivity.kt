@@ -17,18 +17,29 @@
 
 package com.metallic.chiaki.stream
 
+import android.app.AlertDialog
+import android.app.Dialog
+import android.content.DialogInterface
 import android.graphics.Matrix
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
+import com.metallic.chiaki.*
 import com.metallic.chiaki.R
-import com.metallic.chiaki.StreamStateIdle
 import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.lib.LoginPinRequestEvent
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
+
+private sealed class DialogContents
+private object StreamQuitDialog: DialogContents()
+private object CreateErrorDialog: DialogContents()
+private object PinRequestDialog: DialogContents()
 
 @ExperimentalUnsignedTypes
 class StreamActivity : AppCompatActivity()
@@ -60,9 +71,7 @@ class StreamActivity : AppCompatActivity()
 
 		viewModel.session.attachToTextureView(textureView)
 
-		viewModel.session.state.observe(this, Observer {
-			stateTextView.text = if(it != StreamStateIdle) "$it" else ""
-		})
+		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
 
 		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
 			adjustTextureViewAspect()
@@ -89,6 +98,12 @@ class StreamActivity : AppCompatActivity()
 		viewModel.session.pause()
 	}
 
+	private fun reconnect()
+	{
+		viewModel.session.shutdown()
+		viewModel.session.resume()
+	}
+
 	override fun onWindowFocusChanged(hasFocus: Boolean)
 	{
 		super.onWindowFocusChanged(hasFocus)
@@ -106,6 +121,92 @@ class StreamActivity : AppCompatActivity()
 				or View.SYSTEM_UI_FLAG_FULLSCREEN)
 	}
 
+	private var dialogContents: DialogContents? = null
+	private var dialog: AlertDialog? = null
+		set(value)
+		{
+			field = value
+			if(value == null)
+				dialogContents = null
+		}
+
+	private fun stateChanged(state: StreamState)
+	{
+		progressBar.visibility = if(state == StreamStateConnecting) View.VISIBLE else View.GONE
+
+		when(state)
+		{
+			is StreamStateQuit ->
+			{
+				if(dialogContents != StreamQuitDialog)
+				{
+					dialog?.dismiss()
+					val reasonStr = state.reasonString
+					val dialog = AlertDialog.Builder(this)
+						.setMessage(getString(R.string.alert_message_session_quit, state.reason.toString())
+								+ (if(reasonStr != null) "\n$reasonStr" else ""))
+						.setPositiveButton(R.string.action_reconnect) { _, _ ->
+							dialog = null
+							reconnect()
+						}
+						.setNegativeButton(R.string.action_quit_session) { _, _ ->
+							dialog = null
+							finish()
+						}
+						.create()
+					dialogContents = StreamQuitDialog
+					dialog.show()
+				}
+			}
+
+			is StreamStateCreateError ->
+			{
+				if(dialogContents != CreateErrorDialog)
+				{
+					dialog?.dismiss()
+					val dialog = AlertDialog.Builder(this)
+						.setMessage(getString(R.string.alert_message_session_create_error, state.error.errorCode.toString()))
+						.setNegativeButton(R.string.action_quit_session) { _, _ ->
+							dialog = null
+							finish()
+						}
+						.create()
+					dialogContents = CreateErrorDialog
+					dialog.show()
+				}
+			}
+
+			is StreamStateLoginPinRequest ->
+			{
+				if(dialogContents != PinRequestDialog)
+				{
+					dialog?.dismiss()
+
+					val view = layoutInflater.inflate(R.layout.dialog_login_pin, null)
+					val pinEditText = view.findViewById<EditText>(R.id.pinEditText)
+
+					val dialog = AlertDialog.Builder(this)
+						.setMessage(
+							if(state.pinIncorrect)
+								R.string.alert_message_login_pin_request_incorrect
+							else
+								R.string.alert_message_login_pin_request)
+						.setView(view)
+						.setPositiveButton(R.string.action_login_pin_connect) { _, _ ->
+							this.dialog = null
+							viewModel.session.setLoginPin(pinEditText.text.toString())
+						}
+						.setNegativeButton(R.string.action_quit_session) { _, _ ->
+							this.dialog = null
+							finish()
+						}
+						.create()
+					dialogContents = PinRequestDialog
+					dialog.show()
+				}
+			}
+		}
+	}
 
 	private fun adjustTextureViewAspect()
 	{
