@@ -18,6 +18,7 @@
 package com.metallic.chiaki.touchcontrols
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -61,30 +62,18 @@ class TouchControlsFragment : Fragment()
 		l2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { l2State = if(it) 255U else 0U } }
 		r2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { r2State = if(it) 255U else 0U } }
 
-		leftDpadView.stateChangeCallback = { controllerState = controllerState.copy().apply {
-			val pos: Pair<Short, Short> = when(it)
-			{
-				DPadView.Direction.UP -> Pair(0, Short.MIN_VALUE)
-				DPadView.Direction.DOWN -> Pair(0, Short.MAX_VALUE)
-				DPadView.Direction.LEFT -> Pair(Short.MIN_VALUE, 0)
-				DPadView.Direction.RIGHT -> Pair(Short.MAX_VALUE, 0)
-				null -> Pair(0, 0)
-			}
-			leftX = pos.first
-			leftY = pos.second
+		val quantizeStick = { f: Float ->
+			(Short.MAX_VALUE * f).toShort()
+		}
+
+		leftAnalogStickView.stateChangedCallback = { controllerState = controllerState.copy().apply {
+			leftX = quantizeStick(it.x)
+			leftY = quantizeStick(it.y)
 		}}
 
-		rightDpadView.stateChangeCallback = { controllerState = controllerState.copy().apply {
-			val pos: Pair<Short, Short> = when(it)
-			{
-				DPadView.Direction.UP -> Pair(0, Short.MIN_VALUE)
-				DPadView.Direction.DOWN -> Pair(0, Short.MAX_VALUE)
-				DPadView.Direction.LEFT -> Pair(Short.MIN_VALUE, 0)
-				DPadView.Direction.RIGHT -> Pair(Short.MAX_VALUE, 0)
-				null -> Pair(0, 0)
-			}
-			rightX = pos.first
-			rightY = pos.second
+		rightAnalogStickView.stateChangedCallback = { controllerState = controllerState.copy().apply {
+			rightX = quantizeStick(it.x)
+			rightY = quantizeStick(it.y)
 		}}
 	}
 

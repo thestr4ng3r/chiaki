@@ -4,4 +4,11 @@
         <attr name="drawableIdle" format="reference" />
         <attr name="drawablePressed" format="integer" />
     </declare-styleable>
+
+    <declare-styleable name="AnalogStickView">
+        <attr name="radius" format="dimension" />
+        <attr name="handleRadius" format="dimension" />
+        <attr name="drawableBase" format="reference" />
+        <attr name="drawableHandle" format="reference" />
+    </declare-styleable>
 </resources>

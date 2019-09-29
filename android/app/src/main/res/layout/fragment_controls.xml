@@ -2,11 +2,47 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:clipChildren="false">
 
     <com.metallic.chiaki.touchcontrols.ControlsBackgroundView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/centerGuideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.5"
+        android:orientation="vertical" />
+
+    <com.metallic.chiaki.touchcontrols.AnalogStickView
+        android:id="@+id/leftAnalogStickView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/centerGuideline"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dpadView"
+        app:radius="@dimen/control_analog_stick_radius"
+        app:handleRadius="@dimen/control_analog_stick_handle_radius"
+        app:drawableBase="@drawable/control_analog_stick_base"
+        app:drawableHandle="@drawable/control_analog_stick_handle"
+        />
+
+    <com.metallic.chiaki.touchcontrols.AnalogStickView
+        android:id="@+id/rightAnalogStickView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toRightOf="@id/centerGuideline"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/faceButtonsLayout"
+        app:radius="@dimen/control_analog_stick_radius"
+        app:handleRadius="@dimen/control_analog_stick_handle_radius"
+        app:drawableBase="@drawable/control_analog_stick_base"
+        app:drawableHandle="@drawable/control_analog_stick_handle"
+        />
 
     <com.metallic.chiaki.touchcontrols.DPadView
         android:id="@+id/dpadView"
@@ -19,6 +55,7 @@
         app:layout_constraintBottom_toBottomOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/faceButtonsLayout"
         android:layout_width="144dp"
         android:layout_height="144dp"
         app:layout_constraintRight_toRightOf="parent"
@@ -166,23 +203,5 @@
         app:drawablePressed="@drawable/control_button_pyramid_pressed"
         app:layout_constraintRight_toLeftOf="@id/r2ButtonView"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <com.metallic.chiaki.touchcontrols.DPadView
-        android:id="@+id/leftDpadView"
-        android:layout_width="128dp"
-        android:layout_height="128dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
-    <com.metallic.chiaki.touchcontrols.DPadView
-        android:id="@+id/rightDpadView"
-        android:layout_width="128dp"
-        android:layout_height="128dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

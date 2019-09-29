@@ -20,13 +20,11 @@ package com.metallic.chiaki.touchcontrols
 import android.content.Context
 import android.graphics.Canvas
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
 import com.metallic.chiaki.R
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 class DPadView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -48,7 +46,9 @@ class DPadView @JvmOverloads constructor(
 	private val dpadIdleDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_idle, null)
 	private val dpadLeftDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_left, null)
 
-	private var pointerId: Int? = null
+	private val touchTracker = TouchTracker().also {
+		it.positionChangedCallback = this::updateState
+	}
 
 	override fun onDraw(canvas: Canvas)
 	{
@@ -75,10 +75,10 @@ class DPadView @JvmOverloads constructor(
 		drawable?.draw(canvas)
 	}
 
-	private fun directionForPosition(x: Float, y: Float): Direction
+	private fun directionForPosition(position: Vector): Direction
 	{
-		val dx = x - width * 0.5f
-		val dy = y - height * 0.5f
+		val dx = position.x - width * 0.5f
+		val dy = position.y - height * 0.5f
 		return when
 		{
 			dx > abs(dy) -> Direction.RIGHT
@@ -88,20 +88,20 @@ class DPadView @JvmOverloads constructor(
 		}
 	}
 
-	private fun updateState(x: Float?, y: Float?)
+	private fun updateState(position: Vector?)
 	{
 		val newState =
-			if(x == null || y == null)
+			if(position == null)
 				null
 			else
 			{
-				val xFrac = 2.0f * (x / width.toFloat() - 0.5f)
-				val yFrac = 2.0f * (y / height.toFloat() - 0.5f)
+				val xFrac = 2.0f * (position.x / width.toFloat() - 0.5f)
+				val yFrac = 2.0f * (position.y / height.toFloat() - 0.5f)
 				val radiusSq = xFrac * xFrac + yFrac * yFrac
 				if(radiusSq < deadzoneRadius * deadzoneRadius && state != null)
 					state
 				else
-					directionForPosition(x, y)
+					directionForPosition(position)
 			}
 
 		if(state != newState)
@@ -114,37 +114,7 @@ class DPadView @JvmOverloads constructor(
 
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
-		when(event.actionMasked)
-		{
-			MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN ->
-			{
-				if(pointerId == null)
-				{
-					pointerId = event.getPointerId(event.actionIndex)
-					updateState(event.x, event.y)
-				}
-			}
-
-			MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP ->
-			{
-				if(event.getPointerId(event.actionIndex) == pointerId)
-				{
-					pointerId = null
-					updateState(null, null)
-				}
-			}
-
-			MotionEvent.ACTION_MOVE ->
-			{
-				val pointerId = pointerId
-				if(pointerId != null)
-				{
-					val pointerIndex = event.findPointerIndex(pointerId)
-					if(pointerIndex >= 0)
-						updateState(event.getX(pointerIndex), event.getY(pointerIndex))
-				}
-			}
-		}
+		touchTracker.touchEvent(event)
 		return true
 	}
 
