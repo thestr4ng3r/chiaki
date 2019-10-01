@@ -22,6 +22,7 @@ import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.Matrix
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -33,6 +34,7 @@ import com.metallic.chiaki.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.LoginPinRequestEvent
+import com.metallic.chiaki.lib.QuitReason
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
 
@@ -138,7 +140,7 @@ class StreamActivity : AppCompatActivity()
 		{
 			is StreamStateQuit ->
 			{
-				if(dialogContents != StreamQuitDialog)
+				if(!state.reason.isStopped && dialogContents != StreamQuitDialog)
 				{
 					dialog?.dismiss()
 					val reasonStr = state.reasonString

@@ -99,6 +99,11 @@ JNIEXPORT jstring JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_quitReasonTo
 	return E->NewStringUTF(env, chiaki_quit_reason_string((ChiakiQuitReason)value));
 }
 
+JNIEXPORT jboolean JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_quitReasonIsStopped(JNIEnv *env, jobject obj, jint value)
+{
+	return value == CHIAKI_QUIT_REASON_STOPPED;
+}
+
 typedef struct android_chiaki_session_t
 {
 	ChiakiSession session;

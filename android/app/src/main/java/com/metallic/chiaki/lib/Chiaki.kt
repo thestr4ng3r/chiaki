@@ -33,6 +33,7 @@ class ChiakiNative
 		}
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun quitReasonToString(value: Int): String
+		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
 		@JvmStatic external fun sessionCreate(result: SessionCreateResult, connectInfo: ConnectInfo, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
@@ -96,6 +97,11 @@ data class ControllerState constructor(
 class QuitReason(val value: Int)
 {
 	override fun toString() = ChiakiNative.quitReasonToString(value)
+
+	/**
+	 * whether the reason is CHIAKI_QUIT_REASON_STOPPED
+	 */
+	val isStopped = ChiakiNative.quitReasonIsStopped(value)
 }
 
 sealed class Event
