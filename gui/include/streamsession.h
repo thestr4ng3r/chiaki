@@ -52,6 +52,7 @@ struct StreamSessionConnectInfo
 	QByteArray regist_key;
 	QByteArray morning;
 	ChiakiConnectVideoProfile video_profile;
+	unsigned int audio_buffer_size;
 
 	StreamSessionConnectInfo();
 	StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning);
@@ -77,6 +78,7 @@ class StreamSession : public QObject
 
 		VideoDecoder video_decoder;
 
+		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
 		QIODevice *audio_io;
 

@@ -38,6 +38,7 @@ class SettingsDialog : public QDialog
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
 		QLineEdit *bitrate_edit;
+		QLineEdit *audio_buffer_size_edit;
 
 		QListWidget *registered_hosts_list_widget;
 		QPushButton *delete_registered_host_button;
@@ -50,6 +51,7 @@ class SettingsDialog : public QDialog
 		void ResolutionSelected();
 		void FPSSelected();
 		void BitrateEdited();
+		void AudioBufferSizeEdited();
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();

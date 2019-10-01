@@ -36,6 +36,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo()
 {
 	log_level_mask = CHIAKI_LOG_ALL;
 	std::memset(&video_profile, 0, sizeof(video_profile));
+	audio_buffer_size = 9600;
 }
 
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
@@ -46,6 +47,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	this->host = host;
 	this->regist_key = regist_key;
 	this->morning = morning;
+	audio_buffer_size = settings->GetAudioBufferSize();
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -65,6 +67,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_io(nullptr)
 {
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
+	audio_buffer_size = connect_info.audio_buffer_size;
 
 	QByteArray host_str = connect_info.host.toUtf8();
 
@@ -312,7 +315,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	}
 
 	audio_output = new QAudioOutput(audio_format, this);
-	audio_output->setBufferSize(48000);
+	audio_output->setBufferSize(audio_buffer_size);
 	audio_io = audio_output->start();
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",

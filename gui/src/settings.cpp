@@ -83,6 +83,27 @@ void Settings::SetBitrate(unsigned int bitrate)
 	settings.setValue("settings/bitrate", bitrate);
 }
 
+unsigned int Settings::GetAudioBufferSizeDefault() const
+{
+	return 9600;
+}
+
+unsigned int Settings::GetAudioBufferSizeRaw() const
+{
+	return settings.value("settings/audio_buffer_size", 0).toUInt();
+}
+
+unsigned int Settings::GetAudioBufferSize() const
+{
+	unsigned int v = GetAudioBufferSizeRaw();
+	return v ? v : GetAudioBufferSizeDefault();
+}
+
+void Settings::SetAudioBufferSize(unsigned int size)
+{
+	settings.setValue("settings/audio_buffer_size", size);
+}
+
 ChiakiConnectVideoProfile Settings::GetVideoProfile()
 {
 	ChiakiConnectVideoProfile profile;

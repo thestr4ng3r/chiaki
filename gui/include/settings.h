@@ -63,6 +63,19 @@ class Settings : public QObject
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
 
+		unsigned int GetAudioBufferSizeDefault() const;
+
+		/**
+		 * @return 0 if set to "automatic"
+		 */
+		unsigned int GetAudioBufferSizeRaw() const;
+
+		/**
+		 * @return actual size to be used, default value if GetAudioBufferSizeRaw() would return 0
+		 */
+		unsigned int GetAudioBufferSize() const;
+		void SetAudioBufferSize(unsigned int size);
+
 		ChiakiConnectVideoProfile GetVideoProfile();
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }

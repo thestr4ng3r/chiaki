@@ -130,6 +130,13 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(bitrate_edit, &QLineEdit::textEdited, this, &SettingsDialog::BitrateEdited);
 	UpdateBitratePlaceholder();
 
+	audio_buffer_size_edit = new QLineEdit(this);
+	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000));
+	unsigned int audio_buffer_size = settings->GetAudioBufferSizeRaw();
+	audio_buffer_size_edit->setText(audio_buffer_size ? QString::number(audio_buffer_size) : "");
+	stream_settings_layout->addRow(tr("Audio Buffer Size:"), audio_buffer_size_edit);
+	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
+	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
 	// Registered Consoles
 
@@ -186,6 +193,11 @@ void SettingsDialog::FPSSelected()
 void SettingsDialog::BitrateEdited()
 {
 	settings->SetBitrate(bitrate_edit->text().toUInt());
+}
+
+void SettingsDialog::AudioBufferSizeEdited()
+{
+	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()
