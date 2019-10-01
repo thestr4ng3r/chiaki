@@ -91,6 +91,10 @@ class TouchControlsFragment : Fragment()
 						DPadView.Direction.DOWN -> ControllerState.BUTTON_DPAD_DOWN
 						DPadView.Direction.LEFT -> ControllerState.BUTTON_DPAD_LEFT
 						DPadView.Direction.RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
+						DPadView.Direction.LEFT_UP -> ControllerState.BUTTON_DPAD_LEFT or ControllerState.BUTTON_DPAD_UP
+						DPadView.Direction.LEFT_DOWN -> ControllerState.BUTTON_DPAD_LEFT or ControllerState.BUTTON_DPAD_DOWN
+						DPadView.Direction.RIGHT_UP -> ControllerState.BUTTON_DPAD_RIGHT or ControllerState.BUTTON_DPAD_UP
+						DPadView.Direction.RIGHT_DOWN -> ControllerState.BUTTON_DPAD_RIGHT or ControllerState.BUTTON_DPAD_DOWN
 						null -> 0U
 					})
 		}

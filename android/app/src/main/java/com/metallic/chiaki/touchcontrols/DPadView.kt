@@ -24,13 +24,28 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
 import com.metallic.chiaki.R
-import kotlin.math.abs
+import kotlin.math.PI
+import kotlin.math.atan2
 
 class DPadView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr)
 {
-	enum class Direction { LEFT, RIGHT, UP, DOWN }
+	enum class Direction {
+		LEFT,
+		RIGHT,
+		UP,
+		DOWN,
+		LEFT_UP,
+		RIGHT_UP,
+		LEFT_DOWN,
+		RIGHT_DOWN;
+
+		val isDiagonal get() = when(this) {
+			LEFT_UP, RIGHT_UP, LEFT_DOWN, RIGHT_DOWN -> true
+			else -> false
+		}
+	}
 
 	var state: Direction? = null
 		private set
@@ -45,6 +60,7 @@ class DPadView @JvmOverloads constructor(
 
 	private val dpadIdleDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_idle, null)
 	private val dpadLeftDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_left, null)
+	private val dpadLeftUpDrawable = VectorDrawableCompat.create(resources, R.drawable.control_dpad_left_up, null)
 
 	private val touchTracker = TouchTracker().also {
 		it.positionChangedCallback = this::updateState
@@ -58,13 +74,13 @@ class DPadView @JvmOverloads constructor(
 		val drawable: VectorDrawableCompat?
 		if(state != null)
 		{
-			drawable = dpadLeftDrawable
+			drawable = if(state.isDiagonal) dpadLeftUpDrawable else dpadLeftDrawable
 			when(state)
 			{
-				Direction.UP -> canvas.rotate(90f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
-				Direction.DOWN -> canvas.rotate(90f*3f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
-				Direction.LEFT -> {}
-				Direction.RIGHT -> canvas.rotate(90f*2f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+				Direction.UP, Direction.RIGHT_UP -> canvas.rotate(90f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+				Direction.DOWN, Direction.LEFT_DOWN -> canvas.rotate(90f*3f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
+				Direction.LEFT, Direction.LEFT_UP -> {}
+				Direction.RIGHT, Direction.RIGHT_DOWN -> canvas.rotate(90f*2f, width.toFloat() * 0.5f, height.toFloat() * 0.5f)
 			}
 		}
 		else
@@ -77,14 +93,20 @@ class DPadView @JvmOverloads constructor(
 
 	private fun directionForPosition(position: Vector): Direction
 	{
-		val dx = position.x - width * 0.5f
-		val dy = position.y - height * 0.5f
+		val dir = (position / Vector(width.toFloat(), height.toFloat()) - 0.5f) * 2.0f
+		val angleSection = PI.toFloat() * 2.0f / 8.0f
+		val angle = atan2(dir.x, dir.y) + PI + angleSection * 0.5f
 		return when
 		{
-			dx > abs(dy) -> Direction.RIGHT
-			dx <= -abs(dy) -> Direction.LEFT
-			dy >= abs(dx) -> Direction.DOWN
-			else /*dy < -abs(dx)*/ -> Direction.UP
+			angle < 1.0f * angleSection -> Direction.UP
+			angle < 2.0f * angleSection -> Direction.LEFT_UP
+			angle < 3.0f * angleSection -> Direction.LEFT
+			angle < 4.0f * angleSection -> Direction.LEFT_DOWN
+			angle < 5.0f * angleSection -> Direction.DOWN
+			angle < 6.0f * angleSection -> Direction.RIGHT_DOWN
+			angle < 7.0f * angleSection -> Direction.RIGHT
+			angle < 8.0f * angleSection -> Direction.RIGHT_UP
+			else -> Direction.UP
 		}
 	}
 
