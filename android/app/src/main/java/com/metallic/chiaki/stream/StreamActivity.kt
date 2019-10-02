@@ -43,7 +43,6 @@ private object StreamQuitDialog: DialogContents()
 private object CreateErrorDialog: DialogContents()
 private object PinRequestDialog: DialogContents()
 
-@ExperimentalUnsignedTypes
 class StreamActivity : AppCompatActivity()
 {
 	companion object
@@ -80,7 +79,6 @@ class StreamActivity : AppCompatActivity()
 		}
 	}
 
-	@ExperimentalUnsignedTypes
 	override fun onAttachFragment(fragment: Fragment)
 	{
 		super.onAttachFragment(fragment)

@@ -27,7 +27,6 @@ import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ControllerState
 import kotlinx.android.synthetic.main.fragment_controls.*
 
-@ExperimentalUnsignedTypes
 class TouchControlsFragment : Fragment()
 {
 	var controllerState = ControllerState()

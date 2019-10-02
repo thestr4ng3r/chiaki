@@ -22,7 +22,7 @@ data class ConnectInfo(
 	val videoProfile: ConnectVideoProfile
 ): Parcelable
 
-class ChiakiNative
+private class ChiakiNative
 {
 	data class SessionCreateResult(var errorCode: Int, var sessionPtr: Long)
 	companion object
@@ -53,7 +53,6 @@ class ErrorCode(val value: Int)
 
 private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a else b
 
-@ExperimentalUnsignedTypes
 data class ControllerState constructor(
 	var buttons: UInt = 0U,
 	var l2State: UByte = 0U,
@@ -176,5 +175,25 @@ class Session(connectInfo: ConnectInfo)
 	fun setLoginPin(pin: String)
 	{
 		ChiakiNative.sessionSetLoginPin(nativePtr, pin)
+	}
+}
+
+data class DiscoveryHost(
+	val state: State,
+	val hostRequestPort: UShort,
+	val host_addr: String?,
+	val system_version: String?,
+	val device_discovery_protocol_version: String?,
+	val host_name: String?,
+	val host_type: String?,
+	val host_id: String?,
+	val running_app_titleid: String?,
+	val running_app_name: String?)
+{
+	enum class State
+	{
+		UNKNOWN,
+		READY,
+		STANDBY
 	}
 }

@@ -35,7 +35,6 @@ data class StreamStateCreateError(val error: SessionCreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
-@ExperimentalUnsignedTypes
 class StreamSession(val connectInfo: ConnectInfo)
 {
 	var session: Session? = null
@@ -125,7 +124,6 @@ class StreamSession(val connectInfo: ConnectInfo)
 		session?.setLoginPin(pin)
 	}
 
-	@ExperimentalUnsignedTypes
 	fun dispatchKeyEvent(event: KeyEvent): Boolean
 	{
 		Log.i("StreamSession", "key event $event")
