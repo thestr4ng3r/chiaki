@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".MainActivity">
+        <activity android:name=".main.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -25,6 +25,9 @@
             android:theme="@style/StreamTheme"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:screenOrientation="userLandscape"/>
+
+        <activity android:name=".TestStartActivity"
+            android:theme="@style/AppTheme.Transparent"/>
     </application>
 
 </manifest>
