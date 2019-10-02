@@ -21,12 +21,22 @@ import android.app.ActivityOptions
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
+import com.metallic.chiaki.common.ManualHost
+import com.metallic.chiaki.common.getDatabase
+import io.reactivex.Completable
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()
 {
+	private val disposable = CompositeDisposable()
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
@@ -39,5 +49,24 @@ class MainActivity : AppCompatActivity()
 				startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
 			}
 		}
+
+		/*val db = getDatabase(this)
+		Completable.mergeArray(
+			db.manualHostDao().insert(ManualHost(host = "test", registeredHost = null)),
+			db.manualHostDao().insert(ManualHost(host = "adsgsdfgdsfg", registeredHost = null)),
+			db.manualHostDao().insert(ManualHost(host = "sdfgsdfg", registeredHost = null))
+		).andThen(db.manualHostDao().getAll())
+			.subscribeOn(Schedulers.io())
+			.observeOn(AndroidSchedulers.mainThread())
+			.subscribe {
+				Log.i("MainActivity", "got $it")
+			}
+			.also { disposable.add(it) }*/
+	}
+
+	override fun onDestroy()
+	{
+		super.onDestroy()
+		disposable.dispose()
 	}
 }

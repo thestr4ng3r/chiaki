@@ -17,31 +17,19 @@
 
 package com.metallic.chiaki.common
 
-import android.net.MacAddress
 import com.metallic.chiaki.lib.DiscoveryHost
 
-data class RegisteredHost(
-	val apSsid: String?,
-	val apBssid: String?,
-	val apKey: String?,
-	val apName: String?,
-	val ps4Mac: MacAddress,
-	val ps4Nickname: String?,
-	val rpRegistKey: ByteArray, // CHIAKI_SESSION_AUTH_SIZE
-	val rpKeyType: UInt,
-	val rpKey: ByteArray // 0x10
-)
-
-sealed class DisplayHost(
-	val registeredHost: RegisteredHost?
-)
+sealed class DisplayHost
+{
+	abstract val registeredHost: RegisteredHost?
+}
 
 class DiscoveredDisplayServer(
-	registeredHost: RegisteredHost?,
+	override val registeredHost: RegisteredHost?,
 	val discoveredHost: DiscoveryHost
-): DisplayHost(registeredHost)
+): DisplayHost()
 
 class ManualDisplayServer(
-	registeredHost: RegisteredHost?,
-	val manualHost: Int
-): DisplayHost(registeredHost)
+	override val registeredHost: RegisteredHost?,
+	val manualHost: ManualHost
+): DisplayHost()
