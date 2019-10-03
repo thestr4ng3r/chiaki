@@ -18,8 +18,19 @@
 package com.metallic.chiaki.main
 
 import androidx.lifecycle.ViewModel
+import com.metallic.chiaki.common.AppDatabase
+import com.metallic.chiaki.common.ManualDisplayHost
+import com.metallic.chiaki.common.ext.toLiveData
 
-class MainViewModel: ViewModel()
+class MainViewModel(val database: AppDatabase): ViewModel()
 {
-
+	val displayHosts by lazy {
+		database.manualHostDao().getAll()
+			.map {
+				it.map { manualHost ->
+					ManualDisplayHost(null, manualHost)
+				}
+			}
+			.toLiveData()
+	}
 }

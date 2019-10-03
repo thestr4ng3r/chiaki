@@ -21,16 +21,14 @@ import android.app.ActivityOptions
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
-import com.metallic.chiaki.common.ManualHost
 import com.metallic.chiaki.common.getDatabase
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.metallic.chiaki.common.ext.viewModelFactory
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()
@@ -50,18 +48,14 @@ class MainActivity : AppCompatActivity()
 			}
 		}
 
-		/*val db = getDatabase(this)
-		Completable.mergeArray(
-			db.manualHostDao().insert(ManualHost(host = "test", registeredHost = null)),
-			db.manualHostDao().insert(ManualHost(host = "adsgsdfgdsfg", registeredHost = null)),
-			db.manualHostDao().insert(ManualHost(host = "sdfgsdfg", registeredHost = null))
-		).andThen(db.manualHostDao().getAll())
-			.subscribeOn(Schedulers.io())
-			.observeOn(AndroidSchedulers.mainThread())
-			.subscribe {
-				Log.i("MainActivity", "got $it")
-			}
-			.also { disposable.add(it) }*/
+		val viewModel = ViewModelProviders
+			.of(this, viewModelFactory { MainViewModel(getDatabase(this)) })
+			.get(MainViewModel::class.java)
+
+		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter()
+		hostsRecyclerView.adapter = recyclerViewAdapter
+		hostsRecyclerView.layoutManager = LinearLayoutManager(this)
+		viewModel.displayHosts.observe(this, Observer { recyclerViewAdapter.hosts = it })
 	}
 
 	override fun onDestroy()

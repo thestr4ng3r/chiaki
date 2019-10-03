@@ -15,28 +15,14 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.metallic.chiaki.common
+package com.metallic.chiaki.common.ext
 
-import com.metallic.chiaki.lib.DiscoveryHost
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.annotation.LayoutRes
 
-sealed class DisplayHost
+fun ViewGroup.inflate(@LayoutRes layoutRes: Int, attachToRoot: Boolean = false): View
 {
-	abstract val registeredHost: RegisteredHost?
-	abstract val host: String
-}
-
-class DiscoveredDisplayHost(
-	override val registeredHost: RegisteredHost?,
-	val discoveredHost: DiscoveryHost
-): DisplayHost()
-{
-	override val host get() = discoveredHost.hostAddr ?: ""
-}
-
-class ManualDisplayHost(
-	override val registeredHost: RegisteredHost?,
-	val manualHost: ManualHost
-): DisplayHost()
-{
-	override val host get() = manualHost.host
+	return LayoutInflater.from(context).inflate(layoutRes, this, attachToRoot)
 }

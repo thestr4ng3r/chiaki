@@ -15,28 +15,9 @@
  * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.metallic.chiaki.common
+package com.metallic.chiaki.common.ext
 
-import com.metallic.chiaki.lib.DiscoveryHost
+import androidx.lifecycle.LiveDataReactiveStreams
+import org.reactivestreams.Publisher
 
-sealed class DisplayHost
-{
-	abstract val registeredHost: RegisteredHost?
-	abstract val host: String
-}
-
-class DiscoveredDisplayHost(
-	override val registeredHost: RegisteredHost?,
-	val discoveredHost: DiscoveryHost
-): DisplayHost()
-{
-	override val host get() = discoveredHost.hostAddr ?: ""
-}
-
-class ManualDisplayHost(
-	override val registeredHost: RegisteredHost?,
-	val manualHost: ManualHost
-): DisplayHost()
-{
-	override val host get() = manualHost.host
-}
+fun <T> Publisher<T>.toLiveData() = LiveDataReactiveStreams.fromPublisher(this)

@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Chiaki</string>
+    <string name="main_title">Chiaki 千秋</string>
     <string name="alert_message_session_quit">Session has quit: %s</string>
     <string name="alert_message_session_create_error">Failed to create Session: %s</string>
     <string name="alert_message_login_pin_request">Login PIN:</string>

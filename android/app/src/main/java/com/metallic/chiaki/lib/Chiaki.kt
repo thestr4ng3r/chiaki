@@ -181,14 +181,14 @@ class Session(connectInfo: ConnectInfo)
 data class DiscoveryHost(
 	val state: State,
 	val hostRequestPort: UShort,
-	val host_addr: String?,
-	val system_version: String?,
-	val device_discovery_protocol_version: String?,
-	val host_name: String?,
-	val host_type: String?,
-	val host_id: String?,
-	val running_app_titleid: String?,
-	val running_app_name: String?)
+	val hostAddr: String?,
+	val systemVersion: String?,
+	val deviceDiscoveryProtocolVersion: String?,
+	val hostName: String?,
+	val hostType: String?,
+	val hostId: String?,
+	val runningAppTitleid: String?,
+	val runningAppName: String?)
 {
 	enum class State
 	{
