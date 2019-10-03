@@ -21,6 +21,8 @@ import android.app.ActivityOptions
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +30,7 @@ import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.settings.SettingsActivity
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -39,6 +42,10 @@ class MainActivity : AppCompatActivity()
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
+
+		title = ""
+		setSupportActionBar(toolbar)
+
 
 		addButton.setOnClickListener {
 			Intent(this, TestStartActivity::class.java).also {
@@ -62,5 +69,24 @@ class MainActivity : AppCompatActivity()
 	{
 		super.onDestroy()
 		disposable.dispose()
+	}
+
+	override fun onCreateOptionsMenu(menu: Menu?): Boolean
+	{
+		menuInflater.inflate(R.menu.main, menu)
+		return true
+	}
+
+	override fun onOptionsItemSelected(item: MenuItem): Boolean = when(item.itemId)
+	{
+		R.id.action_settings ->
+		{
+			Intent(this, SettingsActivity::class.java).also {
+				startActivity(it)
+			}
+			true
+		}
+
+		else -> super.onOptionsItemSelected(item)
 	}
 }

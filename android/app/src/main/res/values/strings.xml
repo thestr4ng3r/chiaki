@@ -8,4 +8,5 @@
     <string name="action_reconnect">Reconnect</string>
     <string name="action_quit_session">Quit</string>
     <string name="action_login_pin_connect">Connect</string>
+    <string name="action_settings">Settings</string>
 </resources>
