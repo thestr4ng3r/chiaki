@@ -17,18 +17,51 @@
         android:layout_marginBottom="0dp"
         android:elevation="8dp">
 
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/ic_triangle"
+            android:layout_gravity="left|top" />
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="8dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_discovered_on_secondary" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/nameTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed-medium"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="Name"
+                android:textSize="32sp"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurface"/>
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/hostTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-condensed-medium"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="Host"
+                app:layout_constraintTop_toBottomOf="@id/nameTextView"
+                tools:text="Address: Host"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurface"/>
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/idTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed-medium"
+                app:layout_constraintTop_toBottomOf="@id/hostTextView"
+                tools:text="ID: C0FFEE1337"
                 android:textSize="16sp"
                 android:gravity="center"
                 android:textColor="?attr/colorOnSurface"/>
@@ -37,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_console"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/idTextView"
                 app:layout_constraintBottom_toBottomOf="parent"
                 android:layout_marginLeft="32dp"
                 android:layout_marginRight="32dp" />
