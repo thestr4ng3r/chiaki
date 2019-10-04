@@ -25,13 +25,12 @@ import android.view.TextureView
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.metallic.chiaki.lib.*
-import java.util.stream.Stream
 
 sealed class StreamState
 object StreamStateIdle: StreamState()
 object StreamStateConnecting: StreamState()
 object StreamStateConnected: StreamState()
-data class StreamStateCreateError(val error: SessionCreateError): StreamState()
+data class StreamStateCreateError(val error: CreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
@@ -77,7 +76,7 @@ class StreamSession(val connectInfo: ConnectInfo)
 				session.setSurface(Surface(surfaceTexture))
 			this.session = session
 		}
-		catch(e: SessionCreateError)
+		catch(e: CreateError)
 		{
 			_state.value = StreamStateCreateError(e)
 		}

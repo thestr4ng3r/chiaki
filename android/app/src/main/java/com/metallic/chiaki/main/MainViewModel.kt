@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModel
 import com.metallic.chiaki.common.AppDatabase
 import com.metallic.chiaki.common.ManualDisplayHost
 import com.metallic.chiaki.common.ext.toLiveData
+import com.metallic.chiaki.discovery.DiscoveryManager
 
 class MainViewModel(val database: AppDatabase): ViewModel()
 {
@@ -32,5 +33,13 @@ class MainViewModel(val database: AppDatabase): ViewModel()
 				}
 			}
 			.toLiveData()
+	}
+
+	val discoveryManager = DiscoveryManager().also { it.start() }
+
+	override fun onCleared()
+	{
+		super.onCleared()
+		discoveryManager.stop()
 	}
 }

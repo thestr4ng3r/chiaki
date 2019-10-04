@@ -22,8 +22,12 @@
 #include <chiaki/common.h>
 #include <chiaki/log.h>
 #include <chiaki/session.h>
+#include <chiaki/discoveryservice.h>
 
 #include <string.h>
+#include <linux/in.h>
+#include <linux/in6.h>
+#include <arpa/inet.h>
 
 #include "video-decoder.h"
 #include "audio-decoder.h"
@@ -286,7 +290,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 beach:
 	free(host_str);
 	E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
-	E->SetLongField(env, result, E->GetFieldID(env, result_class, "sessionPtr", "J"), (jlong)session);
+	E->SetLongField(env, result, E->GetFieldID(env, result_class, "ptr", "J"), (jlong)session);
 }
 
 JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNIEnv *env, jobject obj, jlong ptr)
@@ -351,4 +355,117 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetLogin
 	const char *pin = E->GetStringUTFChars(env, pin_java, NULL);
 	chiaki_session_set_login_pin(&session->session, (const uint8_t *)pin, strlen(pin));
 	E->ReleaseStringUTFChars(env, pin_java, pin);
+}
+
+typedef struct android_discovery_service_t
+{
+	ChiakiDiscoveryService service;
+	jobject java_service;
+} AndroidDiscoveryService;
+
+static void android_discovery_service_cb(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+{
+	AndroidDiscoveryService *service = user;
+	// TODO
+	CHIAKI_LOGD(&global_log, "Discovered %d hosts", (int)hosts_count);
+}
+
+static ChiakiErrorCode sockaddr_from_java(JNIEnv *env, jobject /*InetSocketAddress*/ sockaddr_obj, struct sockaddr **addr, size_t *addr_size)
+{
+	jclass sockaddr_class = E->GetObjectClass(env, sockaddr_obj);
+	uint16_t port = (uint16_t)E->CallIntMethod(env, sockaddr_obj, E->GetMethodID(env, sockaddr_class, "getPort", "()I"));
+	jobject addr_obj = E->CallObjectMethod(env, sockaddr_obj, E->GetMethodID(env, sockaddr_class, "getAddress", "()Ljava/net/InetAddress;"));
+	jclass addr_class = E->GetObjectClass(env, addr_obj);
+	jbyteArray addr_byte_array = E->CallObjectMethod(env, addr_obj, E->GetMethodID(env, addr_class, "getAddress", "()[B"));
+	jsize addr_byte_array_len = E->GetArrayLength(env, addr_byte_array);
+
+	if(addr_byte_array_len == 4)
+	{
+		struct sockaddr_in *inaddr = CHIAKI_NEW(struct sockaddr_in);
+		if(!inaddr)
+			return CHIAKI_ERR_MEMORY;
+		memset(inaddr, 0, sizeof(*inaddr));
+		inaddr->sin_family = AF_INET;
+		jbyte *bytes = E->GetByteArrayElements(env, addr_byte_array, NULL);
+		memcpy(&inaddr->sin_addr.s_addr, bytes, sizeof(inaddr->sin_addr.s_addr));
+		E->ReleaseByteArrayElements(env, addr_byte_array, bytes, JNI_ABORT);
+		inaddr->sin_port = htons(port);
+
+		*addr = (struct sockaddr *)inaddr;
+		*addr_size = sizeof(*inaddr);
+	}
+	else if(addr_byte_array_len == 0x10)
+	{
+		struct sockaddr_in6 *inaddr6 = CHIAKI_NEW(struct sockaddr_in6);
+		if(!inaddr6)
+			return CHIAKI_ERR_MEMORY;
+		memset(inaddr6, 0, sizeof(*inaddr6));
+		inaddr6->sin6_family = AF_INET6;
+		jbyte *bytes = E->GetByteArrayElements(env, addr_byte_array, NULL);
+		memcpy(&inaddr6->sin6_addr.in6_u, bytes, sizeof(inaddr6->sin6_addr.in6_u));
+		E->ReleaseByteArrayElements(env, addr_byte_array, bytes, JNI_ABORT);
+		inaddr6->sin6_port = htons(port);
+
+		*addr = (struct sockaddr *)inaddr6;
+		*addr_size = sizeof(*inaddr6);
+	}
+	else
+		return CHIAKI_ERR_INVALID_DATA;
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServiceCreate(JNIEnv *env, jobject obj, jobject result, jobject options_obj, jobject java_service)
+{
+	jclass result_class = E->GetObjectClass(env, result);
+	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+	ChiakiDiscoveryServiceOptions options = { 0 };
+
+	AndroidDiscoveryService *service = CHIAKI_NEW(AndroidDiscoveryService);
+	if(!service)
+	{
+		err = CHIAKI_ERR_MEMORY;
+		goto beach;
+	}
+
+	jclass options_class = E->GetObjectClass(env, options_obj);
+
+	options.hosts_max = (size_t)E->GetLongField(env, options_obj, E->GetFieldID(env, options_class, "hostsMax", "J"));
+	options.host_drop_pings = (uint64_t)E->GetLongField(env, options_obj, E->GetFieldID(env, options_class, "hostDropPings", "J"));
+	options.ping_ms = (uint64_t)E->GetLongField(env, options_obj, E->GetFieldID(env, options_class, "pingMs", "J"));
+	options.cb = android_discovery_service_cb;
+	options.cb_user = service;
+
+	err = sockaddr_from_java(env, E->GetObjectField(env, options_obj, E->GetFieldID(env, options_class, "sendAddr", "Ljava/net/InetSocketAddress;")), &options.send_addr, &options.send_addr_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&global_log, "Failed to get sockaddr from InetSocketAddress");
+		goto beach;
+	}
+
+	service->java_service = E->NewGlobalRef(env, java_service);
+	// TODO: service->whatever = get id for callback method
+
+	err = chiaki_discovery_service_init(&service->service, &options, &global_log);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&global_log, "Failed to create discovery service (JNI)");
+		E->DeleteGlobalRef(env, service->java_service);
+		goto beach;
+	}
+
+beach:
+	free(options.send_addr);
+	E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
+	E->SetLongField(env, result, E->GetFieldID(env, result_class, "ptr", "J"), (jlong)service);
+}
+
+JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServiceFree(JNIEnv *env, jobject obj, jlong ptr)
+{
+	AndroidDiscoveryService *service = (AndroidDiscoveryService *)ptr;
+	if(!service)
+		return;
+	chiaki_discovery_service_fini(&service->service);
+	E->DeleteGlobalRef(env, service->java_service);
+	free(service);
 }

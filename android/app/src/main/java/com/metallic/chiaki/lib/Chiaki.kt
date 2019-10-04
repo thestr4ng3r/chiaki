@@ -4,6 +4,7 @@ import android.os.Parcelable
 import android.view.Surface
 import kotlinx.android.parcel.Parcelize
 import java.lang.Exception
+import java.net.InetSocketAddress
 import kotlin.math.abs
 
 @Parcelize
@@ -24,7 +25,7 @@ data class ConnectInfo(
 
 private class ChiakiNative
 {
-	data class SessionCreateResult(var errorCode: Int, var sessionPtr: Long)
+	data class CreateResult(var errorCode: Int, var ptr: Long)
 	companion object
 	{
 		init
@@ -34,7 +35,7 @@ private class ChiakiNative
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun quitReasonToString(value: Int): String
 		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
-		@JvmStatic external fun sessionCreate(result: SessionCreateResult, connectInfo: ConnectInfo, javaSession: Session)
+		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
 		@JvmStatic external fun sessionStop(ptr: Long): Int
@@ -42,6 +43,8 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetSurface(ptr: Long, surface: Surface)
 		@JvmStatic external fun sessionSetControllerState(ptr: Long, controllerState: ControllerState)
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
+		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
+		@JvmStatic external fun discoveryServiceFree(ptr: Long)
 	}
 }
 
@@ -108,7 +111,7 @@ object ConnectedEvent: Event()
 data class LoginPinRequestEvent(val pinIncorrect: Boolean): Event()
 data class QuitEvent(val reason: QuitReason, val reasonString: String?): Event()
 
-class SessionCreateError(val errorCode: ErrorCode): Exception("Failed to create Session: $errorCode")
+class CreateError(val errorCode: ErrorCode): Exception("Failed to create a native object: $errorCode")
 
 class Session(connectInfo: ConnectInfo)
 {
@@ -122,12 +125,12 @@ class Session(connectInfo: ConnectInfo)
 
 	init
 	{
-		val result = ChiakiNative.SessionCreateResult(0, 0)
+		val result = ChiakiNative.CreateResult(0, 0)
 		ChiakiNative.sessionCreate(result, connectInfo, this)
 		val errorCode = ErrorCode(result.errorCode)
 		if(!errorCode.isSuccess)
-			throw SessionCreateError(errorCode)
-		nativePtr = result.sessionPtr
+			throw CreateError(errorCode)
+		nativePtr = result.ptr
 	}
 
 	fun start() = ErrorCode(ChiakiNative.sessionStart(nativePtr))
@@ -195,5 +198,36 @@ data class DiscoveryHost(
 		UNKNOWN,
 		READY,
 		STANDBY
+	}
+}
+
+
+data class DiscoveryServiceOptions(
+	val hostsMax: ULong,
+	val hostDropPings: ULong,
+	val pingMs: ULong,
+	val sendAddr: InetSocketAddress
+)
+
+class DiscoveryService(options: DiscoveryServiceOptions)
+{
+	private var nativePtr: Long
+
+	init
+	{
+		val result = ChiakiNative.CreateResult(0, 0)
+		ChiakiNative.discoveryServiceCreate(result, options, this)
+		val errorCode = ErrorCode(result.errorCode)
+		if(!errorCode.isSuccess)
+			throw CreateError(errorCode)
+		nativePtr = result.ptr
+	}
+
+	fun dispose()
+	{
+		if(nativePtr == 0L)
+			return
+		ChiakiNative.discoveryServiceFree(nativePtr)
+		nativePtr = 0L
 	}
 }
