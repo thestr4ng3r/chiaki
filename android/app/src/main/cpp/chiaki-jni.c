@@ -275,7 +275,12 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	err = chiaki_session_init(&session->session, &connect_info, &global_log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		// TODO: free audio and video decoders and session (?)
+		CHIAKI_LOGE(&global_log, "JNI ChiakiSession failed to init");
+		android_chiaki_video_decoder_fini(&session->video_decoder);
+		android_chiaki_audio_decoder_fini(&session->audio_decoder);
+		android_chiaki_audio_output_free(session->audio_output);
+		free(session);
+		session = NULL;
 		goto beach;
 	}
 
@@ -389,6 +394,8 @@ typedef struct android_discovery_service_t
 static void android_discovery_service_cb(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
 {
 	AndroidDiscoveryService *service = user;
+
+	CHIAKI_LOGI(&global_log, "JNI Discovery Callback got %llu hosts", (unsigned long long)hosts_count);
 
 	JNIEnv *env = attach_thread_jni();
 	if(!env)

@@ -149,6 +149,10 @@ class StreamActivity : AppCompatActivity()
 							dialog = null
 							reconnect()
 						}
+						.setOnDismissListener {
+							dialog = null
+							finish()
+						}
 						.setNegativeButton(R.string.action_quit_session) { _, _ ->
 							dialog = null
 							finish()
@@ -166,6 +170,10 @@ class StreamActivity : AppCompatActivity()
 					dialog?.dismiss()
 					val dialog = AlertDialog.Builder(this)
 						.setMessage(getString(R.string.alert_message_session_create_error, state.error.errorCode.toString()))
+						.setOnDismissListener {
+							dialog = null
+							finish()
+						}
 						.setNegativeButton(R.string.action_quit_session) { _, _ ->
 							dialog = null
 							finish()
@@ -193,11 +201,15 @@ class StreamActivity : AppCompatActivity()
 								R.string.alert_message_login_pin_request)
 						.setView(view)
 						.setPositiveButton(R.string.action_login_pin_connect) { _, _ ->
-							this.dialog = null
+							dialog = null
 							viewModel.session.setLoginPin(pinEditText.text.toString())
 						}
+						.setOnDismissListener {
+							dialog = null
+							finish()
+						}
 						.setNegativeButton(R.string.action_quit_session) { _, _ ->
-							this.dialog = null
+							dialog = null
 							finish()
 						}
 						.create()
