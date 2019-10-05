@@ -126,6 +126,8 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 			return "Unknown Ctrl Error";
 		case CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED:
 			return "Connection Refused in Ctrl";
+		case CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED:
+			return "Ctrl failed to connect";
 		case CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN:
 			return "Unknown Error in Stream Connection";
 		case CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED:
@@ -363,7 +365,10 @@ static void *session_thread_func(void *arg)
 	CHECK_STOP(quit_ctrl);
 
 	if(session->ctrl_failed)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl has failed while waiting for ctrl startup");
 		goto ctrl_failed;
+	}
 
 	bool pin_incorrect = false;
 	while(session->ctrl_login_pin_requested)
@@ -382,7 +387,10 @@ static void *session_thread_func(void *arg)
 		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
 		CHECK_STOP(quit_ctrl);
 		if(session->ctrl_failed)
+		{
+			CHIAKI_LOGE(session->log, "Ctrl has failed while waiting for PIN entry");
 			goto ctrl_failed;
+		}
 
 		assert(session->login_pin_entered && session->login_pin);
 		CHIAKI_LOGI(session->log, "Session received entered Login PIN, forwarding to Ctrl");
@@ -399,6 +407,7 @@ static void *session_thread_func(void *arg)
 
 	if(!session->ctrl_session_id_received)
 	{
+		CHIAKI_LOGE(session->log, "Ctrl did not receive session id");
 ctrl_failed:
 		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)

@@ -24,6 +24,8 @@
 #define CHIAKI_SOCKET_IS_INVALID(s) ((s) == INVALID_SOCKET)
 #define CHIAKI_INVALID_SOCKET INVALID_SOCKET
 #define CHIAKI_SOCKET_CLOSE(s) closesocket(s)
+#define CHIAKI_SOCKET_ERROR_FMT "%d"
+#define CHIAKI_SOCKET_ERROR_VALUE (WSAGetLastError())
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -33,6 +35,8 @@
 #define CHIAKI_SOCKET_IS_INVALID(s) ((s) < 0)
 #define CHIAKI_INVALID_SOCKET (-1)
 #define CHIAKI_SOCKET_CLOSE(s) close(s)
+#define CHIAKI_SOCKET_ERROR_FMT "%s"
+#define CHIAKI_SOCKET_ERROR_VALUE (strerror(errno))
 #endif
 
 #ifdef __cplusplus

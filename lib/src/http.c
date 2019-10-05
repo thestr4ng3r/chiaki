@@ -164,7 +164,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 
 		int received = (int)recv(sock, buf, (int)buf_size, 0);
 		if(received <= 0)
-			return CHIAKI_ERR_NETWORK;
+			return received == 0 ? CHIAKI_ERR_DISCONNECTED : CHIAKI_ERR_NETWORK;
 
 		*received_size += received;
 		for(; received > 0; buf++, received--)

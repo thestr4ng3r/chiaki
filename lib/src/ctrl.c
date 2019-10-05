@@ -154,7 +154,7 @@ static void *ctrl_thread_func(void *user)
 	ChiakiErrorCode err = ctrl_connect(ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED);
 		return NULL;
 	}
 
@@ -233,7 +233,10 @@ static void *ctrl_thread_func(void *user)
 		if(received <= 0)
 		{
 			if(received < 0)
+			{
+				CHIAKI_LOGE(ctrl->session->log, "Ctrl failed to recv: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 				ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			}
 			break;
 		}
 
@@ -303,6 +306,10 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 			return;
 		}
 	}
+
+	CHIAKI_LOGV(ctrl->session->log, "Ctrl received message of type %#x, size %#llx", (unsigned int)msg_type, (unsigned long long)payload_size);
+	if(payload_size > 0)
+		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
 	switch(msg_type)
 	{
@@ -409,7 +416,7 @@ static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size
 {
 	if(payload_size != 1)
 	{
-		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Login message with payload of size %llx", (unsigned long long)payload_size);
+		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Login message with payload of size %#llx", (unsigned long long)payload_size);
 		if(payload_size < 1)
 			return;
 	}
@@ -436,7 +443,7 @@ static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size
 				CHIAKI_LOGW(ctrl->session->log, "Ctrl Login PIN incorrect message, but PIN was not requested");
 			break;
 		default:
-			CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login message with state: %x", state);
+			CHIAKI_LOGI(ctrl->session->log, "Ctrl received Login message with state: %#x", state);
 			break;
 	}
 }
@@ -480,7 +487,10 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	struct addrinfo *addr = session->connect_info.host_addrinfo_selected;
 	struct sockaddr *sa = malloc(addr->ai_addrlen);
 	if(!sa)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl failed to alloc sockaddr");
 		return CHIAKI_ERR_MEMORY;
+	}
 	memcpy(sa, addr->ai_addr, addr->ai_addrlen);
 
 	if(sa->sa_family == AF_INET)
@@ -488,10 +498,13 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	else if(sa->sa_family == AF_INET6)
 		((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_CTRL_PORT);
 	else
+	{
+		CHIAKI_LOGE(session->log, "Ctrl got invalid sockaddr");
 		return CHIAKI_ERR_INVALID_DATA;
+	}
 
 	chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
-	if(sock < 0)
+	if(CHIAKI_SOCKET_IS_INVALID(sock))
 	{
 		CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
 		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
@@ -502,9 +515,16 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	free(sa);
 	if(r < 0)
 	{
+#ifdef _WIN32
+		int errsv = WSAGetLastError();
+		CHIAKI_LOGE(session->log, "Ctrl connect failed: %d", errsv);
+		ChiakiQuitReason quit_reason = errsv == WSAECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+#else
 		int errsv = errno;
 		CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", strerror(errsv));
-		ctrl_failed(ctrl, errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		ChiakiQuitReason quit_reason = errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+#endif
+		ctrl_failed(ctrl, quit_reason);
 		CHIAKI_SOCKET_CLOSE(sock);
 		return CHIAKI_ERR_NETWORK;
 	}
@@ -578,9 +598,33 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err != CHIAKI_ERR_CANCELED)
+		{
+#ifdef _WIN32
+			int errsv = WSAGetLastError;
+#else
+			int errsv = errno;
+#endif
 			CHIAKI_LOGE(session->log, "Failed to receive ctrl request response: %s", chiaki_error_string(err));
+			if(err == CHIAKI_ERR_NETWORK)
+			{
+				CHIAKI_LOGE(session->log, "Ctrl request response network error: " CHIAKI_SOCKET_ERROR_FMT,
+#ifdef _WIN32
+																										errsv
+#else
+																										strerror(errsv)
+#endif
+																										);
+			}
+		}
+		else
+		{
+			CHIAKI_LOGI(session->log, "Ctrl canceled while receiving ctrl request response");
+		}
 		goto error;
 	}
+
+	CHIAKI_LOGI(session->log, "Ctrl received http header as response");
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, header_size);
 
 	ChiakiHttpResponse http_response;
 	err = chiaki_http_response_parse(&http_response, buf, header_size);
@@ -590,15 +634,18 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		goto error;
 	}
 
+	CHIAKI_LOGI(session->log, "Ctrl received ctrl request http response");
+
 	CtrlResponse response;
 	parse_ctrl_response(&response, &http_response);
-	chiaki_http_response_fini(&http_response);
-
 	if(!response.success)
 	{
+		CHIAKI_LOGE(session->log, "Ctrl http response was not successful. HTTP code was %d", http_response.code);
+		chiaki_http_response_fini(&http_response);
 		err = CHIAKI_ERR_UNKNOWN;
 		goto error;
 	}
+	chiaki_http_response_fini(&http_response);
 
 	if(response.server_type_valid)
 	{
@@ -607,7 +654,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				response.rp_server_type,
 				response.rp_server_type,
 				sizeof(response.rp_server_type));
-		response.server_type_valid = err2 == CHIAKI_ERR_SUCCESS;
+		if(err2 != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "Ctrl failed to decrypt RP-Server-Type");
+			response.server_type_valid = false;
+		}
 	}
 
 	if(!response.server_type_valid)
