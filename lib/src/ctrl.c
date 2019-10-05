@@ -607,13 +607,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			CHIAKI_LOGE(session->log, "Failed to receive ctrl request response: %s", chiaki_error_string(err));
 			if(err == CHIAKI_ERR_NETWORK)
 			{
-				CHIAKI_LOGE(session->log, "Ctrl request response network error: " CHIAKI_SOCKET_ERROR_FMT,
 #ifdef _WIN32
-																										errsv
+				CHIAKI_LOGE(session->log, "Ctrl request response network error: %d", errsv);
 #else
-																										strerror(errsv)
+				CHIAKI_LOGE(session->log, "Ctrl request response network error: %s", strerror(errsv));
 #endif
-																										);
 			}
 		}
 		else
