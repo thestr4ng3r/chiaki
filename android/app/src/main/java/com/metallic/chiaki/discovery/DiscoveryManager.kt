@@ -87,13 +87,12 @@ class DiscoveryManager
 				Log.e("DiscoveryManager", "Failed to start Discovery Service: $e")
 			}
 		}
-		else if(discoveryService != null)
+		else if((!active || paused) && discoveryService != null)
 		{
 			val service = discoveryService ?: return
 			service.dispose()
 			discoveryService = null
 			discoveredHostsSubject.onNext(listOf())
-			discoveryActiveSubject.onNext(false)
 		}
 	}
 }

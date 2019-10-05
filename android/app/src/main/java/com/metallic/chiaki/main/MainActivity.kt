@@ -21,6 +21,7 @@ import android.app.ActivityOptions
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.lifecycle.Observer
@@ -78,12 +79,25 @@ class MainActivity : AppCompatActivity()
 		disposable.dispose()
 	}
 
+	override fun onResume()
+	{
+		super.onResume()
+		viewModel.discoveryManager.resume()
+	}
+
+	override fun onPause()
+	{
+		super.onPause()
+		viewModel.discoveryManager.pause()
+	}
+
 	override fun onCreateOptionsMenu(menu: Menu): Boolean
 	{
 		menuInflater.inflate(R.menu.main, menu)
 		val discoveryItem = menu.findItem(R.id.action_discover)
 		discoveryMenuItem = discoveryItem
-		updateDiscoveryMenuItem(discoveryItem, viewModel.discoveryActive.value ?: false)
+		val discoveryActive = viewModel.discoveryActive.value ?: false
+		updateDiscoveryMenuItem(discoveryItem, discoveryActive)
 		return true
 	}
 
