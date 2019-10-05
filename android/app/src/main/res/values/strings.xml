@@ -10,4 +10,6 @@
     <string name="action_login_pin_connect">Connect</string>
     <string name="action_settings">Settings</string>
     <string name="action_discover">Discover Consoles Automatically</string>
+    <string name="display_host_host">Address: %s</string>
+    <string name="display_host_id">ID: %s</string>
 </resources>

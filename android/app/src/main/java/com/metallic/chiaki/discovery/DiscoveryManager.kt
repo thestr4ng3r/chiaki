@@ -19,8 +19,12 @@ package com.metallic.chiaki.discovery
 
 import android.util.Log
 import com.metallic.chiaki.lib.CreateError
+import com.metallic.chiaki.lib.DiscoveryHost
 import com.metallic.chiaki.lib.DiscoveryService
 import com.metallic.chiaki.lib.DiscoveryServiceOptions
+import io.reactivex.Observable
+import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.Subject
 import java.net.InetSocketAddress
 
 class DiscoveryManager
@@ -35,26 +39,61 @@ class DiscoveryManager
 
 	private var discoveryService: DiscoveryService? = null
 
-	fun start()
+	private val discoveryActiveSubject: Subject<Boolean> = BehaviorSubject.create<Boolean>().also { it.onNext(false) }
+	val discoveryActive: Observable<Boolean> get() = discoveryActiveSubject
+	var active = false
+		set(value)
+		{
+			field = value
+			discoveryActiveSubject.onNext(value)
+			updateService()
+		}
+	private var paused = false
+
+	private var discoveredHostsSubject: Subject<List<DiscoveryHost>> = BehaviorSubject.create<List<DiscoveryHost>>().also {
+		it.onNext(listOf())
+	}.toSerialized()
+	val discoveredHosts: Observable<List<DiscoveryHost>> get() = discoveredHostsSubject
+
+	fun resume()
 	{
-		if(discoveryService != null)
-			return
-		try
-		{
-			discoveryService = DiscoveryService(DiscoveryServiceOptions(
-				HOSTS_MAX, DROP_PINGS, PING_MS, InetSocketAddress("255.255.255.255", PORT)
-			))
-		}
-		catch(e: CreateError)
-		{
-			Log.e("DiscoveryManager", "Failed to start Discovery Service: $e")
-		}
+		paused = false
+		updateService()
 	}
 
-	fun stop()
+	fun pause()
 	{
-		val service = discoveryService ?: return
-		service.dispose()
-		discoveryService = null
+		paused = true
+		updateService()
+	}
+
+	fun dispose()
+	{
+		active = false
+	}
+
+	private fun updateService()
+	{
+		if(active && !paused && discoveryService == null)
+		{
+			try
+			{
+				discoveryService = DiscoveryService(DiscoveryServiceOptions(
+					HOSTS_MAX, DROP_PINGS, PING_MS, InetSocketAddress("255.255.255.255", PORT)
+				), discoveredHostsSubject::onNext)
+			}
+			catch(e: CreateError)
+			{
+				Log.e("DiscoveryManager", "Failed to start Discovery Service: $e")
+			}
+		}
+		else if(discoveryService != null)
+		{
+			val service = discoveryService ?: return
+			service.dispose()
+			discoveryService = null
+			discoveredHostsSubject.onNext(listOf())
+			discoveryActiveSubject.onNext(false)
+		}
 	}
 }

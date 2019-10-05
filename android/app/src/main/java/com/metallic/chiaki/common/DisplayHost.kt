@@ -23,6 +23,8 @@ sealed class DisplayHost
 {
 	abstract val registeredHost: RegisteredHost?
 	abstract val host: String
+	abstract val name: String?
+	abstract val id: String?
 }
 
 class DiscoveredDisplayHost(
@@ -31,6 +33,8 @@ class DiscoveredDisplayHost(
 ): DisplayHost()
 {
 	override val host get() = discoveredHost.hostAddr ?: ""
+	override val name get() = discoveredHost.hostName ?: registeredHost?.ps4Nickname
+	override val id get() = discoveredHost.hostId ?: registeredHost?.ps4Mac?.toString()
 }
 
 class ManualDisplayHost(
@@ -39,4 +43,6 @@ class ManualDisplayHost(
 ): DisplayHost()
 {
 	override val host get() = manualHost.host
+	override val name get() = registeredHost?.ps4Nickname
+	override val id get() = registeredHost?.ps4Mac?.toString()
 }

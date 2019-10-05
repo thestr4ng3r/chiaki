@@ -18,6 +18,9 @@
 package com.metallic.chiaki.common.ext
 
 import androidx.lifecycle.LiveDataReactiveStreams
+import io.reactivex.BackpressureStrategy
+import io.reactivex.Observable
 import org.reactivestreams.Publisher
 
 fun <T> Publisher<T>.toLiveData() = LiveDataReactiveStreams.fromPublisher(this)
+fun <T> Observable<T>.toLiveData() = this.toFlowable(BackpressureStrategy.LATEST).toLiveData()

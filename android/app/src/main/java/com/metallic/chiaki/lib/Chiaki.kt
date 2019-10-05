@@ -212,7 +212,7 @@ data class DiscoveryServiceOptions(
 
 class DiscoveryService(
 	options: DiscoveryServiceOptions,
-	val callback: ((hosts: List<DiscoveryHost>) -> Unit)? = null)
+	val callback: ((hosts: List<DiscoveryHost>) -> Unit)?)
 {
 	private var nativePtr: Long
 

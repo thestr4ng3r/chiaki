@@ -21,8 +21,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
 import com.metallic.chiaki.common.ext.inflate
+import com.metallic.chiaki.lib.DiscoveryHost
 import kotlinx.android.synthetic.main.item_display_host.view.*
 
 class DisplayHostRecyclerViewAdapter: RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
@@ -43,9 +45,24 @@ class DisplayHostRecyclerViewAdapter: RecyclerView.Adapter<DisplayHostRecyclerVi
 
 	override fun onBindViewHolder(holder: ViewHolder, position: Int)
 	{
+		val context = holder.itemView.context
 		val host = hosts[position]
 		holder.itemView.also {
-			it.hostTextView.text = host.host
+			it.nameTextView.text = host.name
+			it.hostTextView.text = context.getString(R.string.display_host_host, host.host)
+			val id = host.id
+			it.idTextView.text = if(id != null) context.getString(R.string.display_host_id, id) else ""
+			it.discoveredIndicatorLayout.visibility = if(host is DiscoveredDisplayHost) View.VISIBLE else View.GONE
+			it.stateIndicatorImageView.setImageResource(
+				if(host is DiscoveredDisplayHost)
+					when(host.discoveredHost.state)
+					{
+						DiscoveryHost.State.STANDBY -> R.drawable.ic_console_standby
+						DiscoveryHost.State.READY -> R.drawable.ic_console_ready
+						else -> R.drawable.ic_console
+					}
+				else
+					R.drawable.ic_console)
 		}
 	}
 }

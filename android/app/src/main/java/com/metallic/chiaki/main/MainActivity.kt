@@ -38,6 +38,10 @@ class MainActivity : AppCompatActivity()
 {
 	private val disposable = CompositeDisposable()
 
+	private lateinit var viewModel: MainViewModel
+
+	private var discoveryMenuItem: MenuItem? = null
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
@@ -45,7 +49,6 @@ class MainActivity : AppCompatActivity()
 
 		title = ""
 		setSupportActionBar(toolbar)
-
 
 		addButton.setOnClickListener {
 			Intent(this, TestStartActivity::class.java).also {
@@ -55,7 +58,7 @@ class MainActivity : AppCompatActivity()
 			}
 		}
 
-		val viewModel = ViewModelProviders
+		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { MainViewModel(getDatabase(this)) })
 			.get(MainViewModel::class.java)
 
@@ -63,6 +66,10 @@ class MainActivity : AppCompatActivity()
 		hostsRecyclerView.adapter = recyclerViewAdapter
 		hostsRecyclerView.layoutManager = LinearLayoutManager(this)
 		viewModel.displayHosts.observe(this, Observer { recyclerViewAdapter.hosts = it })
+
+		viewModel.discoveryActive.observe(this, Observer { active ->
+			discoveryMenuItem?.let { updateDiscoveryMenuItem(it, active) }
+		})
 	}
 
 	override fun onDestroy()
@@ -71,14 +78,29 @@ class MainActivity : AppCompatActivity()
 		disposable.dispose()
 	}
 
-	override fun onCreateOptionsMenu(menu: Menu?): Boolean
+	override fun onCreateOptionsMenu(menu: Menu): Boolean
 	{
 		menuInflater.inflate(R.menu.main, menu)
+		val discoveryItem = menu.findItem(R.id.action_discover)
+		discoveryMenuItem = discoveryItem
+		updateDiscoveryMenuItem(discoveryItem, viewModel.discoveryActive.value ?: false)
 		return true
+	}
+
+	private fun updateDiscoveryMenuItem(item: MenuItem, active: Boolean)
+	{
+		item.isChecked = active
+		item.setIcon(if(active) R.drawable.ic_discover_on else R.drawable.ic_discover_off)
 	}
 
 	override fun onOptionsItemSelected(item: MenuItem): Boolean = when(item.itemId)
 	{
+		R.id.action_discover ->
+		{
+			viewModel.discoveryManager.active = !(viewModel.discoveryActive.value ?: false)
+			true
+		}
+
 		R.id.action_settings ->
 		{
 			Intent(this, SettingsActivity::class.java).also {

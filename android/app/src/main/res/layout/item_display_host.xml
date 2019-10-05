@@ -17,21 +17,28 @@
         android:layout_marginBottom="0dp"
         android:elevation="8dp">
 
-        <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:src="@drawable/ic_triangle"
-            android:layout_gravity="left|top" />
+        <FrameLayout
+            android:id="@+id/discoveredIndicatorLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left|top" >
+            <ImageView
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:src="@drawable/ic_triangle"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_discovered_on_secondary"
+                android:layout_gravity="left|top"
+                android:layout_margin="8dp" />
+        </FrameLayout>
+
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="8dp">
-
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_discovered_on_secondary" />
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/nameTextView"
@@ -67,6 +74,7 @@
                 android:textColor="?attr/colorOnSurface"/>
 
             <ImageView
+                android:id="@+id/stateIndicatorImageView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_console"
