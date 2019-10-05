@@ -36,6 +36,10 @@
 #define LOG_TAG "Chiaki"
 #define JNI_VERSION JNI_VERSION_1_6
 
+#define BASE_PACKAGE "com/metallic/chiaki/lib"
+
+#define E (*env)
+
 static void log_cb_android(ChiakiLogLevel level, const char *msg, void *user)
 {
 	int prio;
@@ -78,6 +82,18 @@ static char *strdup_jni(const char *str)
 	return r;
 }
 
+static jobject jnistr_from_ascii(JNIEnv *env, const char *str)
+{
+	if(!str)
+		return NULL;
+	char *s = strdup_jni(str);
+	if(!s)
+		return NULL;
+	jobject r = E->NewStringUTF(env, s);
+	free(s);
+	return r;
+}
+
 static ChiakiLog global_log;
 static JavaVM *global_vm;
 
@@ -90,8 +106,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	CHIAKI_LOGI(&global_log, "Chiaki Library Init Result: %s\n", chiaki_error_string(err));
 	return JNI_VERSION;
 }
-
-#define E (*env)
 
 JNIEXPORT jstring JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_errorCodeToString(JNIEnv *env, jobject obj, jint value)
 {
@@ -192,7 +206,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	jstring host_string = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "host", "Ljava/lang/String;"));
 	jbyteArray regist_key_array = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "registKey", "[B"));
 	jbyteArray morning_array = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "morning", "[B"));
-	jobject connect_video_profile_obj = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "videoProfile", "Lcom/metallic/chiaki/lib/ConnectVideoProfile;"));
+	jobject connect_video_profile_obj = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "videoProfile", "L"BASE_PACKAGE"/ConnectVideoProfile;"));
 	jclass connect_video_profile_class = E->GetObjectClass(env, connect_video_profile_obj);
 
 	ChiakiConnectInfo connect_info;
@@ -266,12 +280,12 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(J
 	}
 
 	session->java_session = E->NewGlobalRef(env, java_session);
-	session->java_session_class = E->GetObjectClass(env, session->java_session);
+	session->java_session_class = E->NewGlobalRef(env, E->GetObjectClass(env, session->java_session));
 	session->java_session_event_connected_meth = E->GetMethodID(env, session->java_session_class, "eventConnected", "()V");
 	session->java_session_event_login_pin_request_meth = E->GetMethodID(env, session->java_session_class, "eventLoginPinRequest", "(Z)V");
 	session->java_session_event_quit_meth = E->GetMethodID(env, session->java_session_class, "eventQuit", "(ILjava/lang/String;)V");
 
-	jclass controller_state_class = E->FindClass(env, "com/metallic/chiaki/lib/ControllerState");
+	jclass controller_state_class = E->FindClass(env, BASE_PACKAGE"/ControllerState");
 	session->java_controller_state_buttons = E->GetFieldID(env, controller_state_class, "buttons", "I");
 	session->java_controller_state_l2_state = E->GetFieldID(env, controller_state_class, "l2State", "B");
 	session->java_controller_state_r2_state = E->GetFieldID(env, controller_state_class, "r2State", "B");
@@ -305,6 +319,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 	android_chiaki_audio_decoder_fini(&session->audio_decoder);
 	android_chiaki_audio_output_free(session->audio_output);
 	E->DeleteGlobalRef(env, session->java_session);
+	E->DeleteGlobalRef(env, session->java_session_class);
 	CHIAKI_LOGI(&global_log, "JNI Session has quit");
 }
 
@@ -361,13 +376,61 @@ typedef struct android_discovery_service_t
 {
 	ChiakiDiscoveryService service;
 	jobject java_service;
+	jclass java_service_class;
+	jmethodID java_service_hosts_updated_meth;
+
+	jclass host_class;
+	jmethodID host_ctor;
+	jobject host_state_unknown;
+	jobject host_state_ready;
+	jobject host_state_standby;
 } AndroidDiscoveryService;
 
 static void android_discovery_service_cb(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
 {
 	AndroidDiscoveryService *service = user;
-	// TODO
-	CHIAKI_LOGD(&global_log, "Discovered %d hosts", (int)hosts_count);
+
+	JNIEnv *env = attach_thread_jni();
+	if(!env)
+		return;
+
+	jobjectArray r = E->NewObjectArray(env, hosts_count, service->host_class, NULL);
+
+	for(size_t i=0; i<hosts_count; i++)
+	{
+		jobject state;
+		ChiakiDiscoveryHost *host = hosts + i;
+		switch(host->state)
+		{
+			case CHIAKI_DISCOVERY_HOST_STATE_STANDBY:
+				state = service->host_state_standby;
+				break;
+			case CHIAKI_DISCOVERY_HOST_STATE_READY:
+				state = service->host_state_ready;
+				break;
+			default:
+				state = service->host_state_unknown;
+				break;
+		}
+
+		jobject o = E->NewObject(env, service->host_class, service->host_ctor,
+				state,
+				host->host_request_port,
+				jnistr_from_ascii(env, host->host_addr),
+				jnistr_from_ascii(env, host->system_version),
+				jnistr_from_ascii(env, host->device_discovery_protocol_version),
+				jnistr_from_ascii(env, host->host_name),
+				jnistr_from_ascii(env, host->host_type),
+				jnistr_from_ascii(env, host->host_id),
+				jnistr_from_ascii(env, host->running_app_titleid),
+				jnistr_from_ascii(env, host->running_app_name));
+
+		E->SetObjectArrayElement(env, r, i, o);
+	}
+
+	E->CallVoidMethod(env, service->java_service, service->java_service_hosts_updated_meth, r);
+
+	(*global_vm)->DetachCurrentThread(global_vm);
 }
 
 static ChiakiErrorCode sockaddr_from_java(JNIEnv *env, jobject /*InetSocketAddress*/ sockaddr_obj, struct sockaddr **addr, size_t *addr_size)
@@ -444,13 +507,39 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServic
 	}
 
 	service->java_service = E->NewGlobalRef(env, java_service);
-	// TODO: service->whatever = get id for callback method
+	service->java_service_class = E->GetObjectClass(env, service->java_service);
+	service->java_service_hosts_updated_meth = E->GetMethodID(env, service->java_service_class, "hostsUpdated", "([L"BASE_PACKAGE"/DiscoveryHost;)V");
+
+	service->host_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/DiscoveryHost"));
+	service->host_ctor = E->GetMethodID(env, service->host_class, "<init>", "("
+		"L"BASE_PACKAGE"/DiscoveryHost$State;"
+		"S" // hostRequestPort: UShort
+		"Ljava/lang/String;" // hostAddr: String?,
+		"Ljava/lang/String;" // systemVersion: String?,
+		"Ljava/lang/String;" // deviceDiscoveryProtocolVersion: String?,
+		"Ljava/lang/String;" // hostName: String?,
+		"Ljava/lang/String;" // hostType: String?,
+		"Ljava/lang/String;" // hostId: String?,
+		"Ljava/lang/String;" // runningAppTitleid: String?,
+		"Ljava/lang/String;" // runningAppName: String?
+		")V");
+
+	jclass host_state_class = E->FindClass(env, BASE_PACKAGE"/DiscoveryHost$State");
+	service->host_state_unknown = E->NewGlobalRef(env, E->GetStaticObjectField(env, host_state_class, E->GetStaticFieldID(env, host_state_class, "UNKNOWN", "L"BASE_PACKAGE"/DiscoveryHost$State;")));
+	service->host_state_standby = E->NewGlobalRef(env, E->GetStaticObjectField(env, host_state_class, E->GetStaticFieldID(env, host_state_class, "STANDBY", "L"BASE_PACKAGE"/DiscoveryHost$State;")));
+	service->host_state_ready = E->NewGlobalRef(env, E->GetStaticObjectField(env, host_state_class, E->GetStaticFieldID(env, host_state_class, "READY", "L"BASE_PACKAGE"/DiscoveryHost$State;")));
+
 
 	err = chiaki_discovery_service_init(&service->service, &options, &global_log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(&global_log, "Failed to create discovery service (JNI)");
 		E->DeleteGlobalRef(env, service->java_service);
+		E->DeleteGlobalRef(env, service->host_state_unknown);
+		E->DeleteGlobalRef(env, service->host_state_standby);
+		E->DeleteGlobalRef(env, service->host_state_ready);
+		E->DeleteGlobalRef(env, service->host_class);
+		free(service);
 		goto beach;
 	}
 
@@ -467,5 +556,9 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServic
 		return;
 	chiaki_discovery_service_fini(&service->service);
 	E->DeleteGlobalRef(env, service->java_service);
+	E->DeleteGlobalRef(env, service->host_state_unknown);
+	E->DeleteGlobalRef(env, service->host_state_standby);
+	E->DeleteGlobalRef(env, service->host_state_ready);
+	E->DeleteGlobalRef(env, service->host_class);
 	free(service);
 }

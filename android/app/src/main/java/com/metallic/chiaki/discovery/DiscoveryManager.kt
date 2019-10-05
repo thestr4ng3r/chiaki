@@ -17,6 +17,8 @@
 
 package com.metallic.chiaki.discovery
 
+import android.util.Log
+import com.metallic.chiaki.lib.CreateError
 import com.metallic.chiaki.lib.DiscoveryService
 import com.metallic.chiaki.lib.DiscoveryServiceOptions
 import java.net.InetSocketAddress
@@ -37,10 +39,16 @@ class DiscoveryManager
 	{
 		if(discoveryService != null)
 			return
-		// TODO: catch CreateError
-		discoveryService = DiscoveryService(DiscoveryServiceOptions(
-			HOSTS_MAX, DROP_PINGS, PING_MS, InetSocketAddress("255.255.255.255", PORT)
-		))
+		try
+		{
+			discoveryService = DiscoveryService(DiscoveryServiceOptions(
+				HOSTS_MAX, DROP_PINGS, PING_MS, InetSocketAddress("255.255.255.255", PORT)
+			))
+		}
+		catch(e: CreateError)
+		{
+			Log.e("DiscoveryManager", "Failed to start Discovery Service: $e")
+		}
 	}
 
 	fun stop()

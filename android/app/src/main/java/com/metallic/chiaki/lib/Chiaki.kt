@@ -1,6 +1,7 @@
 package com.metallic.chiaki.lib
 
 import android.os.Parcelable
+import android.util.Log
 import android.view.Surface
 import kotlinx.android.parcel.Parcelize
 import java.lang.Exception
@@ -209,7 +210,9 @@ data class DiscoveryServiceOptions(
 	val sendAddr: InetSocketAddress
 )
 
-class DiscoveryService(options: DiscoveryServiceOptions)
+class DiscoveryService(
+	options: DiscoveryServiceOptions,
+	val callback: ((hosts: List<DiscoveryHost>) -> Unit)? = null)
 {
 	private var nativePtr: Long
 
@@ -230,4 +233,12 @@ class DiscoveryService(options: DiscoveryServiceOptions)
 		ChiakiNative.discoveryServiceFree(nativePtr)
 		nativePtr = 0L
 	}
+
+	private fun hostsUpdated(hosts: Array<DiscoveryHost>)
+	{
+		val hostsList = hosts.toList()
+		Log.i("Chiaki", "got hosts from native: $hostsList")
+		callback?.let { it(hostsList) }
+	}
+
 }
