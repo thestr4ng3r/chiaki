@@ -12,6 +12,12 @@
         <item name="android:windowActivityTransitions">true</item>
     </style>
 
+    <style name="AppTheme.FloatingActionButtonSpeedDial">
+        <item name="tint">@color/floating_action_button_speed_dial_tint</item>
+        <item name="android:backgroundTint">@color/floating_action_button_speed_dial_background</item>
+        <item name="android:textColor">@color/floating_action_button_speed_dial_tint</item>
+    </style>
+
     <style name="MageTheme" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>

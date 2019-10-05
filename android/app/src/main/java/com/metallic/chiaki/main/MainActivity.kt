@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,6 +35,7 @@ import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.settings.SettingsActivity
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_test_start.*
 
 class MainActivity : AppCompatActivity()
 {
@@ -51,13 +53,15 @@ class MainActivity : AppCompatActivity()
 		title = ""
 		setSupportActionBar(toolbar)
 
-		addButton.setOnClickListener {
-			Intent(this, TestStartActivity::class.java).also {
-				it.putExtra(TestStartActivity.EXTRA_REVEAL_X, addButton.x + addButton.width * 0.5f)
-				it.putExtra(TestStartActivity.EXTRA_REVEAL_Y, addButton.y + addButton.height * 0.5f)
-				startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
-			}
+		floatingActionButton.setOnClickListener {
+			expandFloatingActionButton(!floatingActionButton.isExpanded)
 		}
+		floatingActionButtonDialBackground.setOnClickListener {
+			expandFloatingActionButton(false)
+		}
+
+		addManualButton.setOnClickListener { addManualConsole() }
+		addManualLabelButton.setOnClickListener { addManualConsole() }
 
 		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { MainViewModel(getDatabase(this)) })
@@ -73,22 +77,38 @@ class MainActivity : AppCompatActivity()
 		})
 	}
 
+	private fun expandFloatingActionButton(expand: Boolean)
+	{
+		floatingActionButton.isExpanded = expand
+		floatingActionButton.isActivated = floatingActionButton.isExpanded
+	}
+
 	override fun onDestroy()
 	{
 		super.onDestroy()
 		disposable.dispose()
 	}
 
-	override fun onResume()
+	override fun onStart()
 	{
-		super.onResume()
+		super.onStart()
 		viewModel.discoveryManager.resume()
 	}
 
-	override fun onPause()
+	override fun onStop()
 	{
-		super.onPause()
+		super.onStop()
 		viewModel.discoveryManager.pause()
+	}
+
+	override fun onBackPressed()
+	{
+		if(floatingActionButton.isExpanded)
+		{
+			expandFloatingActionButton(false)
+			return
+		}
+		super.onBackPressed()
 	}
 
 	override fun onCreateOptionsMenu(menu: Menu): Boolean
@@ -124,5 +144,18 @@ class MainActivity : AppCompatActivity()
 		}
 
 		else -> super.onOptionsItemSelected(item)
+	}
+
+	private fun addManualConsole()
+	{
+		val parent = addManualButton.parent as View
+		val parentParent = parent.parent as View
+		val x = addManualButton.x + parent.x + parentParent.x + addManualButton.width * 0.5f
+		val y = addManualButton.y + parent.y + parentParent.y + addManualButton.height * 0.5f
+		Intent(this, TestStartActivity::class.java).also {
+			it.putExtra(TestStartActivity.EXTRA_REVEAL_X, x)
+			it.putExtra(TestStartActivity.EXTRA_REVEAL_Y, y)
+			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
+		}
 	}
 }
