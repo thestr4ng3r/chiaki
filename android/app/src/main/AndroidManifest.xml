@@ -30,8 +30,15 @@
         <activity
             android:name=".settings.SettingsActivity" />
 
-        <activity android:name=".TestStartActivity"
-            android:theme="@style/MageTheme"/>
+        <activity
+            android:name=".TestStartActivity"
+            android:theme="@style/MageTheme"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
+
+        <activity
+            android:name=".regist.RegistActivity"
+            android:theme="@style/MageTheme"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
     </application>
 
 </manifest>

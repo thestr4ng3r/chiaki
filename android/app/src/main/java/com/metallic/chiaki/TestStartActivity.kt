@@ -19,63 +19,30 @@ package com.metallic.chiaki
 
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Base64
 import android.view.View
-import android.view.ViewAnimationUtils
-import android.view.ViewTreeObserver
-import android.view.animation.AccelerateInterpolator
+import android.view.Window
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.widget.addTextChangedListener
-import com.metallic.chiaki.lib.*
+import com.metallic.chiaki.common.ext.RevealActivity
+import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.stream.StreamActivity
 import kotlinx.android.synthetic.main.activity_test_start.*
-import kotlin.math.max
 
-class TestStartActivity : AppCompatActivity()
+class TestStartActivity : AppCompatActivity(), RevealActivity
 {
-	companion object
-	{
-		const val EXTRA_REVEAL_X = "reveal_x"
-		const val EXTRA_REVEAL_Y = "reveal_y"
-	}
-
-	private fun revealActivity(x: Float, y: Float)
-	{
-		val finalRadius = max(rootLayout.width, rootLayout.height).toFloat()
-		val reveal = ViewAnimationUtils.createCircularReveal(rootLayout, x.toInt(), y.toInt(), 0f, finalRadius)
-		reveal.interpolator = AccelerateInterpolator()
-		rootLayout.visibility = View.VISIBLE
-		reveal.start()
-	}
+	override val revealIntent: Intent get() = intent
+	override val revealRootLayout: View get() = rootLayout
+	override val revealWindow: Window get() = window
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_test_start)
-
-		window.setBackgroundDrawableResource(android.R.color.transparent)
-
-		if(intent.hasExtra(EXTRA_REVEAL_X) && intent.hasExtra(EXTRA_REVEAL_Y))
-		{
-			val revealX = intent.getFloatExtra(EXTRA_REVEAL_X, 0.0f)
-			val revealY = intent.getFloatExtra(EXTRA_REVEAL_Y, 0.0f)
-			rootLayout.visibility = View.INVISIBLE
-
-			rootLayout.viewTreeObserver.also {
-				if(it.isAlive)
-				{
-					it.addOnGlobalLayoutListener(object: ViewTreeObserver.OnGlobalLayoutListener {
-						override fun onGlobalLayout()
-						{
-							revealActivity(revealX, revealY)
-							rootLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
-						}
-					})
-				}
-			}
-		}
+		handleReveal()
 
 		val prefs = getPreferences(Context.MODE_PRIVATE)
 

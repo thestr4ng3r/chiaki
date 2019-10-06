@@ -37,6 +37,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.transformation.ExpandableTransformationBehavior
 import com.metallic.chiaki.R
 
+// see https://github.com/lcdsmao/ExpandableFABExample
+
 class FloatingActionButtonSpeedDialBehavior @JvmOverloads constructor(context: Context? = null, attrs: AttributeSet? = null) : ExpandableTransformationBehavior(context, attrs)
 {
 	companion object

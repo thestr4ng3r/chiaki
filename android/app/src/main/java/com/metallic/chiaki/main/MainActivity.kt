@@ -21,7 +21,6 @@ import android.app.ActivityOptions
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -30,12 +29,14 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
+import com.metallic.chiaki.common.ext.RevealActivity
+import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_test_start.*
 
 class MainActivity : AppCompatActivity()
 {
@@ -62,6 +63,9 @@ class MainActivity : AppCompatActivity()
 
 		addManualButton.setOnClickListener { addManualConsole() }
 		addManualLabelButton.setOnClickListener { addManualConsole() }
+
+		registerButton.setOnClickListener { showRegistration() }
+		registerLabelButton.setOnClickListener { showRegistration() }
 
 		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { MainViewModel(getDatabase(this)) })
@@ -148,13 +152,16 @@ class MainActivity : AppCompatActivity()
 
 	private fun addManualConsole()
 	{
-		val parent = addManualButton.parent as View
-		val parentParent = parent.parent as View
-		val x = addManualButton.x + parent.x + parentParent.x + addManualButton.width * 0.5f
-		val y = addManualButton.y + parent.y + parentParent.y + addManualButton.height * 0.5f
 		Intent(this, TestStartActivity::class.java).also {
-			it.putExtra(TestStartActivity.EXTRA_REVEAL_X, x)
-			it.putExtra(TestStartActivity.EXTRA_REVEAL_Y, y)
+			it.putRevealExtra(addManualButton, rootLayout)
+			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
+		}
+	}
+
+	private fun showRegistration()
+	{
+		Intent(this, RegistActivity::class.java).also {
+			it.putRevealExtra(registerButton, rootLayout)
 			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
 		}
 	}
