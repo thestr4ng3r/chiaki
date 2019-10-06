@@ -36,7 +36,8 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         app:layout_behavior=".main.FloatingActionButtonSpeedDialBehavior"
-        android:gravity="right">
+        android:gravity="right"
+        android:clipChildren="false">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -113,7 +114,8 @@
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
             android:background="?attr/colorPrimarySurface"
-            app:layout_scrollFlags="scroll|enterAlways">
+            app:layout_scrollFlags="scroll|enterAlways"
+            android:theme="@style/AppTheme.Toolbar">
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="wrap_content"

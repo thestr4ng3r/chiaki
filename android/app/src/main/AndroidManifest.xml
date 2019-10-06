@@ -38,7 +38,8 @@
         <activity
             android:name=".regist.RegistActivity"
             android:theme="@style/MageTheme"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:windowSoftInputMode="adjustResize"/>
     </application>
 
 </manifest>

@@ -12,6 +12,10 @@
         <item name="android:windowActivityTransitions">true</item>
     </style>
 
+    <style name="AppTheme.Toolbar" parent="AppTheme">
+        <item name="android:textColorSecondary">#fff</item>
+    </style>
+
     <style name="AppTheme.FloatingActionButtonSpeedDial">
         <item name="tint">@color/floating_action_button_speed_dial_tint</item>
         <item name="android:backgroundTint">@color/floating_action_button_speed_dial_background</item>
@@ -32,10 +36,35 @@
         <item name="colorControlNormal">@color/accent</item>
         <item name="colorButtonNormal">@color/accent</item>
         <item name="android:textAppearanceButton">@style/TextAppearanceButton</item>
+        <item name="android:textColor">?attr/colorOnPrimary</item>
+
+        <item name="textAppearanceHeadline1">@style/MageTheme.TextAppearanceHeadline1</item>
+
+        <item name="android:colorControlActivated">?attr/colorAccent</item>
+        <item name="android:colorControlHighlight">?attr/colorAccent</item>
+
+        <item name="textInputStyle">@style/MageTheme.TextInputStyle</item>
 
         <item name="android:windowActivityTransitions">true</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <style name="MageTheme.TextAppearanceHeadline1" parent="TextAppearance.MaterialComponents.Headline1">
+        <item name="fontFamily">sans-serif-condensed-light</item>
+    </style>
+
+    <style name="MageTheme.TextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
+        <item name="hintTextColor">?attr/colorAccent</item>
+        <item name="boxCornerRadiusTopStart">16dp</item>
+        <item name="boxCornerRadiusTopEnd">16dp</item>
+        <item name="boxStrokeColor">@color/mage_text_input_box_stroke</item>
+    </style>
+
+    <style name="MageTheme.Button" parent="Widget.MaterialComponents.Button">
+        <item name="tint">?attr/colorOnSecondary</item>
+        <item name="android:backgroundTint">?attr/colorSecondary</item>
+        <item name="android:textColor">?attr/colorOnSecondary</item>
     </style>
 
     <style name="TextAppearanceButton" parent="TextAppearance.MaterialComponents.Button">
