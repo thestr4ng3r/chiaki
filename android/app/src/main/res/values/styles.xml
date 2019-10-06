@@ -46,8 +46,11 @@
         <item name="textInputStyle">@style/MageTheme.TextInputStyle</item>
 
         <item name="android:windowActivityTransitions">true</item>
-        <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <style name="MageTheme.Translucent" parent="MageTheme">
+        <item name="android:windowIsTranslucent">true</item>
     </style>
 
     <style name="MageTheme.TextAppearanceHeadline1" parent="TextAppearance.MaterialComponents.Headline1">

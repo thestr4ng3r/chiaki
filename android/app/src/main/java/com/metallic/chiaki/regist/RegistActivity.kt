@@ -62,13 +62,19 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		val pin = pinEditText.text.toString()
 		val pinValid = pin.length == PIN_LENGTH
 
-		hostEditText.error = if(!hostValid) "Please enter a valid host name" else null
-		psnIdEditText.error = if(!psnIdValid) "Please enter a valid PSN ID" else null
-		pinEditText.error = if(!pinValid) "Please enter a valid 8-digit PIN" else null
+		hostEditText.error = if(!hostValid) getString(R.string.regist_host_invalid) else null
+		psnIdEditText.error = if(!psnIdValid) getString(R.string.regist_psn_id_invalid) else null
+		pinEditText.error = if(!pinValid) getString(R.string.regist_pin_invalid, PIN_LENGTH) else null
 
-		if(!hostValid || !psnIdValid || ! pinValid)
+		if(!hostValid || !psnIdValid || !pinValid)
 			return
 
-		// TODO
+		Intent(this, RegistExecuteActivity::class.java).also {
+			it.putExtra(RegistExecuteActivity.EXTRA_HOST, host)
+			it.putExtra(RegistExecuteActivity.EXTRA_BROADCAST, broadcast)
+			it.putExtra(RegistExecuteActivity.EXTRA_PSN_ID, psnId)
+			it.putExtra(RegistExecuteActivity.EXTRA_PIN, pin)
+			startActivity(it)
+		}
 	}
 }
