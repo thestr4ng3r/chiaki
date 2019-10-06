@@ -28,6 +28,14 @@ import kotlinx.android.synthetic.main.activity_regist.*
 
 class RegistActivity: AppCompatActivity(), RevealActivity
 {
+	companion object
+	{
+		const val EXTRA_HOST = "regist_host"
+		const val EXTRA_BROADCAST = "regist_broadcast"
+
+		private const val PIN_LENGTH = 8
+	}
+
 	override val revealWindow: Window get() = window
 	override val revealIntent: Intent get() = intent
 	override val revealRootLayout: View get() = rootLayout
@@ -37,5 +45,30 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist)
 		handleReveal()
+
+		hostEditText.setText(intent.getStringExtra(EXTRA_HOST) ?: "255.255.255.255")
+		broadcastCheckBox.isChecked = intent.getBooleanExtra(EXTRA_BROADCAST, true)
+
+		registButton.setOnClickListener { doRegist() }
+	}
+
+	private fun doRegist()
+	{
+		val host = hostEditText.text.toString().trim()
+		val hostValid = host.isNotEmpty()
+		val broadcast = broadcastCheckBox.isChecked
+		val psnId = psnIdEditText.text.toString().trim()
+		val psnIdValid = psnId.isNotEmpty()
+		val pin = pinEditText.text.toString()
+		val pinValid = pin.length == PIN_LENGTH
+
+		hostEditText.error = if(!hostValid) "Please enter a valid host name" else null
+		psnIdEditText.error = if(!psnIdValid) "Please enter a valid PSN ID" else null
+		pinEditText.error = if(!pinValid) "Please enter a valid 8-digit PIN" else null
+
+		if(!hostValid || !psnIdValid || ! pinValid)
+			return
+
+		// TODO
 	}
 }

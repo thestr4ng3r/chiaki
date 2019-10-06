@@ -14,4 +14,13 @@
     <string name="display_host_id">ID: %s</string>
     <string name="action_register">Register Console</string>
     <string name="action_add_manual">Add Console Manually</string>
+    <string name="regist_pin_instructions_before">On the PS4, navigate to</string>
+    <string name="regist_pin_instructions_navigation">Settings →\nRemote Play Connection Settings →\nAdd Device</string>
+    <string name="regist_pin_instructions_after">to obtain the PIN</string>
+    <string name="title_regist">Register Console</string>
+    <string name="hint_regist_host">Host</string>
+    <string name="regist_broadcast">Broadcast</string>
+    <string name="hint_regist_psn_id">PSN ID (username, case-sensitive)</string>
+    <string name="hint_regist_pin">PIN</string>
+    <string name="action_regist">Register</string>
 </resources>

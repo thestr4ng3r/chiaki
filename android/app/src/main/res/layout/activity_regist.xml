@@ -30,8 +30,8 @@
                 android:id="@+id/titleTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Register Console"
-                android:textSize="32dp"
+                android:text="@string/title_regist"
+                android:textSize="32sp"
                 android:gravity="center"
                 android:layout_marginTop="16dp"
                 app:layout_constraintTop_toBottomOf="@id/iconImageView"
@@ -41,13 +41,16 @@
                 android:id="@+id/hostTextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Host"
-                app:startIconDrawable="@drawable/ic_register"
+                android:hint="@string/hint_regist_host"
+                app:startIconDrawable="@drawable/ic_host"
                 app:layout_constraintTop_toBottomOf="@id/titleTextView"
                 android:layout_marginTop="32dp">
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/hostEditText"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:inputType="textNoSuggestions|textVisiblePassword"
+                    android:maxLines="1"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.checkbox.MaterialCheckBox
@@ -56,52 +59,79 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintTop_toBottomOf="@id/hostTextInputLayout"
                 app:layout_constraintEnd_toEndOf="parent"
-                android:text="Broadcast"/>
+                android:text="@string/regist_broadcast"/>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/psnIdTextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="PSN ID (username, case-sensitive)"
-                app:startIconDrawable="@drawable/ic_register"
+                android:hint="@string/hint_regist_psn_id"
+                app:startIconDrawable="@drawable/ic_psn_id"
                 app:layout_constraintTop_toBottomOf="@id/broadcastCheckBox"
                 android:layout_marginTop="16dp">
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/psnIdEditText"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:inputType="textNoSuggestions|textVisiblePassword"
+                    android:maxLines="1"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/pinHelpTextView"
+                android:id="@+id/pinHelpBeforeTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Navigate to Settings -> Whatever to obtain the PIN"
+                android:gravity="center"
+                android:text="@string/regist_pin_instructions_before"
                 app:layout_constraintTop_toBottomOf="@id/psnIdTextInputLayout"
                 android:textAppearance="?attr/textAppearanceBody1"
-                android:layout_marginTop="32dp"/>
+                android:layout_marginTop="32dp"
+                android:alpha="0.6"/>
 
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/pinHelpNavigationTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/regist_pin_instructions_navigation"
+                app:layout_constraintTop_toBottomOf="@id/pinHelpBeforeTextView"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textStyle="bold"/>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/pinHelpAfterTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/regist_pin_instructions_after"
+                app:layout_constraintTop_toBottomOf="@id/pinHelpNavigationTextView"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:alpha="0.6"/>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/pinTextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="PIN"
-                app:startIconDrawable="@drawable/ic_register"
-                app:layout_constraintTop_toBottomOf="@id/pinHelpTextView"
+                android:hint="@string/hint_regist_pin"
+                app:startIconDrawable="@drawable/ic_pin"
+                app:layout_constraintTop_toBottomOf="@id/pinHelpAfterTextView"
                 android:layout_marginTop="16dp">
 
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/pinEditText"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="8" />
             </com.google.android.material.textfield.TextInputLayout>
 
-
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/registButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:layout_constraintTop_toBottomOf="@id/pinTextInputLayout"
                 style="@style/MageTheme.Button"
-                android:text="Register"
+                android:text="@string/action_regist"
                 android:layout_marginTop="32dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
