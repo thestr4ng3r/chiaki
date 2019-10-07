@@ -75,9 +75,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLo
 error_stop_pipe:
 	chiaki_stop_pipe_fini(&regist->stop_pipe);
 error_psn_id:
-	free(regist->info.psn_id);
+	free((char *)regist->info.psn_id);
 error_host:
-	free(regist->info.host);
+	free((char *)regist->info.host);
 	return err;
 }
 
@@ -85,8 +85,8 @@ CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist)
 {
 	chiaki_thread_join(&regist->thread, NULL);
 	chiaki_stop_pipe_fini(&regist->stop_pipe);
-	free(regist->info.psn_id);
-	free(regist->info.host);
+	free((char *)regist->info.psn_id);
+	free((char *)regist->info.host);
 }
 
 CHIAKI_EXPORT void chiaki_regist_stop(ChiakiRegist *regist)

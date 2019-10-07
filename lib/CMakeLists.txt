@@ -41,7 +41,7 @@ set(SOURCE_FILES
 		src/thread.c
 		src/base64.c
 		src/http.c
-		src/sessionlog.c
+		src/log.c
 		src/ctrl.c
 		src/rpcrypt.c
 		src/takion.c

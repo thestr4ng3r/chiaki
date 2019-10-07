@@ -31,9 +31,9 @@ extern "C" {
 
 typedef struct chiaki_regist_info_t
 {
-	char *host;
+	const char *host;
 	bool broadcast;
-	char *psn_id;
+	const char *psn_id;
 	uint32_t pin;
 } ChiakiRegistInfo;
 

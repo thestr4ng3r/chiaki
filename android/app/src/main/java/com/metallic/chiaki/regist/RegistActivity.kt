@@ -73,7 +73,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 			it.putExtra(RegistExecuteActivity.EXTRA_HOST, host)
 			it.putExtra(RegistExecuteActivity.EXTRA_BROADCAST, broadcast)
 			it.putExtra(RegistExecuteActivity.EXTRA_PSN_ID, psnId)
-			it.putExtra(RegistExecuteActivity.EXTRA_PIN, pin)
+			it.putExtra(RegistExecuteActivity.EXTRA_PIN, pin.toUInt().toInt())
 			startActivity(it)
 		}
 	}

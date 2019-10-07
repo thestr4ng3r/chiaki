@@ -19,7 +19,9 @@ package com.metallic.chiaki.regist
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
+import com.metallic.chiaki.lib.RegistInfo
 
 class RegistExecuteActivity: AppCompatActivity()
 {
@@ -31,9 +33,28 @@ class RegistExecuteActivity: AppCompatActivity()
 		const val EXTRA_PIN = "regist_pin"
 	}
 
+	private lateinit var viewModel: RegistExecuteViewModel
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist_execute)
+
+		viewModel = ViewModelProviders.of(this).get(RegistExecuteViewModel::class.java)
+
+		val registInfo = RegistInfo(
+			intent.getStringExtra(EXTRA_HOST) ?: return,
+			intent.getBooleanExtra(EXTRA_BROADCAST, false) ?: return,
+			intent.getStringExtra(EXTRA_PSN_ID) ?: return,
+			intent.getIntExtra(EXTRA_PIN, 0).toUInt()
+		)
+
+		viewModel.start(registInfo)
+	}
+
+	override fun onStop()
+	{
+		super.onStop()
+		viewModel.stop()
 	}
 }

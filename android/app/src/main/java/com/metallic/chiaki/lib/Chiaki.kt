@@ -46,7 +46,7 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
 		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
 		@JvmStatic external fun discoveryServiceFree(ptr: Long)
-		@JvmStatic external fun registStart(result: CreateResult, registInfo: RegistInfo, javaLog: Log, javaRegist: Regist)
+		@JvmStatic external fun registStart(result: CreateResult, registInfo: RegistInfo, javaLog: ChiakiLog, javaRegist: Regist)
 		@JvmStatic external fun registStop(ptr: Long)
 		@JvmStatic external fun registFree(ptr: Long)
 	}
@@ -58,7 +58,7 @@ class ErrorCode(val value: Int)
 	var isSuccess = value == 0
 }
 
-class Log(val levelMask: Int)
+class ChiakiLog(val levelMask: Int)
 {
 	enum class Level(val value: Int)
 	{
@@ -66,7 +66,8 @@ class Log(val levelMask: Int)
 		VERBOSE(1 shl 3),
 		INFO(1 shl 2),
 		WARNING(1 shl 1),
-		ERROR(1 shl 0)
+		ERROR(1 shl 0),
+		ALL(0.inv())
 	}
 
 	private fun log(level: Int, text: String)
@@ -286,11 +287,11 @@ data class RegistHost(
 sealed class RegistEvent
 object RegistEventCanceled: RegistEvent()
 object RegistEventFailed: RegistEvent()
-class RegistEventSuccess(val host: RegistHost)
+class RegistEventSuccess(val host: RegistHost): RegistEvent()
 
 class Regist(
 	info: RegistInfo,
-	log: Log,
+	log: ChiakiLog,
 	val callback: (RegistEvent) -> Unit
 )
 {
@@ -317,5 +318,10 @@ class Regist(
 			return
 		ChiakiNative.registFree(nativePtr)
 		nativePtr = 0L
+	}
+
+	private fun event(event: RegistEvent)
+	{
+		callback(event)
 	}
 }
