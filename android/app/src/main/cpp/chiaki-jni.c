@@ -37,6 +37,7 @@
 #define JNI_VERSION JNI_VERSION_1_6
 
 #define BASE_PACKAGE "com/metallic/chiaki/lib"
+#define JNI_FCN(name) Java_com_metallic_chiaki_lib_ChiakiNative_##name
 
 #define E (*env)
 
@@ -107,17 +108,17 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	return JNI_VERSION;
 }
 
-JNIEXPORT jstring JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_errorCodeToString(JNIEnv *env, jobject obj, jint value)
+JNIEXPORT jstring JNICALL JNI_FCN(errorCodeToString)(JNIEnv *env, jobject obj, jint value)
 {
 	return E->NewStringUTF(env, chiaki_error_string((ChiakiErrorCode)value));
 }
 
-JNIEXPORT jstring JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_quitReasonToString(JNIEnv *env, jobject obj, jint value)
+JNIEXPORT jstring JNICALL JNI_FCN(quitReasonToString)(JNIEnv *env, jobject obj, jint value)
 {
 	return E->NewStringUTF(env, chiaki_quit_reason_string((ChiakiQuitReason)value));
 }
 
-JNIEXPORT jboolean JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_quitReasonIsStopped(JNIEnv *env, jobject obj, jint value)
+JNIEXPORT jboolean JNICALL JNI_FCN(quitReasonIsStopped)(JNIEnv *env, jobject obj, jint value)
 {
 	return value == CHIAKI_QUIT_REASON_STOPPED;
 }
@@ -194,7 +195,7 @@ static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
 	(*global_vm)->DetachCurrentThread(global_vm);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionCreate(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj, jobject java_session)
+JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj, jobject java_session)
 {
 	AndroidChiakiSession *session = NULL;
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -312,7 +313,7 @@ beach:
 	E->SetLongField(env, result, E->GetFieldID(env, result_class, "ptr", "J"), (jlong)session);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNIEnv *env, jobject obj, jlong ptr)
+JNIEXPORT void JNICALL JNI_FCN(sessionFree)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	CHIAKI_LOGI(&global_log, "Shutting down JNI Session");
@@ -328,34 +329,34 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionFree(JNI
 	CHIAKI_LOGI(&global_log, "JNI Session has quit");
 }
 
-JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStart(JNIEnv *env, jobject obj, jlong ptr)
+JNIEXPORT jint JNICALL JNI_FCN(sessionStart)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	CHIAKI_LOGI(&global_log, "Start JNI Session");
 	return chiaki_session_start(&session->session);
 }
 
-JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionStop(JNIEnv *env, jobject obj, jlong ptr)
+JNIEXPORT jint JNICALL JNI_FCN(sessionStop)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	CHIAKI_LOGI(&global_log, "Stop JNI Session");
 	return chiaki_session_stop(&session->session);
 }
 
-JNIEXPORT jint JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionJoin(JNIEnv *env, jobject obj, jlong ptr)
+JNIEXPORT jint JNICALL JNI_FCN(sessionJoin)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	CHIAKI_LOGI(&global_log, "Join JNI Session");
 	return chiaki_session_join(&session->session);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetSurface(JNIEnv *env, jobject obj, jlong ptr, jobject surface)
+JNIEXPORT void JNICALL JNI_FCN(sessionSetSurface)(JNIEnv *env, jobject obj, jlong ptr, jobject surface)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	android_chiaki_video_decoder_set_surface(&session->video_decoder, env, surface);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetControllerState(JNIEnv *env, jobject obj, jlong ptr, jobject controller_state_java)
+JNIEXPORT void JNICALL JNI_FCN(sessionSetControllerState)(JNIEnv *env, jobject obj, jlong ptr, jobject controller_state_java)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	ChiakiControllerState controller_state = { 0 };
@@ -369,7 +370,7 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetContr
 	chiaki_session_set_controller_state(&session->session, &controller_state);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_sessionSetLoginPin(JNIEnv *env, jobject obj, jlong ptr, jstring pin_java)
+JNIEXPORT void JNICALL JNI_FCN(sessionSetLoginPin)(JNIEnv *env, jobject obj, jlong ptr, jstring pin_java)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
 	const char *pin = E->GetStringUTFChars(env, pin_java, NULL);
@@ -485,7 +486,7 @@ static ChiakiErrorCode sockaddr_from_java(JNIEnv *env, jobject /*InetSocketAddre
 	return CHIAKI_ERR_SUCCESS;
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServiceCreate(JNIEnv *env, jobject obj, jobject result, jobject options_obj, jobject java_service)
+JNIEXPORT void JNICALL JNI_FCN(discoveryServiceCreate)(JNIEnv *env, jobject obj, jobject result, jobject options_obj, jobject java_service)
 {
 	jclass result_class = E->GetObjectClass(env, result);
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -556,7 +557,7 @@ beach:
 	E->SetLongField(env, result, E->GetFieldID(env, result_class, "ptr", "J"), (jlong)service);
 }
 
-JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServiceFree(JNIEnv *env, jobject obj, jlong ptr)
+JNIEXPORT void JNICALL JNI_FCN(discoveryServiceFree)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidDiscoveryService *service = (AndroidDiscoveryService *)ptr;
 	if(!service)
@@ -568,4 +569,19 @@ JNIEXPORT void JNICALL Java_com_metallic_chiaki_lib_ChiakiNative_discoveryServic
 	E->DeleteGlobalRef(env, service->host_state_ready);
 	E->DeleteGlobalRef(env, service->host_class);
 	free(service);
+}
+
+JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject result, jobject regist_info_obj, jobject log_obj, jobject java_regist)
+{
+
+}
+
+JNIEXPORT void JNICALL JNI_FCN(registStop)(JNIEnv *env, jobject obj, jlong ptr)
+{
+
+}
+
+JNIEXPORT void JNICALL JNI_FCN(registFree)(JNIEnv *env, jobject obj, jlong ptr)
+{
+
 }

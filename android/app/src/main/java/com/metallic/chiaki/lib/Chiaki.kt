@@ -46,6 +46,9 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
 		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
 		@JvmStatic external fun discoveryServiceFree(ptr: Long)
+		@JvmStatic external fun registStart(result: CreateResult, registInfo: RegistInfo, javaLog: Log, javaRegist: Regist)
+		@JvmStatic external fun registStop(ptr: Long)
+		@JvmStatic external fun registFree(ptr: Long)
 	}
 }
 
@@ -53,6 +56,23 @@ class ErrorCode(val value: Int)
 {
 	override fun toString() = ChiakiNative.errorCodeToString(value)
 	var isSuccess = value == 0
+}
+
+class Log(val levelMask: Int)
+{
+	enum class Level(val value: Int)
+	{
+		DEBUG(1 shl 4),
+		VERBOSE(1 shl 3),
+		INFO(1 shl 2),
+		WARNING(1 shl 1),
+		ERROR(1 shl 0)
+	}
+
+	private fun log(level: Int, text: String)
+	{
+		Log.i("ChiakiJavaLog", "level $level, text $text")
+	}
 }
 
 private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a else b
@@ -241,4 +261,61 @@ class DiscoveryService(
 		callback?.let { it(hostsList) }
 	}
 
+}
+
+
+data class RegistInfo(
+	val host: String,
+	val broadcast: Boolean,
+	val psnId: String,
+	val pin: UInt
+)
+
+data class RegistHost(
+	val apSsid: String,
+	val apBssid: String,
+	val apKey: String,
+	val apName: String,
+	val ps4Mac: ByteArray,
+	val ps4Nickname: String,
+	val rpRegistKey: ByteArray,
+	val rpKeyType: UInt,
+	val rpKey: ByteArray
+)
+
+sealed class RegistEvent
+object RegistEventCanceled: RegistEvent()
+object RegistEventFailed: RegistEvent()
+class RegistEventSuccess(val host: RegistHost)
+
+class Regist(
+	info: RegistInfo,
+	log: Log,
+	val callback: (RegistEvent) -> Unit
+)
+{
+	private var nativePtr: Long
+
+	init
+	{
+		val result = ChiakiNative.CreateResult(0, 0)
+		ChiakiNative.registStart(result, info, log, this)
+		val errorCode = ErrorCode(result.errorCode)
+		if(!errorCode.isSuccess)
+			throw CreateError(errorCode)
+		nativePtr = result.ptr
+	}
+
+	fun stop()
+	{
+		ChiakiNative.registStop(nativePtr)
+	}
+
+	fun dispose()
+	{
+		if(nativePtr == 0L)
+			return
+		ChiakiNative.registFree(nativePtr)
+		nativePtr = 0L
+	}
 }
