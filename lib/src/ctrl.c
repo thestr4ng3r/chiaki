@@ -570,7 +570,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			"Connection: keep-alive\r\n"
 			"Content-Length: 0\r\n"
 			"RP-Auth: %s\r\n"
-			"RP-Version: 8.0\r\n"
+			"RP-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n"
 			"RP-Did: %s\r\n"
 			"RP-ControllerType: 3\r\n"
 			"RP-ClientType: 11\r\n"

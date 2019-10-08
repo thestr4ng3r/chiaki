@@ -57,6 +57,8 @@ const char *chiaki_rp_application_reason_string(uint32_t reason)
 			return "Remote is already in use";
 		case CHIAKI_RP_APPLICATION_REASON_CRASH:
 			return "Remote Play on Console crashed";
+		case CHIAKI_RP_APPLICATION_REASON_CLIENT_OUTDATED:
+			return "Client outdated";
 		default:
 			return "unknown";
 	}
@@ -648,7 +650,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 			"Connection: close\r\n"
 			"Content-Length: 0\r\n"
 			"RP-Registkey: %s\r\n"
-			"Rp-Version: 8.0\r\n"
+			"Rp-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n"
 			"\r\n";
 
 	size_t regist_key_len = sizeof(session->connect_info.regist_key);
