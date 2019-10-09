@@ -268,7 +268,7 @@ class DiscoveryService(
 data class RegistInfo(
 	val host: String,
 	val broadcast: Boolean,
-	val psnId: String,
+	val psnId: String, // TODO: this is outdated now
 	val pin: UInt
 )
 

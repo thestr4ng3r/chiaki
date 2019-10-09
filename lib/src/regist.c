@@ -22,6 +22,7 @@
 #include <chiaki/http.h>
 #include <chiaki/random.h>
 #include <chiaki/time.h>
+#include <chiaki/base64.h>
 
 #include <string.h>
 #include <errno.h>
@@ -55,9 +56,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLo
 	regist->info.host = strdup(regist->info.host);
 	if(!regist->info.host)
 		return CHIAKI_ERR_MEMORY;
-	regist->info.psn_id = strdup(regist->info.psn_id);
-	if(!regist->info.psn_id)
-		goto error_host;
+
+	if(regist->info.psn_online_id)
+	{
+		regist->info.psn_online_id = strdup(regist->info.psn_online_id);
+		if(!regist->info.psn_online_id)
+			goto error_host;
+	}
 
 	regist->cb = cb;
 	regist->cb_user = cb_user;
@@ -75,7 +80,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLo
 error_stop_pipe:
 	chiaki_stop_pipe_fini(&regist->stop_pipe);
 error_psn_id:
-	free((char *)regist->info.psn_id);
+	free((char *)regist->info.psn_online_id);
 error_host:
 	free((char *)regist->info.host);
 	return err;
@@ -85,7 +90,7 @@ CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist)
 {
 	chiaki_thread_join(&regist->thread, NULL);
 	chiaki_stop_pipe_fini(&regist->stop_pipe);
-	free((char *)regist->info.psn_id);
+	free((char *)regist->info.psn_online_id);
 	free((char *)regist->info.host);
 }
 
@@ -106,13 +111,20 @@ static const char * const request_fmt =
 	"HOST: 10.0.2.15\r\n" // random lol
 	"User-Agent: remoteplay Windows\r\n"
 	"Connection: close\r\n"
-	"Content-Length: %llu\r\n\r\n";
+	"Content-Length: %llu\r\n"
+	"RP-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n\r\n";
 
-static const char * const request_inner_fmt =
+static const char * const request_inner_account_id_fmt =
+	"Client-Type: Windows\r\n"
+	"Np-AccountId: %s\r\n";
+
+static const char * const request_inner_online_id_fmt =
 	"Client-Type: Windows\r\n"
 	"Np-Online-Id: %s\r\n";
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_id)
+
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id)
 {
 	size_t buf_size_val = *buf_size;
 	static const size_t inner_header_off = 0x1e0;
@@ -120,7 +132,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf,
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 	memset(buf, 'A', inner_header_off);
 	chiaki_rpcrypt_aeropause(buf + 0x11c, crypt->ambassador);
-	int inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_fmt, psn_id);
+	int inner_header_size;
+	if(psn_online_id)
+		inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_online_id_fmt, psn_online_id);
+	else if(psn_account_id)
+	{
+		char account_id_b64[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2];
+		ChiakiErrorCode err = chiaki_base64_encode(psn_account_id, CHIAKI_PSN_ACCOUNT_ID_SIZE, account_id_b64, sizeof(account_id_b64));
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+		inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_account_id_fmt, account_id_b64);
+	}
+	else
+		return CHIAKI_ERR_INVALID_DATA;
 	if(inner_header_size < 0 || inner_header_size >= buf_size_val - inner_header_off)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(crypt, 0, buf + inner_header_off, buf + inner_header_off, inner_header_size);
@@ -148,7 +172,7 @@ static void *regist_thread_func(void *user)
 
 	uint8_t payload[0x400];
 	size_t payload_size = sizeof(payload);
-	err = chiaki_regist_request_payload_format(payload, &payload_size, &crypt, regist->info.psn_id);
+	err = chiaki_regist_request_payload_format(payload, &payload_size, &crypt, regist->info.psn_online_id, regist->info.psn_account_id);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to format payload");

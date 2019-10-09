@@ -642,13 +642,13 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	ChiakiRegistInfo regist_info;
 	regist_info.host = E->GetStringUTFChars(env, host_string, NULL);
 	regist_info.broadcast = broadcast;
-	regist_info.psn_id = E->GetStringUTFChars(env, psn_id_string, NULL);
+	// TODO regist_info.psn_id = E->GetStringUTFChars(env, psn_id_string, NULL);
 	regist_info.pin = (uint32_t)pin;
 
 	err = chiaki_regist_start(&regist->regist, &regist->log.log, &regist_info, android_chiaki_regist_cb, regist);
 
 	E->ReleaseStringUTFChars(env, host_string, regist_info.host);
-	E->ReleaseStringUTFChars(env, psn_id_string, regist_info.psn_id);
+	// TODO E->ReleaseStringUTFChars(env, psn_id_string, regist_info.psn_id);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

@@ -27,6 +27,7 @@
 #include <QScrollBar>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <QRadioButton>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -57,8 +58,23 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	form_layout->addRow(tr("Broadcast:"), broadcast_check_box);
 	broadcast_check_box->setChecked(host.isEmpty());
 
-	psn_id_edit = new QLineEdit(this);
-	form_layout->addRow(tr("PSN ID (username, case-sensitive):"), psn_id_edit);
+	auto UpdatePSNIDEdits = [this]() {
+		psn_online_id_edit->setEnabled(psn_online_id_radio_button->isChecked());
+		psn_account_id_edit->setEnabled(psn_account_id_radio_button->isChecked());
+	};
+
+	psn_online_id_radio_button = new QRadioButton(tr("PSN Online-ID (username, case-sensitive) for PS4 < 7.0:"), this);
+	psn_online_id_edit = new QLineEdit(this);
+	form_layout->addRow(psn_online_id_radio_button, psn_online_id_edit);
+	connect(psn_online_id_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+
+	psn_account_id_radio_button = new QRadioButton(tr("PSN Account-ID (base64) for PS4 >= 7.0:"), this);
+	psn_account_id_edit = new QLineEdit(this);
+	form_layout->addRow(psn_account_id_radio_button, psn_account_id_edit);
+	psn_account_id_radio_button->setChecked(true);
+	connect(psn_account_id_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+
+	UpdatePSNIDEdits();
 
 	pin_edit = new QLineEdit(this);
 	pin_edit->setValidator(new QRegularExpressionValidator(pin_re, pin_edit));
@@ -71,7 +87,7 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
 	connect(host_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
-	connect(psn_id_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
+	connect(psn_online_id_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	connect(pin_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	ValidateInput();
 }
@@ -83,7 +99,8 @@ RegistDialog::~RegistDialog()
 void RegistDialog::ValidateInput()
 {
 	bool valid = !host_edit->text().trimmed().isEmpty()
-				 && !psn_id_edit->text().trimmed().isEmpty()
+				 && (!psn_online_id_radio_button->isChecked() || !psn_online_id_edit->text().trimmed().isEmpty())
+				 && (!psn_account_id_radio_button->isChecked() || !psn_account_id_radio_button->text().trimmed().isEmpty())
 				 && pin_edit->text().length() == PIN_LENGTH;
 	register_button->setEnabled(valid);
 }
@@ -91,10 +108,28 @@ void RegistDialog::ValidateInput()
 void RegistDialog::accept()
 {
 	ChiakiRegistInfo info = {};
-	QByteArray psn_id = psn_id_edit->text().trimmed().toUtf8();
 	QByteArray host = host_edit->text().trimmed().toUtf8();
-	info.psn_id = psn_id.data();
-	info.host = host.data();
+	info.host = host.constData();
+
+	QByteArray psn_id; // keep this out of the if scope
+	if(psn_online_id_radio_button->isChecked())
+	{
+		psn_id = psn_online_id_edit->text().trimmed().toUtf8();
+		info.psn_online_id = psn_id.constData();
+	}
+	else
+	{
+		QString account_id_b64 = psn_account_id_edit->text().trimmed();
+		QByteArray account_id = QByteArray::fromBase64(account_id_b64.toUtf8());
+		if(account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE)
+		{
+			QMessageBox::critical(this, tr("Invalid Account-ID"), tr("The PSN Account-ID must be exactly %1 bytes encoded as base64.").arg(CHIAKI_PSN_ACCOUNT_ID_SIZE));
+			return;
+		}
+		info.psn_online_id = nullptr;
+		memcpy(info.psn_account_id, account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
+	}
+
 	info.broadcast = broadcast_check_box->isChecked();
 	info.pin = (uint32_t)pin_edit->text().toULong();
 

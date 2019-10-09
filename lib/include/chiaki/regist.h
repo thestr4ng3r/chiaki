@@ -29,11 +29,23 @@
 extern "C" {
 #endif
 
+#define CHIAKI_PSN_ACCOUNT_ID_SIZE 8
+
 typedef struct chiaki_regist_info_t
 {
 	const char *host;
 	bool broadcast;
-	const char *psn_id;
+
+	/**
+	 * may be null, in which case psn_account_id will be used
+	 */
+	const char *psn_online_id;
+
+	/**
+	 * will be used if psn_online_id is null, for PS4 >= 7.0
+	 */
+	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
+
 	uint32_t pin;
 } ChiakiRegistInfo;
 
@@ -79,7 +91,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLo
 CHIAKI_EXPORT void chiaki_regist_fini(ChiakiRegist *regist);
 CHIAKI_EXPORT void chiaki_regist_stop(ChiakiRegist *regist);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_id);
+/**
+ * @param psn_account_id must be exactly of size CHIAKI_PSN_ACCOUNT_ID_SIZE
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id);
 
 #ifdef __cplusplus
 }
