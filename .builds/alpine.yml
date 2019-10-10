@@ -1,0 +1,25 @@
+
+image: alpine/edge
+
+sources:
+  - https://github.com/thestr4ng3r/chiaki.git
+
+packages:
+  - cmake
+  - protoc
+  - py3-protobuf
+  - opus-dev
+  - qt5-qtbase-dev
+  - qt5-qtsvg-dev
+  - qt5-qtmultimedia-dev
+  - ffmpeg-dev
+  - sdl2-dev
+
+tasks:
+  - build: |
+      cd chiaki
+      mkdir build && cd build  
+      cmake ..  
+      make -j4
+      test/chiaki-unit
+

@@ -26,3 +26,5 @@ tasks:
       mkdir build && cd build
       cmake ..
       make -j4
+      test/chiaki-unit
+
