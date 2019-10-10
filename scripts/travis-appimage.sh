@@ -9,6 +9,8 @@ if [ -n "$SDL2_FROM_SRC" ]; then
 	export LD_LIBRARY_PATH="$TRAVIS_BUILD_DIR/sdl2-prefix/lib:$LD_LIBRARY_PATH" || exit 1
 fi
 
+export EXTRA_QT_PLUGINS=opengl
+
 ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage || exit 1
 export DEPLOY_FILE="Chiaki-${CHIAKI_VERSION}-Linux-x86_64.AppImage" || exit 1
 mv Chiaki-*-x86_64.AppImage "$DEPLOY_FILE" || exit 1
