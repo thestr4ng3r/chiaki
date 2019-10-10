@@ -24,6 +24,7 @@
 #else
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #endif
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
