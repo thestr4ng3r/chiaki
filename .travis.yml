@@ -38,7 +38,8 @@ matrix:
       install:
         - scripts/build-ffmpeg.sh
       script:
-        - scripts/travis-build.sh
+        - scripts/travis-build.sh || exit 1
+        - source scripts/travis-appimage.sh
 
     - name: Linux (Xenial, Deploy)
       os: linux
@@ -58,7 +59,6 @@ matrix:
       env:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;$TRAVIS_BUILD_DIR/sdl2-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
-        - DEPLOY_FILE="Chiaki-x86_64.AppImage"
         - SDL2_FROM_SRC=1
         - DEPLOY=1
       install:
@@ -69,14 +69,7 @@ matrix:
         - scripts/build-sdl2.sh
       script:
         - scripts/travis-build.sh || exit 1
-        - cd build && make install DESTDIR=../appdir && cd .. || exit 1
-        - wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x linuxdeploy-x86_64.AppImage || exit 1
-        - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x linuxdeploy-plugin-qt-x86_64.AppImage || exit 1
-        - source /opt/qt512/bin/qt512-env.sh || exit 1
-        - export LD_LIBRARY_PATH="$TRAVIS_BUILD_DIR/sdl2-prefix/lib:$LD_LIBRARY_PATH" || exit 1
-        - ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage || exit 1
-        - export DEPLOY_FILE="Chiaki-Linux-${CHIAKI_VERSION}-x86_64.AppImage" || exit 1
-        - mv Chiaki-*-x86_64.AppImage "$DEPLOY_FILE" || exit 1
+        - source scripts/travis-appimage.sh
 
     - name: macOS
       os: osx
