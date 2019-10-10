@@ -7,6 +7,10 @@ branches:
     - /^v\d.*$/
     - /^deploy-test(-.*)?$/
 
+before_script:
+  - export CHIAKI_VERSION="$TRAVIS_TAG"
+  - if [ -z "$CHIAKI_VERSION" ]; then export CHIAKI_VERSION="$TRAVIS_COMMIT"; fi
+
 matrix:
   include:
     - name: Linux (Bionic)
@@ -31,6 +35,11 @@ matrix:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
         - DEPLOY=0
+      install:
+        - scripts/build-ffmpeg.sh
+      script:
+        - scripts/travis-build.sh || exit 1
+        - source scripts/travis-appimage.sh
 
     - name: Linux (Xenial, Deploy)
       os: linux
@@ -50,23 +59,17 @@ matrix:
       env:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;$TRAVIS_BUILD_DIR/sdl2-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
-        - DEPLOY_FILE="Chiaki-x86_64.AppImage"
         - SDL2_FROM_SRC=1
         - DEPLOY=1
-      before_install:
+      install:
         - sudo pip3 install protobuf
         - scripts/fetch-protoc.sh
         - export PATH="$TRAVIS_BUILD_DIR/protoc/bin:$PATH"
-      after_success:
-        - make install DESTDIR=../appdir
-        - cd ..
-        - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x linuxdeploy-x86_64.AppImage
-        - wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-        - source /opt/qt512/bin/qt512-env.sh
-        - export LD_LIBRARY_PATH="$TRAVIS_BUILD_DIR/sdl2-prefix/lib:$LD_LIBRARY_PATH"
-        - ./linuxdeploy-x86_64.AppImage --appdir=appdir -e appdir/usr/bin/chiaki -d appdir/usr/share/applications/chiaki.desktop --plugin qt --output appimage
-        - export DEPLOY_FILE="Chiaki-Linux-${CHIAKI_VERSION}-x86_64.AppImage"
-        - mv Chiaki-*-x86_64.AppImage "$DEPLOY_FILE"
+        - scripts/build-ffmpeg.sh
+        - scripts/build-sdl2.sh
+      script:
+        - scripts/travis-build.sh || exit 1
+        - source scripts/travis-appimage.sh
 
     - name: macOS
       os: osx
@@ -83,8 +86,10 @@ matrix:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
         - CMAKE_EXTRA_ARGS=""
         - DEPLOY=1
-      after_success:
-        - cd ..
+      install:
+        - scripts/build-ffmpeg.sh
+      script:
+        - scripts/travis-build.sh
         - cp -a build/gui/chiaki.app Chiaki.app
         - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
         - export DEPLOY_FILE="Chiaki-macOS-${CHIAKI_VERSION}-x86_64.dmg"
@@ -128,27 +133,8 @@ matrix:
         - export DEPLOY_FILE="chiaki-$CHIAKI_VERSION-src.tar.gz"
         - tar -czvf "$DEPLOY_FILE" chiaki
 
-install:
-  - scripts/build-ffmpeg.sh
-  - if [ ! -z "$SDL2_FROM_SRC" ]; then scripts/build-sdl2.sh || exit 1; fi
-
-before_script:
-  - export CHIAKI_VERSION="$TRAVIS_TAG"
-  - if [ -z "$CHIAKI_VERSION" ]; then export CHIAKI_VERSION="$TRAVIS_COMMIT"; fi
-
-script:
-  - mkdir build && cd build
-  - cmake
-      -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
-      -DCHIAKI_ENABLE_TESTS=ON
-      -DCHIAKI_ENABLE_CLI=OFF
-      -DCHIAKI_GUI_ENABLE_QT_GAMEPAD=OFF
-      -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON
-      $CMAKE_EXTRA_ARGS
-      ..
-  - make -j4
-  - test/chiaki-unit
+after_success:
+  - if [ ! -z "$DEPLOY_FILE" ]; then curl --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
 
 deploy:
   skip_cleanup: true
