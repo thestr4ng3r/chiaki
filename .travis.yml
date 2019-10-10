@@ -61,7 +61,7 @@ matrix:
         - DEPLOY_FILE="Chiaki-x86_64.AppImage"
         - SDL2_FROM_SRC=1
         - DEPLOY=1
-      before_install:
+      install:
         - sudo pip3 install protobuf
         - scripts/fetch-protoc.sh
         - export PATH="$TRAVIS_BUILD_DIR/protoc/bin:$PATH"
@@ -139,6 +139,9 @@ matrix:
         - mkdir chiaki && shopt -s extglob && mv !(chiaki) chiaki
         - export DEPLOY_FILE="chiaki-$CHIAKI_VERSION-src.tar.gz"
         - tar -czvf "$DEPLOY_FILE" chiaki
+
+after_success:
+  - if [ ! -z "$DEPLOY_FILE" ]; then curl --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
 
 deploy:
   skip_cleanup: true
