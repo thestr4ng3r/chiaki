@@ -72,7 +72,7 @@ const char *chiaki_rp_version_string(ChiakiRpVersion version)
 	switch(version)
 	{
 		case CHIAKI_RP_VERSION_8_0:
-			return "9.0";
+			return "8.0";
 		case CHIAKI_RP_VERSION_9_0:
 			return "9.0";
 		default:
