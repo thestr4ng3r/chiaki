@@ -31,6 +31,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#define strcasecmp _stricmp
 #else
 #include <unistd.h>
 #include <sys/socket.h>
@@ -560,8 +561,6 @@ typedef struct session_response_t {
 	const char *rp_version;
 	bool success;
 } SessionResponse;
-
-#include <stdio.h>
 
 static void parse_session_response(SessionResponse *response, ChiakiHttpResponse *http_response)
 {
