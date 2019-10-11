@@ -44,6 +44,8 @@
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
+static void *session_thread_func(void *arg);
+static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersion *server_version_out);
 
 const char *chiaki_rp_application_reason_string(uint32_t reason)
 {
@@ -57,13 +59,34 @@ const char *chiaki_rp_application_reason_string(uint32_t reason)
 			return "Remote is already in use";
 		case CHIAKI_RP_APPLICATION_REASON_CRASH:
 			return "Remote Play on Console crashed";
-		case CHIAKI_RP_APPLICATION_REASON_CLIENT_OUTDATED:
-			return "Client outdated";
+		case CHIAKI_RP_APPLICATION_REASON_RP_VERSION:
+			return "RP-Version mismatch";
 		default:
 			return "unknown";
 	}
 }
 
+const char *chiaki_rp_version_string(ChiakiRpVersion version)
+{
+	switch(version)
+	{
+		case CHIAKI_RP_VERSION_8_0:
+			return "9.0";
+		case CHIAKI_RP_VERSION_9_0:
+			return "9.0";
+		default:
+			return NULL;
+	}
+}
+
+CHIAKI_EXPORT ChiakiRpVersion chiaki_rp_version_parse(const char *rp_version_str)
+{
+	if(strcmp(rp_version_str, "8.0") == 0)
+		return CHIAKI_RP_VERSION_8_0;
+	if(strcmp(rp_version_str, "9.0") == 0)
+		return CHIAKI_RP_VERSION_9_0;
+	return CHIAKI_RP_VERSION_UNKNOWN;
+}
 
 CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps)
 {
@@ -124,6 +147,8 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 			return "Remote Play on Console is already in use";
 		case CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH:
 			return "Remote Play on Console has crashed";
+		case CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH:
+			return "RP-Version mismatch";
 		case CHIAKI_QUIT_REASON_CTRL_UNKNOWN:
 			return "Unknown Ctrl Error";
 		case CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED:
@@ -140,7 +165,6 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 	}
 }
 
-static void *session_thread_func(void *arg);
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log)
@@ -148,8 +172,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	memset(session, 0, sizeof(ChiakiSession));
 
 	session->log = log;
-
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
+	session->rp_version = CHIAKI_RP_VERSION_9_0;
 
 	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -288,8 +312,6 @@ void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event)
 }
 
 
-static bool session_thread_request_session(ChiakiSession *session);
-
 static bool session_check_state_pred(void *user)
 {
 	ChiakiSession *session = user;
@@ -346,7 +368,16 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting session request");
 
-	success = session_thread_request_session(session);
+	ChiakiRpVersion server_rp_version = CHIAKI_RP_VERSION_UNKNOWN;
+	success = session_thread_request_session(session, &server_rp_version);
+
+	if(!success && server_rp_version != CHIAKI_RP_VERSION_UNKNOWN)
+	{
+		CHIAKI_LOGI(session->log, "Attempting to re-request session with Server's RP-Version");
+		session->rp_version = server_rp_version;
+		success = session_thread_request_session(session, NULL);
+	}
+
 	if(!success)
 		QUIT(quit);
 
@@ -536,32 +567,27 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
 {
 	memset(response, 0, sizeof(SessionResponse));
 
+	for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
+	{
+		if(strcmp(header->key, "RP-Nonce") == 0)
+			response->nonce = header->value;
+		else if(strcasecmp(header->key, "RP-Version") == 0)
+			response->rp_version = header->value;
+		else if(strcmp(header->key, "RP-Application-Reason") == 0)
+			response->error_code = (uint32_t)strtoul(header->value, NULL, 0x10);
+	}
+
 	if(http_response->code == 200)
-	{
-		for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
-		{
-			if(strcmp(header->key, "RP-Nonce") == 0)
-				response->nonce = header->value;
-			else if(strcmp(header->key, "RP-Version") == 0)
-				response->rp_version = header->value;
-		}
 		response->success = response->nonce != NULL;
-	}
 	else
-	{
-		for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
-		{
-			if(strcmp(header->key, "RP-Application-Reason") == 0)
-			{
-				response->error_code = (uint32_t)strtoul(header->value, NULL, 0x10);
-			}
-		}
 		response->success = false;
-	}
 }
 
 
-static bool session_thread_request_session(ChiakiSession *session)
+/**
+ * @param server_version_out if NULL, version mismatch means to fail the entire session, otherwise report the version here
+ */
+static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersion *server_version_out)
 {
 	chiaki_socket_t session_sock = CHIAKI_INVALID_SOCKET;
 	for(struct addrinfo *ai=session->connect_info.host_addrinfos; ai; ai=ai->ai_next)
@@ -650,7 +676,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 			"Connection: close\r\n"
 			"Content-Length: 0\r\n"
 			"RP-Registkey: %s\r\n"
-			"Rp-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n"
+			"Rp-Version: %s\r\n"
 			"\r\n";
 
 	size_t regist_key_len = sizeof(session->connect_info.regist_key);
@@ -671,9 +697,11 @@ static bool session_thread_request_session(ChiakiSession *session)
 		return false;
 	}
 
+	const char *rp_version_str = chiaki_rp_version_string(session->rp_version);
+
 	char buf[512];
 	int request_len = snprintf(buf, sizeof(buf), session_request_fmt,
-							   session->connect_info.hostname, SESSION_PORT, regist_key_hex);
+							   session->connect_info.hostname, SESSION_PORT, regist_key_hex, rp_version_str ? rp_version_str : "");
 	if(request_len < 0 || request_len >= sizeof(buf))
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
@@ -682,6 +710,7 @@ static bool session_thread_request_session(ChiakiSession *session)
 	}
 
 	CHIAKI_LOGI(session->log, "Sending session request");
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (uint8_t *)buf, request_len);
 
 	int sent = send(session_sock, buf, (size_t)request_len, 0);
 	if(sent < 0)
@@ -739,6 +768,18 @@ static bool session_thread_request_session(ChiakiSession *session)
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
 	}
+	else if(response.error_code == CHIAKI_RP_APPLICATION_REASON_RP_VERSION && server_version_out && response.rp_version)
+	{
+		CHIAKI_LOGI(session->log, "Reported RP-Version mismatch. ours = %s, server = %s", rp_version_str ? rp_version_str : "", response.rp_version);
+		*server_version_out = chiaki_rp_version_parse(response.rp_version);
+		if(*server_version_out != CHIAKI_RP_VERSION_UNKNOWN)
+			CHIAKI_LOGI(session->log, "Detected Server RP-Version %s", chiaki_rp_version_string(*server_version_out));
+		else
+		{
+			CHIAKI_LOGE(session->log, "Server RP-Version is unknown");
+			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH;
+		}
+	}
 	else
 	{
 		CHIAKI_LOGE(session->log, "Reported Application Reason: %#x (%s)", (unsigned int)response.error_code, chiaki_rp_application_reason_string(response.error_code));
@@ -749,6 +790,9 @@ static bool session_thread_request_session(ChiakiSession *session)
 				break;
 			case CHIAKI_RP_APPLICATION_REASON_CRASH:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH;
+				break;
+			case CHIAKI_RP_APPLICATION_REASON_RP_VERSION:
+				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH;
 				break;
 			default:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;

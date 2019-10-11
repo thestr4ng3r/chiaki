@@ -42,12 +42,23 @@ extern "C" {
 #define CHIAKI_RP_APPLICATION_REASON_INVALID_PSN_ID		0x80108b02
 #define CHIAKI_RP_APPLICATION_REASON_IN_USE				0x80108b10
 #define CHIAKI_RP_APPLICATION_REASON_CRASH				0x80108b15
-#define CHIAKI_RP_APPLICATION_REASON_CLIENT_OUTDATED	0x80108b11
+#define CHIAKI_RP_APPLICATION_REASON_RP_VERSION			0x80108b11
 // unknown: 0x80108bff
 
-#define CHIAKI_RP_CLIENT_VERSION						"9.0"
+CHIAKI_EXPORT const char *chiaki_rp_application_reason_string(uint32_t reason);
 
-const char *chiaki_rp_application_reason_string(uint32_t reason);
+typedef enum {
+	CHIAKI_RP_VERSION_UNKNOWN = 0,
+	CHIAKI_RP_VERSION_8_0 = 800,
+	CHIAKI_RP_VERSION_9_0 = 900
+} ChiakiRpVersion;
+
+/**
+ * @return RP-Version string or NULL
+ */
+CHIAKI_EXPORT const char *chiaki_rp_version_string(ChiakiRpVersion version);
+
+CHIAKI_EXPORT ChiakiRpVersion chiaki_rp_version_parse(const char *rp_version_str);
 
 
 #define CHIAKI_RP_DID_SIZE 32
@@ -94,6 +105,7 @@ typedef enum {
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE,
 	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_CRASH,
+	CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH,
 	CHIAKI_QUIT_REASON_CTRL_UNKNOWN,
 	CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED,
 	CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED,
@@ -155,6 +167,8 @@ typedef struct chiaki_session_t
 		uint8_t did[CHIAKI_RP_DID_SIZE];
 		ChiakiConnectVideoProfile video_profile;
 	} connect_info;
+
+	ChiakiRpVersion rp_version;
 
 	uint8_t nonce[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiRPCrypt rpcrypt;

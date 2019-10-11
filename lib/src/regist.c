@@ -106,13 +106,16 @@ static void regist_event_simple(ChiakiRegist *regist, ChiakiRegistEventType type
 	regist->cb(&event, regist->cb_user);
 }
 
-static const char * const request_fmt =
+static const char * const request_head_fmt =
 	"POST /sce/rp/regist HTTP/1.1\r\n"
 	"HOST: 10.0.2.15\r\n" // random lol
 	"User-Agent: remoteplay Windows\r\n"
 	"Connection: close\r\n"
-	"Content-Length: %llu\r\n"
-	"RP-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n\r\n";
+	"Content-Length: %llu\r\n";
+
+static const char * const request_rp_version_fmt = "RP-Version: %s\r\n";
+
+static const char * const request_tail = "\r\n";
 
 static const char * const request_inner_account_id_fmt =
 	"Client-Type: Windows\r\n"
@@ -122,6 +125,28 @@ static const char * const request_inner_online_id_fmt =
 	"Client-Type: Windows\r\n"
 	"Np-Online-Id: %s\r\n";
 
+
+static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiRpVersion rp_version)
+{
+	int cur = snprintf(buf, buf_size, request_head_fmt, (unsigned long long)payload_size);
+	if(cur < 0 || cur >= payload_size)
+		return -1;
+	if(rp_version >= CHIAKI_RP_VERSION_9_0)
+	{
+		const char *rp_version_str = chiaki_rp_version_string(rp_version);
+		size_t s = buf_size - cur;
+		int r = snprintf(buf + cur, s, request_rp_version_fmt, rp_version_str);
+		if(r < 0 || r >= s)
+			return -1;
+		cur += r;
+	}
+	size_t tail_size = strlen(request_tail) + 1;
+	if(cur + tail_size > payload_size)
+		return -1;
+	memcpy(buf + cur, request_tail, tail_size);
+	cur += (int)tail_size - 1;
+	return cur;
+}
 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id)
@@ -179,13 +204,18 @@ static void *regist_thread_func(void *user)
 		goto fail;
 	}
 
+	ChiakiRpVersion rp_version = regist->info.psn_online_id ? CHIAKI_RP_VERSION_8_0 : CHIAKI_RP_VERSION_9_0;
 	char request_header[0x100];
-	int request_header_size = snprintf(request_header, sizeof(request_header), request_fmt, (unsigned long long)payload_size);
-	if(request_header_size >= sizeof(request_header))
+	int request_header_size = request_header_format(request_header, sizeof(request_header), payload_size, rp_version);
+
+	if(request_header_size < 0 || request_header_size >= sizeof(request_header))
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to format request");
 		goto fail;
 	}
+
+	CHIAKI_LOGV(regist->log, "Regist formatted request header:");
+	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, (uint8_t *)request_header, request_header_size);
 
 	struct addrinfo *addrinfos;
 	int r = getaddrinfo(regist->info.host, NULL, NULL, &addrinfos);

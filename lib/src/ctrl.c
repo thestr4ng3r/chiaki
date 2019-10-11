@@ -570,16 +570,18 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			"Connection: keep-alive\r\n"
 			"Content-Length: 0\r\n"
 			"RP-Auth: %s\r\n"
-			"RP-Version: " CHIAKI_RP_CLIENT_VERSION "\r\n"
+			"RP-Version: %s\r\n"
 			"RP-Did: %s\r\n"
 			"RP-ControllerType: 3\r\n"
 			"RP-ClientType: 11\r\n"
 			"RP-OSType: %s\r\n"
 			"RP-ConPath: 1\r\n\r\n";
 
+	const char *rp_version = chiaki_rp_version_string(session->rp_version);
+
 	char buf[512];
 	int request_len = snprintf(buf, sizeof(buf), request_fmt,
-			session->connect_info.hostname, SESSION_CTRL_PORT, auth_b64, did_b64, ostype_b64);
+			session->connect_info.hostname, SESSION_CTRL_PORT, auth_b64, rp_version ? rp_version : "", did_b64, ostype_b64);
 	if(request_len < 0 || request_len >= sizeof(buf))
 		goto error;
 
