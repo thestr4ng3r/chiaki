@@ -43,6 +43,13 @@ cmake ..
 make
 ```
 
+## Obtaining your PSN AccountID
+
+Starting with PS4 7.0, it is necessary to use a so-called "AccountID" as opposed to the "Online-ID" for registration (streaming itself did not change).
+This ID seems to be a unique identifier for a PSN Account and it can be obtained from the PSN after logging in using OAuth.
+A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
+Simply run it in a terminal and follow the instructions. Once you know your ID, write it down. You will likely never have to do this process again.
+
 ## Acknowledgements
 
 This project has only been made possible because of the following Open Source projects:
@@ -52,6 +59,7 @@ This project has only been made possible because of the following Open Source pr
 [x64dbg](https://x64dbg.com/).
 
 Also thanks to [delroth](https://github.com/delroth) for analyzing the registration and wakeup protocol,
+[grill2010](https://github.com/grill2010) for analyzing the PSN's OAuth Login,
 as well as a huge thank you to [FioraAeterna](https://github.com/FioraAeterna) for giving me some
 extremely helpful information about FEC and error correction.
 
