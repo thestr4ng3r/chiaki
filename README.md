@@ -50,6 +50,8 @@ This ID seems to be a unique identifier for a PSN Account and it can be obtained
 A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
 Simply run it in a terminal and follow the instructions. Once you know your ID, write it down. You will likely never have to do this process again.
 
+Find your PIN on your PS4 under 'Settings -> Remote Play Connection Settings -> Add Device'.
+
 ## Acknowledgements
 
 This project has only been made possible because of the following Open Source projects:
