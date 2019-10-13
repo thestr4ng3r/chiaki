@@ -20,6 +20,7 @@ package com.metallic.chiaki.regist
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.lib.*
 
 class RegistExecuteViewModel: ViewModel()
@@ -36,8 +37,10 @@ class RegistExecuteViewModel: ViewModel()
 	private val _state = MutableLiveData<State>(State.IDLE)
 	val state: LiveData<State> get() = _state
 
-	private val log = ChiakiLog(ChiakiLog.Level.ALL.value/* and ChiakiLog.Level.VERBOSE.value.inv()*/)
+	private val log = ChiakiRxLog(ChiakiLog.Level.ALL.value/* and ChiakiLog.Level.VERBOSE.value.inv()*/)
 	private var regist: Regist? = null
+
+	val logText: LiveData<String> = log.logText.toLiveData()
 
 	fun start(info: RegistInfo)
 	{
@@ -45,7 +48,7 @@ class RegistExecuteViewModel: ViewModel()
 			return
 		try
 		{
-			regist = Regist(info, log, this::registEvent)
+			regist = Regist(info, log.log, this::registEvent)
 			_state.value = State.RUNNING
 		}
 		catch(error: CreateError)

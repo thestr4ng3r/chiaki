@@ -58,8 +58,23 @@ class ErrorCode(val value: Int)
 	var isSuccess = value == 0
 }
 
-class ChiakiLog(val levelMask: Int)
+class ChiakiLog(val levelMask: Int, val callback: (level: Int, text: String) -> Unit)
 {
+	companion object
+	{
+		fun formatLog(level: Int, text: String) =
+			"[${when(level)
+				{
+					Level.DEBUG.value -> "D"
+					Level.VERBOSE.value -> "V"
+					Level.INFO.value -> "I"
+					Level.WARNING.value -> "W"
+					Level.ERROR.value -> "E"
+					else -> "?"
+				}
+			}] $text"
+	}
+
 	enum class Level(val value: Int)
 	{
 		DEBUG(1 shl 4),
@@ -72,7 +87,7 @@ class ChiakiLog(val levelMask: Int)
 
 	private fun log(level: Int, text: String)
 	{
-		Log.i("ChiakiJavaLog", "level $level, text $text")
+		callback(level, text)
 	}
 }
 

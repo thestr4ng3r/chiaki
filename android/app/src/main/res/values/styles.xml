@@ -69,6 +69,7 @@
         <item name="tint">?attr/colorOnSecondary</item>
         <item name="android:backgroundTint">?attr/colorSecondary</item>
         <item name="android:textColor">?attr/colorOnSecondary</item>
+        <item name="iconTint">?attr/colorOnSecondary</item>
     </style>
 
     <style name="TextAppearanceButton" parent="TextAppearance.MaterialComponents.Button">

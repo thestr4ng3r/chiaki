@@ -18,10 +18,15 @@
 package com.metallic.chiaki.regist
 
 import android.os.Bundle
+import android.text.method.ScrollingMovementMethod
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.RegistInfo
+import kotlinx.android.synthetic.main.activity_regist_execute.*
+import kotlin.math.max
 
 class RegistExecuteActivity: AppCompatActivity()
 {
@@ -42,9 +47,17 @@ class RegistExecuteActivity: AppCompatActivity()
 
 		viewModel = ViewModelProviders.of(this).get(RegistExecuteViewModel::class.java)
 
+		logTextView.setHorizontallyScrolling(true)
+		logTextView.movementMethod = ScrollingMovementMethod()
+		viewModel.logText.observe(this, Observer {
+			logTextView.text = it
+			val scrollY = logTextView.layout.getLineBottom(logTextView.lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
+			logTextView.scrollTo(0, max(scrollY, 0))
+		})
+
 		val registInfo = RegistInfo(
 			intent.getStringExtra(EXTRA_HOST) ?: return,
-			intent.getBooleanExtra(EXTRA_BROADCAST, false) ?: return,
+			intent.getBooleanExtra(EXTRA_BROADCAST, false),
 			intent.getStringExtra(EXTRA_PSN_ID) ?: return,
 			intent.getIntExtra(EXTRA_PIN, 0).toUInt()
 		)

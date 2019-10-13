@@ -26,4 +26,5 @@
     <string name="regist_host_invalid">Please enter a valid host name</string>
     <string name="regist_psn_id_invalid">Please enter a valid PSN ID</string>
     <string name="regist_pin_invalid">Please enter a valid %d-digit PIN</string>
+    <string name="action_share_log">Share Log</string>
 </resources>
