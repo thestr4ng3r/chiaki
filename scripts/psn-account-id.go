@@ -12,24 +12,33 @@ import (
 	"strconv"
 	"bytes"
 	"bufio"
-	"time"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 )
 
-
 func main(){
-	fmt.Print(
-`
-PSN ID Scraper for Remote Access
-Press any key to open the PSN Login Page.
-
-When you see "Redirect" paste the URL from your browser back here, then press Enter
+	headless := flag.Bool("headless", false, "Operates in Headless mode")
+	flag.Parse()
+	fmt.Println(
+`== PSN ID Scraper for Remote Play ==
+In order to get your Account code for Remote Play, You'll need to Login via a special Remote Play login webpage.
+After logging in, you will see a webpage that displays "redirect" in the top-left.
+When you see this page, Copy the entire URL from your browser, paste it below and then press *Enter*
 `)
-
-	browser.OpenURL("https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id=ba495a24-818c-472b-b12d-ff231c1b5745&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&")
 	reader := bufio.NewReader(os.Stdin)
+	if *headless {
+		fmt.Println(
+`[Headless] You'll need to open this page in a web browser that supports Javascript/ReCaptcha
+[Headless] https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id=ba495a24-818c-472b-b12d-ff231c1b5745&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&`)
+	} else {
+		fmt.Println("Press Enter to open the PSN Remote Play login webpage in your browser")
+		reader.ReadString('\n')
+		browser.OpenURL("https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id=ba495a24-818c-472b-b12d-ff231c1b5745&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&")
+	}
+
+	fmt.Print("Awaiting Input >")
 	response, _ := reader.ReadString('\n')
 	response = strings.TrimSpace(response)
 	URL, err := url.Parse(response)
@@ -38,6 +47,9 @@ When you see "Redirect" paste the URL from your browser back here, then press En
 	}
 
 	query := URL.Query()
+	if query.Get("code") == ""{
+		log.Fatal("Invalid URL has been submitted")
+	}
 
 	client := &http.Client{}
 	data :=url.Values{}
@@ -66,39 +78,26 @@ When you see "Redirect" paste the URL from your browser back here, then press En
 	if err != nil {
 		log.Fatal(err)
 	}
-	uid, _ := strconv.ParseInt(info.UserID, 10, 32)
+	uid, _ := strconv.ParseInt(info.UserID, 10, 0)
 	
 	buf := new(bytes.Buffer)
-	err = binary.Write(buf, binary.LittleEndian, uid) //TODO: WRONG!
+	err = binary.Write(buf, binary.LittleEndian, uid)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	uidBytes := buf.Bytes()
-	fmt.Printf("Your AccountID is: %v (Copied to Clipboard)", base64.StdEncoding.EncodeToString(uidBytes))
+	fmt.Printf("Your AccountID is: %v (Copied to Clipboard)\n", base64.StdEncoding.EncodeToString(uidBytes))
 	clipboard.WriteAll(base64.StdEncoding.EncodeToString(uidBytes))
 
+	fmt.Println("Press Enter to quit")
+	reader.ReadString('\n')
 }
 
 type AccessKeys struct {
 	AccessToken		string	`json:"access_token"`
-	TokenType		string	`json:"token_type"`
-	RefreshToken	string	`json:"refresh_token"`
-	ExpiresIn		int		`json:"expires_in"`
-	Scope			string	`json:"scope"`
 }
 
 type ClientInfo struct {
-	Scopes			string		`json:"scopes"`
-	Expiration		time.Time	`json:"expiration"`
-	ClientID		string		`json:"client_id"`
-	DcimID			string		`json:"dcim_id"`
-	GrantType		string		`json:"grant_type"`
 	UserID			string		`json:"user_id"`
-	UserUUID		string		`json:"user_uuid"`
-	OnlineID		string		`json:"online_id"`
-	CountryCode		string		`json:"country_code"`
-	LanguageCode	string		`json:"language_code"`
-	CommunityDomain	string		`json:"community_domain"`
-	IsSubAccount	bool		`json:"is_sub_account"`
 }
