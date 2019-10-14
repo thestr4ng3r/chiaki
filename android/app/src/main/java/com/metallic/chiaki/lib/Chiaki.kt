@@ -285,13 +285,13 @@ class DiscoveryService(
 
 }
 
-
+@Parcelize
 data class RegistInfo(
 	val host: String,
 	val broadcast: Boolean,
 	val psnId: String, // TODO: this is outdated now
-	val pin: UInt
-)
+	val pin: Int
+): Parcelable
 
 data class RegistHost(
 	val apSsid: String,

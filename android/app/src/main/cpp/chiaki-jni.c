@@ -96,6 +96,13 @@ static jobject jnistr_from_ascii(JNIEnv *env, const char *str)
 	return r;
 }
 
+static jbyteArray jnibytearray_create(JNIEnv *env, const uint8_t *buf, size_t buf_size)
+{
+	jbyteArray r = E->NewByteArray(env, buf_size);
+	E->SetByteArrayRegion(env, r, 0, buf_size, (const jbyte *)buf);
+	return r;
+}
+
 static jobject get_kotlin_global_object(JNIEnv *env, const char *id)
 {
 	size_t idlen = strlen(id);
@@ -635,6 +642,9 @@ typedef struct android_chiaki_regist_t
 	jobject java_regist_event_failed;
 	jclass java_regist_event_success_class;
 	jmethodID java_regist_event_success_ctor;
+
+	jclass java_regist_host_class;
+	jmethodID java_regist_host_ctor;
 } AndroidChiakiRegist;
 
 static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
@@ -655,8 +665,21 @@ static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 			java_event = regist->java_regist_event_failed;
 			break;
 		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
-			java_event = E->NewObject(env, regist->java_regist_event_success_class, regist->java_regist_event_success_ctor, NULL /* TODO: RegistHost */);
+		{
+			ChiakiRegisteredHost *host = event->registered_host;
+			jobject java_host = E->NewObject(env, regist->java_regist_host_class, regist->java_regist_host_ctor,
+					jnistr_from_ascii(env, host->ap_ssid),
+					jnistr_from_ascii(env, host->ap_bssid),
+					jnistr_from_ascii(env, host->ap_key),
+					jnistr_from_ascii(env, host->ap_name),
+					jnibytearray_create(env, host->ps4_mac, sizeof(host->ps4_mac)),
+					jnistr_from_ascii(env, host->ps4_nickname),
+					jnibytearray_create(env, (const uint8_t *)host->rp_regist_key, sizeof(host->rp_regist_key)),
+					(jint)host->rp_key_type,
+					jnibytearray_create(env, host->rp_key, sizeof(host->rp_key)));
+			java_event = E->NewObject(env, regist->java_regist_event_success_class, regist->java_regist_event_success_ctor, java_host);
 			break;
+		}
 	}
 
 	if(java_event)
@@ -672,6 +695,7 @@ static void android_chiaki_regist_fini_partial(JNIEnv *env, AndroidChiakiRegist 
 	E->DeleteGlobalRef(env, regist->java_regist_event_canceled);
 	E->DeleteGlobalRef(env, regist->java_regist_event_failed);
 	E->DeleteGlobalRef(env, regist->java_regist_event_success_class);
+	E->DeleteGlobalRef(env, regist->java_regist_host_class);
 }
 
 JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject result, jobject regist_info_obj, jobject log_obj, jobject java_regist)
@@ -694,6 +718,19 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	regist->java_regist_event_failed = E->NewGlobalRef(env, get_kotlin_global_object(env, BASE_PACKAGE"/RegistEventFailed"));
 	regist->java_regist_event_success_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/RegistEventSuccess"));
 	regist->java_regist_event_success_ctor = E->GetMethodID(env, regist->java_regist_event_success_class, "<init>", "(L"BASE_PACKAGE"/RegistHost;)V");
+
+	regist->java_regist_host_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/RegistHost"));
+	regist->java_regist_host_ctor = E->GetMethodID(env, regist->java_regist_host_class, "<init>", "("
+			  "Ljava/lang/String;" // apSsid: String
+			  "Ljava/lang/String;" // apBssid: String
+			  "Ljava/lang/String;" // apKey: String
+			  "Ljava/lang/String;" // apName: String
+			  "[B" // ps4Mac: ByteArray
+			  "Ljava/lang/String;" // ps4Nickname: String
+			  "[B" // rpRegistKey: ByteArray
+			  "I" // rpKeyType: UInt
+			  "[B" // rpKey: ByteArray
+			  ")V");
 
 	jclass regist_info_class = E->GetObjectClass(env, regist_info_obj);
 	jstring host_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "host", "Ljava/lang/String;"));

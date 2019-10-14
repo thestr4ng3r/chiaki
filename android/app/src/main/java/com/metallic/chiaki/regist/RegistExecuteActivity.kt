@@ -33,10 +33,7 @@ class RegistExecuteActivity: AppCompatActivity()
 {
 	companion object
 	{
-		const val EXTRA_HOST = "regist_host"
-		const val EXTRA_BROADCAST = "regist_broadcast"
-		const val EXTRA_PSN_ID = "regist_psn_id"
-		const val EXTRA_PIN = "regist_pin"
+		const val EXTRA_REGIST_INFO = "regist_info"
 	}
 
 	private lateinit var viewModel: RegistExecuteViewModel
@@ -83,13 +80,12 @@ class RegistExecuteActivity: AppCompatActivity()
 			}
 		}
 
-		val registInfo = RegistInfo(
-			intent.getStringExtra(EXTRA_HOST) ?: return,
-			intent.getBooleanExtra(EXTRA_BROADCAST, false),
-			intent.getStringExtra(EXTRA_PSN_ID) ?: return,
-			intent.getIntExtra(EXTRA_PIN, 0).toUInt()
-		)
-
+		val registInfo = intent.getParcelableExtra<RegistInfo>(EXTRA_REGIST_INFO)
+		if(registInfo == null)
+		{
+			finish()
+			return
+		}
 		viewModel.start(registInfo)
 	}
 

@@ -24,6 +24,7 @@ import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.RevealActivity
+import com.metallic.chiaki.lib.RegistInfo
 import kotlinx.android.synthetic.main.activity_regist.*
 
 class RegistActivity: AppCompatActivity(), RevealActivity
@@ -69,11 +70,10 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		if(!hostValid || !psnIdValid || !pinValid)
 			return
 
+		val registInfo = RegistInfo(host, broadcast, psnId, pin.toInt())
+
 		Intent(this, RegistExecuteActivity::class.java).also {
-			it.putExtra(RegistExecuteActivity.EXTRA_HOST, host)
-			it.putExtra(RegistExecuteActivity.EXTRA_BROADCAST, broadcast)
-			it.putExtra(RegistExecuteActivity.EXTRA_PSN_ID, psnId)
-			it.putExtra(RegistExecuteActivity.EXTRA_PIN, pin.toUInt().toInt())
+			it.putExtra(RegistExecuteActivity.EXTRA_REGIST_INFO, registInfo)
 			startActivity(it)
 		}
 	}
