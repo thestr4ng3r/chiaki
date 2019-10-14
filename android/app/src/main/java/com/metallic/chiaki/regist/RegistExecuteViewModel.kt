@@ -53,7 +53,7 @@ class RegistExecuteViewModel: ViewModel()
 		}
 		catch(error: CreateError)
 		{
-			// TODO: log about error
+			log.log.e("Failed to create Regist: ${error.errorCode}")
 			_state.value = State.FAILED
 		}
 	}

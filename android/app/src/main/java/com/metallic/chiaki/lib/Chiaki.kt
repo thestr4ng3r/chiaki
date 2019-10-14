@@ -89,6 +89,12 @@ class ChiakiLog(val levelMask: Int, val callback: (level: Int, text: String) -> 
 	{
 		callback(level, text)
 	}
+
+	fun d(text: String) = log(Level.DEBUG.value, text)
+	fun v(text: String) = log(Level.VERBOSE.value, text)
+	fun i(text: String) = log(Level.INFO.value, text)
+	fun w(text: String) = log(Level.WARNING.value, text)
+	fun e(text: String) = log(Level.ERROR.value, text)
 }
 
 private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a else b

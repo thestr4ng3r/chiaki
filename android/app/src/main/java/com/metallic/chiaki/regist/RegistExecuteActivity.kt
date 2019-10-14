@@ -17,9 +17,10 @@
 
 package com.metallic.chiaki.regist
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
-import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -54,6 +55,33 @@ class RegistExecuteActivity: AppCompatActivity()
 			val scrollY = logTextView.layout.getLineBottom(logTextView.lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
 			logTextView.scrollTo(0, max(scrollY, 0))
 		})
+
+		viewModel.state.observe(this, Observer {
+			progressBar.visibility = if(it == RegistExecuteViewModel.State.RUNNING) View.VISIBLE else View.GONE
+			when(it)
+			{
+				RegistExecuteViewModel.State.FAILED ->
+				{
+					infoTextView.visibility = View.VISIBLE
+					infoTextView.setText(R.string.regist_info_failed)
+				}
+				RegistExecuteViewModel.State.SUCCESSFUL ->
+				{
+					infoTextView.visibility = View.VISIBLE
+					infoTextView.setText(R.string.regist_info_success)
+				}
+				else -> infoTextView.visibility = View.GONE
+			}
+		})
+
+		shareLogButton.setOnClickListener {
+			val log = viewModel.logText.value ?: ""
+			Intent(Intent.ACTION_SEND).also {
+				it.type = "text/plain"
+				it.putExtra(Intent.EXTRA_TEXT, log)
+				startActivity(Intent.createChooser(it, resources.getString(R.string.action_share_log)))
+			}
+		}
 
 		val registInfo = RegistInfo(
 			intent.getStringExtra(EXTRA_HOST) ?: return,

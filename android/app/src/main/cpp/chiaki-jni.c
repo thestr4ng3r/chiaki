@@ -96,6 +96,23 @@ static jobject jnistr_from_ascii(JNIEnv *env, const char *str)
 	return r;
 }
 
+static jobject get_kotlin_global_object(JNIEnv *env, const char *id)
+{
+	size_t idlen = strlen(id);
+	char *sig = malloc(idlen + 3);
+	if(!sig)
+		return NULL;
+	sig[0] = 'L';
+	memcpy(sig + 1, id, idlen);
+	sig[1 + idlen] = ';';
+	sig[1 + idlen + 1] = '\0';
+	jclass cls = E->FindClass(env, id);
+	jfieldID field_id = E->GetStaticFieldID(env, cls, "INSTANCE", sig);
+	jobject r = E->GetStaticObjectField(env, cls, field_id);
+	free(sig);
+	return r;
+}
+
 static ChiakiLog global_log;
 static JavaVM *global_vm;
 
@@ -609,13 +626,52 @@ JNIEXPORT void JNICALL JNI_FCN(discoveryServiceFree)(JNIEnv *env, jobject obj, j
 typedef struct android_chiaki_regist_t
 {
 	AndroidChiakiLog log;
-	jobject java_regist;
 	ChiakiRegist regist;
+
+	jobject java_regist;
+	jmethodID java_regist_event_meth;
+
+	jobject java_regist_event_canceled;
+	jobject java_regist_event_failed;
+	jclass java_regist_event_success_class;
+	jmethodID java_regist_event_success_ctor;
 } AndroidChiakiRegist;
 
 static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 {
-	// TODO
+	AndroidChiakiRegist *regist = user;
+
+	JNIEnv *env = attach_thread_jni();
+	if(!env)
+		return;
+
+	jobject java_event = NULL;
+	switch(event->type)
+	{
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED:
+			java_event = regist->java_regist_event_canceled;
+			break;
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
+			java_event = regist->java_regist_event_failed;
+			break;
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
+			java_event = E->NewObject(env, regist->java_regist_event_success_class, regist->java_regist_event_success_ctor, NULL /* TODO: RegistHost */);
+			break;
+	}
+
+	if(java_event)
+		E->CallVoidMethod(env, regist->java_regist, regist->java_regist_event_meth, java_event);
+
+	(*global_vm)->DetachCurrentThread(global_vm);
+}
+
+static void android_chiaki_regist_fini_partial(JNIEnv *env, AndroidChiakiRegist *regist)
+{
+	android_chiaki_log_fini(&regist->log, env);
+	E->DeleteGlobalRef(env, regist->java_regist);
+	E->DeleteGlobalRef(env, regist->java_regist_event_canceled);
+	E->DeleteGlobalRef(env, regist->java_regist_event_failed);
+	E->DeleteGlobalRef(env, regist->java_regist_event_success_class);
 }
 
 JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject result, jobject regist_info_obj, jobject log_obj, jobject java_regist)
@@ -632,6 +688,12 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	android_chiaki_log_init(&regist->log, env, log_obj);
 
 	regist->java_regist = E->NewGlobalRef(env, java_regist);
+	regist->java_regist_event_meth = E->GetMethodID(env, E->GetObjectClass(env, regist->java_regist), "event", "(L"BASE_PACKAGE"/RegistEvent;)V");
+
+	regist->java_regist_event_canceled = E->NewGlobalRef(env, get_kotlin_global_object(env, BASE_PACKAGE"/RegistEventCanceled"));
+	regist->java_regist_event_failed = E->NewGlobalRef(env, get_kotlin_global_object(env, BASE_PACKAGE"/RegistEventFailed"));
+	regist->java_regist_event_success_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/RegistEventSuccess"));
+	regist->java_regist_event_success_ctor = E->GetMethodID(env, regist->java_regist_event_success_class, "<init>", "(L"BASE_PACKAGE"/RegistHost;)V");
 
 	jclass regist_info_class = E->GetObjectClass(env, regist_info_obj);
 	jstring host_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "host", "Ljava/lang/String;"));
@@ -652,8 +714,7 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		android_chiaki_log_fini(&regist->log, env);
-		E->DeleteGlobalRef(env, regist->java_regist);
+		android_chiaki_regist_fini_partial(env, regist);
 		free(regist);
 		regist = NULL;
 	}
@@ -673,7 +734,6 @@ JNIEXPORT void JNICALL JNI_FCN(registFree)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiRegist *regist = (AndroidChiakiRegist *)ptr;
 	chiaki_regist_fini(&regist->regist);
-	android_chiaki_log_fini(&regist->log, env);
-	E->DeleteGlobalRef(env, regist->java_regist);
+	android_chiaki_regist_fini_partial(env, regist);
 	free(regist);
 }

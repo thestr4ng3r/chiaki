@@ -27,4 +27,6 @@
     <string name="regist_psn_id_invalid">Please enter a valid PSN ID</string>
     <string name="regist_pin_invalid">Please enter a valid %d-digit PIN</string>
     <string name="action_share_log">Share Log</string>
+    <string name="regist_info_success">Regist successful.</string>
+    <string name="regist_info_failed">Regist failed.</string>
 </resources>
