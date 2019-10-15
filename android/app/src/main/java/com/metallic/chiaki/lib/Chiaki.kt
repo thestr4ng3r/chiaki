@@ -289,9 +289,16 @@ class DiscoveryService(
 data class RegistInfo(
 	val host: String,
 	val broadcast: Boolean,
-	val psnId: String, // TODO: this is outdated now
+	val psnOnlineId: String?,
+	val psnAccountId: ByteArray?,
 	val pin: Int
 ): Parcelable
+{
+	companion object
+	{
+		const val ACCOUNT_ID_SIZE = 8
+	}
+}
 
 data class RegistHost(
 	val apSsid: String,

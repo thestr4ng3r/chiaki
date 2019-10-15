@@ -17,6 +17,8 @@
 
 package com.metallic.chiaki.regist
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
@@ -34,6 +36,8 @@ class RegistExecuteActivity: AppCompatActivity()
 	companion object
 	{
 		const val EXTRA_REGIST_INFO = "regist_info"
+
+		const val RESULT_FAILED = Activity.RESULT_FIRST_USER
 	}
 
 	private lateinit var viewModel: RegistExecuteViewModel
@@ -61,11 +65,18 @@ class RegistExecuteActivity: AppCompatActivity()
 				{
 					infoTextView.visibility = View.VISIBLE
 					infoTextView.setText(R.string.regist_info_failed)
+					setResult(RESULT_FAILED)
 				}
 				RegistExecuteViewModel.State.SUCCESSFUL ->
 				{
 					infoTextView.visibility = View.VISIBLE
 					infoTextView.setText(R.string.regist_info_success)
+					setResult(RESULT_OK)
+				}
+				RegistExecuteViewModel.State.STOPPED ->
+				{
+					infoTextView.visibility = View.GONE
+					setResult(Activity.RESULT_CANCELED)
 				}
 				else -> infoTextView.visibility = View.GONE
 			}

@@ -19,6 +19,8 @@ package com.metallic.chiaki.regist
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
@@ -28,6 +30,7 @@ import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.lib.RegistInfo
 import kotlinx.android.synthetic.main.activity_regist.*
+import java.lang.IllegalArgumentException
 
 class RegistActivity: AppCompatActivity(), RevealActivity
 {
@@ -37,6 +40,8 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		const val EXTRA_BROADCAST = "regist_broadcast"
 
 		private const val PIN_LENGTH = 8
+
+		private const val REQUEST_REGIST = 1
 	}
 
 	override val revealWindow: Window get() = window
@@ -84,18 +89,33 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 	private fun doRegist()
 	{
+		val ps4Version = viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7
+
 		val host = hostEditText.text.toString().trim()
 		val hostValid = host.isNotEmpty()
 		val broadcast = broadcastCheckBox.isChecked
+
 		val psnId = psnIdEditText.text.toString().trim()
-		val psnIdValid = psnId.isNotEmpty()
+		val psnOnlineId: String? = if(ps4Version == RegistViewModel.PS4Version.LT_7) psnId else null
+		val psnAccountId: ByteArray? =
+			if(ps4Version == RegistViewModel.PS4Version.GE_7)
+				try { Base64.decode(psnId, Base64.DEFAULT) } catch(e: IllegalArgumentException) { null }
+			else
+				null
+		val psnIdValid = when(ps4Version)
+		{
+			RegistViewModel.PS4Version.GE_7 -> psnAccountId != null && psnAccountId.size == RegistInfo.ACCOUNT_ID_SIZE
+			RegistViewModel.PS4Version.LT_7 -> psnOnlineId?.isNotEmpty() ?: false
+		}
+
+
 		val pin = pinEditText.text.toString()
 		val pinValid = pin.length == PIN_LENGTH
 
 		hostEditText.error = if(!hostValid) getString(R.string.regist_host_invalid) else null
 		psnIdEditText.error =
 			if(!psnIdValid)
-				getString(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7)
+				getString(when(ps4Version)
 				{
 					RegistViewModel.PS4Version.GE_7 -> R.string.regist_psn_account_id_invalid
 					RegistViewModel.PS4Version.LT_7 -> R.string.regist_psn_online_id_invalid
@@ -107,11 +127,18 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		if(!hostValid || !psnIdValid || !pinValid)
 			return
 
-		val registInfo = RegistInfo(host, broadcast, psnId, pin.toInt())
+		val registInfo = RegistInfo(host, broadcast, psnOnlineId, psnAccountId, pin.toInt())
 
 		Intent(this, RegistExecuteActivity::class.java).also {
 			it.putExtra(RegistExecuteActivity.EXTRA_REGIST_INFO, registInfo)
-			startActivity(it)
+			startActivityForResult(it, REQUEST_REGIST)
 		}
+	}
+
+	override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
+	{
+		super.onActivityResult(requestCode, resultCode, data)
+		if(requestCode == REQUEST_REGIST && resultCode == RESULT_OK)
+			finish()
 	}
 }

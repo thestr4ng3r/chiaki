@@ -735,19 +735,24 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	jclass regist_info_class = E->GetObjectClass(env, regist_info_obj);
 	jstring host_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "host", "Ljava/lang/String;"));
 	jboolean broadcast = E->GetBooleanField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "broadcast", "Z"));
-	jstring psn_id_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "psnId", "Ljava/lang/String;"));
+	jstring psn_online_id_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "psnOnlineId", "Ljava/lang/String;"));
+	jbyteArray psn_account_id_array = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "psnAccountId", "[B"));
 	jint pin = E->GetIntField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "pin", "I"));
 
-	ChiakiRegistInfo regist_info;
+	ChiakiRegistInfo regist_info = { 0 };
 	regist_info.host = E->GetStringUTFChars(env, host_string, NULL);
 	regist_info.broadcast = broadcast;
-	// TODO regist_info.psn_id = E->GetStringUTFChars(env, psn_id_string, NULL);
+	if(psn_online_id_string)
+		regist_info.psn_online_id = E->GetStringUTFChars(env, psn_online_id_string, NULL);
+	if(psn_account_id_array && E->GetArrayLength(env, psn_account_id_array) == sizeof(regist_info.psn_account_id))
+		E->GetByteArrayRegion(env, psn_account_id_array, 0, sizeof(regist_info.psn_account_id), (jbyte *)regist_info.psn_account_id);
 	regist_info.pin = (uint32_t)pin;
 
 	err = chiaki_regist_start(&regist->regist, &regist->log.log, &regist_info, android_chiaki_regist_cb, regist);
 
 	E->ReleaseStringUTFChars(env, host_string, regist_info.host);
-	// TODO E->ReleaseStringUTFChars(env, psn_id_string, regist_info.psn_id);
+	if(regist_info.psn_online_id)
+		E->ReleaseStringUTFChars(env, psn_online_id_string, regist_info.psn_online_id);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
