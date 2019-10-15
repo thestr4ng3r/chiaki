@@ -17,13 +17,22 @@
 
 package com.metallic.chiaki.regist
 
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.metallic.chiaki.common.AppDatabase
+import com.metallic.chiaki.common.MacAddress
+import com.metallic.chiaki.common.RegisteredHost
 import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.lib.*
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
 
-class RegistExecuteViewModel: ViewModel()
+class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 {
 	enum class State
 	{
@@ -41,6 +50,8 @@ class RegistExecuteViewModel: ViewModel()
 	private var regist: Regist? = null
 
 	val logText: LiveData<String> = log.logText.toLiveData()
+
+	private val disposable = CompositeDisposable()
 
 	fun start(info: RegistInfo)
 	{
@@ -67,22 +78,43 @@ class RegistExecuteViewModel: ViewModel()
 	{
 		when(event)
 		{
-			is RegistEventCanceled -> {
-				_state.postValue(State.STOPPED)
-			}
-			is RegistEventFailed -> {
-				_state.postValue(State.FAILED)
-			}
-			is RegistEventSuccess -> {
-				// TODO: save event.host into db
-				_state.postValue(State.SUCCESSFUL)
-			}
+			is RegistEventCanceled -> _state.postValue(State.STOPPED)
+			is RegistEventFailed -> _state.postValue(State.FAILED)
+			is RegistEventSuccess -> registSuccess(event.host)
 		}
+	}
+
+	private fun registSuccess(host: RegistHost)
+	{
+		_state.postValue(State.SUCCESSFUL) // TODO: more states
+
+		val dao = database.registeredHostDao()
+
+		val mac = MacAddress(host.ps4Mac)
+
+		//val mac = MacAddress(byteArrayOf(0xc0.toByte(), 0xff.toByte(), 0xff.toByte(), 0xee.toByte(), 0xee.toByte(), 0x42))
+
+		dao.getByMac(mac)
+			.subscribeOn(Schedulers.io())
+			.observeOn(AndroidSchedulers.mainThread())
+			.doOnSuccess {
+				// TODO: show dialog
+				Log.i("RegistExecuteViewModel", "already exists")
+			}
+			.doOnComplete {
+				dao.insert(RegisteredHost(host))
+					.subscribeOn(Schedulers.io())
+					.subscribe()
+					.addTo(disposable)
+			}
+			.subscribe()
+			.addTo(disposable)
 	}
 
 	override fun onCleared()
 	{
 		super.onCleared()
 		regist?.dispose()
+		disposable.dispose()
 	}
 }

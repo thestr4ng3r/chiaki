@@ -40,8 +40,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()
 {
-	private val disposable = CompositeDisposable()
-
 	private lateinit var viewModel: MainViewModel
 
 	private var discoveryMenuItem: MenuItem? = null
@@ -85,12 +83,6 @@ class MainActivity : AppCompatActivity()
 	{
 		floatingActionButton.isExpanded = expand
 		floatingActionButton.isActivated = floatingActionButton.isExpanded
-	}
-
-	override fun onDestroy()
-	{
-		super.onDestroy()
-		disposable.dispose()
 	}
 
 	override fun onStart()

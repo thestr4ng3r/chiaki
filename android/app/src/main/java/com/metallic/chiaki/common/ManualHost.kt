@@ -32,7 +32,7 @@ import io.reactivex.Flowable
 	)
 ])
 data class ManualHost(
-	@PrimaryKey(autoGenerate = true) val id: Int = 0,
+	@PrimaryKey(autoGenerate = true) val id: Long = 0,
 	val host: String,
 	@ColumnInfo(name = "registered_host") val registeredHost: Int?
 )

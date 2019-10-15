@@ -18,7 +18,6 @@
 package com.metallic.chiaki.regist
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
@@ -27,6 +26,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.lib.RegistInfo
 import kotlinx.android.synthetic.main.activity_regist_execute.*
 import kotlin.math.max
@@ -47,7 +48,9 @@ class RegistExecuteActivity: AppCompatActivity()
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist_execute)
 
-		viewModel = ViewModelProviders.of(this).get(RegistExecuteViewModel::class.java)
+		viewModel = ViewModelProviders
+			.of(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
+			.get(RegistExecuteViewModel::class.java)
 
 		logTextView.setHorizontallyScrolling(true)
 		logTextView.movementMethod = ScrollingMovementMethod()

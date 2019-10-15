@@ -19,12 +19,15 @@ package com.metallic.chiaki.common
 
 import androidx.room.*
 import androidx.room.ColumnInfo.BLOB
+import com.metallic.chiaki.lib.RegistHost
 import io.reactivex.Flowable
+import io.reactivex.Maybe
+import io.reactivex.Single
 
 @Suppress("ArrayInDataClass")
 @Entity(tableName = "registered_host")
 data class RegisteredHost(
-	@PrimaryKey(autoGenerate = true) val id: Int = 0,
+	@PrimaryKey(autoGenerate = true) val id: Long = 0,
 	@ColumnInfo(name = "ap_ssid") val apSsid: String?,
 	@ColumnInfo(name = "ap_bssid") val apBssid: String?,
 	@ColumnInfo(name = "ap_key") val apKey: String?,
@@ -35,10 +38,29 @@ data class RegisteredHost(
 	@ColumnInfo(name = "rp_key_type") val rpKeyType: Int,
 	@ColumnInfo(name = "rp_key", typeAffinity = BLOB) val rpKey: ByteArray // 0x10
 )
+{
+	constructor(registHost: RegistHost) : this(
+		apSsid = registHost.apSsid,
+		apBssid = registHost.apBssid,
+		apKey = registHost.apKey,
+		apName = registHost.apName,
+		ps4Mac = MacAddress(registHost.ps4Mac),
+		ps4Nickname = registHost.ps4Nickname,
+		rpRegistKey = registHost.rpRegistKey,
+		rpKeyType = registHost.rpKeyType.toInt(),
+		rpKey = registHost.rpKey
+	)
+}
 
 @Dao
 interface RegisteredHostDao
 {
 	@Query("SELECT * FROM registered_host")
 	fun getAll(): Flowable<List<RegisteredHost>>
+
+	@Query("SELECT * FROM registered_host WHERE ps4_mac == :mac LIMIT 1")
+	fun getByMac(mac: MacAddress): Maybe<RegisteredHost>
+
+	@Insert
+	fun insert(host: RegisteredHost): Single<Long>
 }
