@@ -22,6 +22,8 @@ import android.os.Bundle
 import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.lib.RegistInfo
@@ -41,16 +43,43 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 	override val revealIntent: Intent get() = intent
 	override val revealRootLayout: View get() = rootLayout
 
+	private lateinit var viewModel: RegistViewModel
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist)
 		handleReveal()
 
+		viewModel = ViewModelProviders.of(this).get(RegistViewModel::class.java)
+
 		hostEditText.setText(intent.getStringExtra(EXTRA_HOST) ?: "255.255.255.255")
 		broadcastCheckBox.isChecked = intent.getBooleanExtra(EXTRA_BROADCAST, true)
 
 		registButton.setOnClickListener { doRegist() }
+
+		ps4VersionRadioGroup.check(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7) {
+			RegistViewModel.PS4Version.GE_7 -> R.id.ps4VersionGE7RadioButton
+			RegistViewModel.PS4Version.LT_7 -> R.id.ps4VersionLT7RadioButton
+		})
+
+		ps4VersionRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+			viewModel.ps4Version.value = when(checkedId)
+			{
+				R.id.ps4VersionGE7RadioButton -> RegistViewModel.PS4Version.GE_7
+				R.id.ps4VersionLT7RadioButton -> RegistViewModel.PS4Version.LT_7
+				else -> RegistViewModel.PS4Version.GE_7
+			}
+		}
+
+		viewModel.ps4Version.observe(this, Observer {
+			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.PS4Version.GE_7) View.VISIBLE else View.GONE
+			psnIdTextInputLayout.hint = getString(when(it)
+			{
+				RegistViewModel.PS4Version.GE_7 -> R.string.hint_regist_psn_account_id
+				RegistViewModel.PS4Version.LT_7 -> R.string.hint_regist_psn_online_id
+			})
+		})
 	}
 
 	private fun doRegist()
@@ -64,7 +93,15 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		val pinValid = pin.length == PIN_LENGTH
 
 		hostEditText.error = if(!hostValid) getString(R.string.regist_host_invalid) else null
-		psnIdEditText.error = if(!psnIdValid) getString(R.string.regist_psn_id_invalid) else null
+		psnIdEditText.error =
+			if(!psnIdValid)
+				getString(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7)
+				{
+					RegistViewModel.PS4Version.GE_7 -> R.string.regist_psn_account_id_invalid
+					RegistViewModel.PS4Version.LT_7 -> R.string.regist_psn_online_id_invalid
+				})
+			else
+				null
 		pinEditText.error = if(!pinValid) getString(R.string.regist_pin_invalid, PIN_LENGTH) else null
 
 		if(!hostValid || !psnIdValid || !pinValid)

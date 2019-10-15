@@ -11,7 +11,8 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:animateLayoutChanges="true">
 
             <ImageView
                 android:id="@+id/iconImageView"
@@ -58,16 +59,67 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:layout_constraintTop_toBottomOf="@id/hostTextInputLayout"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 android:text="@string/regist_broadcast"/>
+
+            <RadioGroup
+                android:id="@+id/ps4VersionRadioGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintTop_toBottomOf="@id/broadcastCheckBox">
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ps4VersionGE7RadioButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/regist_option_ps4_ge_7"
+                    android:layout_weight="1"
+                    android:checked="true"/>
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ps4VersionLT7RadioButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/regist_option_ps4_lt_7"
+                    android:layout_weight="1"/>
+            </RadioGroup>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/psnAccountIdHelpTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toBottomOf="@id/ps4VersionRadioGroup"
+                android:text="@string/regist_psn_account_id_help"
+                android:gravity="center_horizontal"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:alpha="0.6"
+                android:layout_marginTop="8dp"/>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/psnAccountIdHelpURLTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toBottomOf="@id/psnAccountIdHelpTextView"
+                android:text="@string/regist_psn_account_id_help_url"
+                android:textSize="12sp"
+                android:gravity="center_horizontal"
+                android:autoLink="web"
+                android:textAppearance="?attr/textAppearanceBody1"/>
+
+            <androidx.constraintlayout.widget.Group
+                android:id="@+id/psnAccountIdHelpGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="visible"
+                app:constraint_referenced_ids="psnAccountIdHelpTextView,psnAccountIdHelpURLTextView"/>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/psnIdTextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/hint_regist_psn_id"
+                android:hint="@string/hint_regist_psn_online_id"
                 app:startIconDrawable="@drawable/ic_psn_id"
-                app:layout_constraintTop_toBottomOf="@id/broadcastCheckBox"
+                app:layout_constraintTop_toBottomOf="@id/psnAccountIdHelpURLTextView"
                 android:layout_marginTop="16dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/psnIdEditText"
