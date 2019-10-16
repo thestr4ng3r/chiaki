@@ -35,4 +35,7 @@
     <string name="action_share_log">Share Log</string>
     <string name="regist_info_success">Regist successful.</string>
     <string name="regist_info_failed">Regist failed.</string>
+    <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
+    <string name="action_regist_overwrite">Overwrite</string>
+    <string name="action_regist_discard">Cancel</string>
 </resources>

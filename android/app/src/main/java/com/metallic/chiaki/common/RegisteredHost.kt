@@ -20,6 +20,7 @@ package com.metallic.chiaki.common
 import androidx.room.*
 import androidx.room.ColumnInfo.BLOB
 import com.metallic.chiaki.lib.RegistHost
+import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Maybe
 import io.reactivex.Single
@@ -60,6 +61,9 @@ interface RegisteredHostDao
 
 	@Query("SELECT * FROM registered_host WHERE ps4_mac == :mac LIMIT 1")
 	fun getByMac(mac: MacAddress): Maybe<RegisteredHost>
+
+	@Query("DELETE FROM registered_host WHERE ps4_mac == :mac")
+	fun deleteByMac(mac: MacAddress): Completable
 
 	@Insert
 	fun insert(host: RegisteredHost): Single<Long>

@@ -35,7 +35,7 @@
         <item name="android:navigationBarColor">?attr/colorPrimarySurface</item>
         <item name="colorControlNormal">@color/accent</item>
         <item name="colorButtonNormal">@color/accent</item>
-        <item name="android:textAppearanceButton">@style/TextAppearanceButton</item>
+        <item name="android:textAppearanceButton">@style/MageTheme.TextAppearanceButton</item>
         <item name="android:textColor">?attr/colorOnPrimary</item>
 
         <item name="textAppearanceHeadline1">@style/MageTheme.TextAppearanceHeadline1</item>
@@ -47,6 +47,8 @@
 
         <item name="android:windowActivityTransitions">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+
+        <item name="android:alertDialogTheme">@style/MageTheme.AlertDialog</item>
     </style>
 
     <style name="MageTheme.Translucent" parent="MageTheme">
@@ -55,6 +57,15 @@
 
     <style name="MageTheme.TextAppearanceHeadline1" parent="TextAppearance.MaterialComponents.Headline1">
         <item name="fontFamily">sans-serif-condensed-light</item>
+    </style>
+
+    <style name="MageTheme.AlertDialog" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="android:textColorPrimary">@android:color/primary_text_light</item>
+        <item name="materialButtonStyle">@style/MageTheme.AlertDialog.Button</item>
+    </style>
+
+    <style name="MageTheme.AlertDialog.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/accent</item>
     </style>
 
     <style name="MageTheme.TextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
@@ -72,7 +83,7 @@
         <item name="iconTint">?attr/colorOnSecondary</item>
     </style>
 
-    <style name="TextAppearanceButton" parent="TextAppearance.MaterialComponents.Button">
+    <style name="MageTheme.TextAppearanceButton" parent="TextAppearance.MaterialComponents.Button">
         <item name="android:textColor">?attr/colorOnSecondary</item>
     </style>
 

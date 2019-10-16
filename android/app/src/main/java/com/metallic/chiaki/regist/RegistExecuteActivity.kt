@@ -18,6 +18,8 @@
 package com.metallic.chiaki.regist
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
@@ -26,6 +28,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.MacAddress
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.lib.RegistInfo
@@ -70,11 +73,13 @@ class RegistExecuteActivity: AppCompatActivity()
 					infoTextView.setText(R.string.regist_info_failed)
 					setResult(RESULT_FAILED)
 				}
-				RegistExecuteViewModel.State.SUCCESSFUL ->
+				RegistExecuteViewModel.State.SUCCESSFUL, RegistExecuteViewModel.State.SUCCESSFUL_DUPLICATE ->
 				{
 					infoTextView.visibility = View.VISIBLE
 					infoTextView.setText(R.string.regist_info_success)
 					setResult(RESULT_OK)
+					if(it == RegistExecuteViewModel.State.SUCCESSFUL_DUPLICATE)
+						showDuplicateDialog()
 				}
 				RegistExecuteViewModel.State.STOPPED ->
 				{
@@ -107,5 +112,25 @@ class RegistExecuteActivity: AppCompatActivity()
 	{
 		super.onStop()
 		viewModel.stop()
+	}
+
+	private var dialog: AlertDialog? = null
+
+	private fun showDuplicateDialog()
+	{
+		if(dialog != null)
+			return
+
+		val macStr = viewModel.host?.ps4Mac?.let { MacAddress(it).toString() } ?: ""
+
+		dialog = AlertDialog.Builder(this)
+			.setMessage(getString(R.string.alert_regist_duplicate, macStr))
+			.setNegativeButton(R.string.action_regist_discard) { _, _ ->  }
+			.setPositiveButton(R.string.action_regist_overwrite) { _, _ ->
+				viewModel.saveHost()
+			}
+			.create()
+			.also { it.show() }
+
 	}
 }

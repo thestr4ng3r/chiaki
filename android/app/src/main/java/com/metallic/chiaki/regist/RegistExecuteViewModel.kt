@@ -18,7 +18,6 @@
 package com.metallic.chiaki.regist
 
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -29,6 +28,7 @@ import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.lib.*
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.functions.Action
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 
@@ -40,7 +40,8 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 		RUNNING,
 		STOPPED,
 		FAILED,
-		SUCCESSFUL
+		SUCCESSFUL,
+		SUCCESSFUL_DUPLICATE,
 	}
 
 	private val _state = MutableLiveData<State>(State.IDLE)
@@ -52,6 +53,9 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 	val logText: LiveData<String> = log.logText.toLiveData()
 
 	private val disposable = CompositeDisposable()
+
+	var host: RegistHost? = null
+		private set
 
 	fun start(info: RegistInfo)
 	{
@@ -86,28 +90,33 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 
 	private fun registSuccess(host: RegistHost)
 	{
-		_state.postValue(State.SUCCESSFUL) // TODO: more states
-
-		val dao = database.registeredHostDao()
-
-		val mac = MacAddress(host.ps4Mac)
-
-		//val mac = MacAddress(byteArrayOf(0xc0.toByte(), 0xff.toByte(), 0xff.toByte(), 0xee.toByte(), 0xee.toByte(), 0x42))
-
-		dao.getByMac(mac)
+		this.host = host
+		database.registeredHostDao().getByMac(MacAddress(host.ps4Mac))
 			.subscribeOn(Schedulers.io())
 			.observeOn(AndroidSchedulers.mainThread())
 			.doOnSuccess {
-				// TODO: show dialog
-				Log.i("RegistExecuteViewModel", "already exists")
+				_state.value = State.SUCCESSFUL_DUPLICATE
 			}
 			.doOnComplete {
-				dao.insert(RegisteredHost(host))
-					.subscribeOn(Schedulers.io())
-					.subscribe()
-					.addTo(disposable)
+				saveHost()
 			}
 			.subscribe()
+			.addTo(disposable)
+	}
+
+	fun saveHost()
+	{
+		val host = host ?: return
+		val dao = database.registeredHostDao()
+		val registeredHost = RegisteredHost(host)
+		dao.deleteByMac(registeredHost.ps4Mac)
+			.andThen(dao.insert(registeredHost))
+			.subscribeOn(Schedulers.io())
+			.observeOn(AndroidSchedulers.mainThread())
+			.subscribe { _ ->
+				Log.i("RegistExecute", "Registered Host saved in db")
+				_state.value = State.SUCCESSFUL
+			}
 			.addTo(disposable)
 	}
 
