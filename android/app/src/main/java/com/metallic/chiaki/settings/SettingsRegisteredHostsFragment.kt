@@ -24,26 +24,33 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.AppDatabase
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 
-class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
+class SettingsRegisteredHostsFragment: PreferenceFragmentCompat(), TitleFragment
 {
+	private lateinit var viewModel: SettingsRegisteredHostsViewModel
+
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
-		setPreferencesFromResource(R.xml.preferences, rootKey)
+		val context = preferenceManager.context
+		preferenceScreen = preferenceManager.createPreferenceScreen(context)
 
-		val registeredHostsPreference = preferenceScreen.findPreference<Preference>("registered_hosts")
+		viewModel = ViewModelProviders
+			.of(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context!!)) })
+			.get(SettingsRegisteredHostsViewModel::class.java)
 
-		val viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context!!)) })
-			.get(SettingsViewModel::class.java)
-
-		viewModel.registeredHostsCount.observe(this, Observer {
-			registeredHostsPreference?.summary = getString(R.string.preferences_registered_hosts_summary, it)
+		viewModel.registeredHosts.observe(this, Observer {
+			preferenceScreen.removeAll()
+			it.forEach { host ->
+				val pref = Preference(context)
+				pref.title = host.ps4Nickname
+				pref.summary = host.ps4Mac.toString()
+				preferenceScreen.addPreference(pref)
+			}
 		})
+
 	}
 
-	override fun getTitle(resources: Resources): String = resources.getString(R.string.title_settings)
+	override fun getTitle(resources: Resources): String = resources.getString(R.string.preferences_registered_hosts_title)
 }

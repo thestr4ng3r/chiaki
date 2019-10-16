@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
         app:key="category_general"
         app:title="@string/preferences_category_title_general">
         <Preference
             app:key="registered_hosts"
-            app:summary="@string/preferences_registered_hosts_summary"
-            app:title="@string/preferences_registered_hosts_title"/>
+            tools:summary="@string/preferences_registered_hosts_summary"
+            app:summary=" "
+            app:title="@string/preferences_registered_hosts_title"
+            app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"/>
     </PreferenceCategory>
 
     <PreferenceCategory

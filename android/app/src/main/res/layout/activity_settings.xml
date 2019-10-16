@@ -12,21 +12,21 @@
         app:layout_constraintTop_toTopOf="parent"
         android:theme="@style/AppTheme.Toolbar">
         <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/titleTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:fontFamily="sans-serif-condensed"
             android:text="@string/title_settings"
             android:textColor="?attr/colorOnPrimary"
-            android:textSize="20dp" />
+            android:textSize="20dp"/>
     </com.google.android.material.appbar.MaterialToolbar>
 
-    <fragment
-        android:id="@+id/settingsFragment"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:name="com.metallic.chiaki.settings.SettingsFragment"
+        android:id="@+id/settingsFragment"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
