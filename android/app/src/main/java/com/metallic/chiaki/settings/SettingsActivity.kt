@@ -20,6 +20,7 @@ package com.metallic.chiaki.settings
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.metallic.chiaki.R
+import kotlinx.android.synthetic.main.activity_settings.*
 
 class SettingsActivity: AppCompatActivity()
 {
@@ -27,5 +28,7 @@ class SettingsActivity: AppCompatActivity()
 	{
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_settings)
+		title = ""
+		setSupportActionBar(toolbar)
 	}
 }

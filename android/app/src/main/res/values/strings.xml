@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Chiaki</string>
-    <string name="main_title">Chiaki 千秋</string>
+    <string name="title_main">Chiaki 千秋</string>
+    <string name="title_settings">Settings</string>
     <string name="alert_message_session_quit">Session has quit: %s</string>
     <string name="alert_message_session_create_error">Failed to create Session: %s</string>
     <string name="alert_message_login_pin_request">Login PIN:</string>
@@ -38,4 +39,8 @@
     <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
     <string name="action_regist_overwrite">Overwrite</string>
     <string name="action_regist_discard">Cancel</string>
+    <string name="preferences_category_title_general">General</string>
+    <string name="preferences_category_title_stream">Stream</string>
+    <string name="preferences_registered_hosts_title">Registered Consoles</string>
+    <string name="preferences_registered_hosts_summary">Currently registered: %d</string>
 </resources>

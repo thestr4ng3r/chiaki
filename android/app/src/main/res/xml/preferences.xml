@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
-    <SwitchPreferenceCompat
-        app:key="notifications"
-        app:title="Enable message notifications"/>
+    <PreferenceCategory
+        app:key="category_general"
+        app:title="@string/preferences_category_title_general">
+        <Preference
+            app:key="registered_hosts"
+            app:summary="@string/preferences_registered_hosts_summary"
+            app:title="@string/preferences_registered_hosts_title"/>
+    </PreferenceCategory>
 
-    <Preference
-        app:key="feedback"
-        app:title="Send feedback"
-        app:summary="Report technical issues or suggest new features"/>
+    <PreferenceCategory
+        app:key="category_stream"
+        app:title="@string/preferences_category_title_stream">
+    </PreferenceCategory>
 </PreferenceScreen>
