@@ -47,11 +47,14 @@ void android_chiaki_video_decoder_fini(AndroidChiakiVideoDecoder *decoder)
 		{
 			CHIAKI_LOGI(decoder->log, "Video Decoder sending EOS buffer");
 			AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, 0, decoder->timestamp_cur++, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
+			chiaki_mutex_unlock(&decoder->codec_mutex);
+			chiaki_thread_join(&decoder->output_thread, NULL);
 		}
 		else
+		{
 			CHIAKI_LOGE(decoder->log, "Failed to get input buffer for shutting down Video Decoder!");
-		chiaki_mutex_unlock(&decoder->codec_mutex);
-		chiaki_thread_join(&decoder->output_thread, NULL);
+			chiaki_mutex_unlock(&decoder->codec_mutex);
+		}
 		AMediaCodec_delete(decoder->codec);
 	}
 	chiaki_mutex_fini(&decoder->codec_mutex);
@@ -63,12 +66,15 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 
 	if(decoder->codec)
 	{
-		//CHIAKI_LOGE(decoder->log, "Video Decoder already initialized");
+#if __ANDROID_API__ >= 23
 		CHIAKI_LOGI(decoder->log, "Video decoder already initialized, swapping surface");
 		ANativeWindow *new_window = surface ? ANativeWindow_fromSurface(env, surface) : NULL;
 		AMediaCodec_setOutputSurface(decoder->codec, new_window);
 		ANativeWindow_release(decoder->window);
 		decoder->window = new_window;
+#else
+		CHIAKI_LOGE(decoder->log, "Video Decoder already initialized");
+#endif
 		goto beach;
 	}
 
@@ -80,9 +86,7 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 	if(!decoder->codec)
 	{
 		CHIAKI_LOGE(decoder->log, "Failed to create AMediaCodec for mime type %s", mime);
-		ANativeWindow_release(decoder->window);
-		decoder->window = NULL;
-		goto beach;
+		goto error_surface;
 	}
 
 	AMediaFormat *format = AMediaFormat_new();
@@ -90,20 +94,38 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280); // TODO: correct values
 	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
 
-	AMediaCodec_configure(decoder->codec, format, decoder->window, NULL, 0); // TODO: check result
-	AMediaCodec_start(decoder->codec); // TODO: check result
+	media_status_t r = AMediaCodec_configure(decoder->codec, format, decoder->window, NULL, 0);
+	if(r != AMEDIA_OK)
+	{
+		CHIAKI_LOGE(decoder->log, "AMediaCodec_configure() failed: %d", (int)r);
+		AMediaFormat_delete(format);
+		goto error_codec;
+	}
 
+	r = AMediaCodec_start(decoder->codec);
 	AMediaFormat_delete(format);
+	if(r != AMEDIA_OK)
+	{
+		CHIAKI_LOGE(decoder->log, "AMediaCodec_start() failed: %d", (int)r);
+		goto error_codec;
+	}
 
 	ChiakiErrorCode err = chiaki_thread_create(&decoder->output_thread, android_chiaki_video_decoder_output_thread_func, decoder);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(decoder->log, "Failed to create output thread for AMediaCodec");
-		AMediaCodec_delete(decoder->codec);
-		decoder->codec = NULL;
-		ANativeWindow_release(decoder->window);
-		decoder->window = NULL;
+		goto error_codec;
 	}
+
+	goto beach;
+
+error_codec:
+	AMediaCodec_delete(decoder->codec);
+	decoder->codec = NULL;
+
+error_surface:
+	ANativeWindow_release(decoder->window);
+	decoder->window = NULL;
 
 beach:
 	chiaki_mutex_unlock(&decoder->codec_mutex);
@@ -139,7 +161,11 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 			codec_sample_size = codec_buf_size;
 		}
 		memcpy(codec_buf, buf, codec_sample_size);
-		AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, codec_sample_size, decoder->timestamp_cur++, 0); // timestamp just raised by 1 for maximum realtime
+		media_status_t r = AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, codec_sample_size, decoder->timestamp_cur++, 0); // timestamp just raised by 1 for maximum realtime
+		if(r != AMEDIA_OK)
+		{
+			CHIAKI_LOGE(decoder->log, "AMediaCodec_queueInputBuffer() failed: %d", (int)r);
+		}
 		buf += codec_sample_size;
 		buf_size -= codec_sample_size;
 

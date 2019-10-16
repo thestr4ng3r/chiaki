@@ -28,8 +28,8 @@
 template<size_t ChunksCount, size_t ChunkSize>
 class CircularBuffer
 {
-	static_assert(ChunksCount > 0);
-	static_assert(ChunkSize > 0);
+	static_assert(ChunksCount > 0, "ChunksCount > 0");
+	static_assert(ChunkSize > 0, "ChunkSize > 0");
 
 	private:
 		using Queue = memory_relaxed_aquire_release::CircularFifo<uint8_t *, ChunksCount>;
