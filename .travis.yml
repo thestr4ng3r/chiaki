@@ -134,7 +134,7 @@ matrix:
         - tar -czvf "$DEPLOY_FILE" chiaki
 
 after_success:
-  - if [ ! -z "$DEPLOY_FILE" ]; then curl --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then curl -m 300 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
 
 deploy:
   skip_cleanup: true
