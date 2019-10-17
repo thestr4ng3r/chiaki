@@ -43,4 +43,9 @@
     <string name="preferences_category_title_stream">Stream</string>
     <string name="preferences_registered_hosts_title">Registered Consoles</string>
     <string name="preferences_registered_hosts_summary">Currently registered: %d</string>
+    <string name="preferences_resolution_title">Resolution</string>
+    <string name="preferences_fps_title">FPS</string>
+    <string name="preferences_bitrate_title">Bitrate</string>
+    <string name="preferences_log_verbose_title">Verbose Logging</string>
+    <string name="preferences_log_verbose_summary">Warning: This logs a LOT! Don\'t enable for regular use.</string>
 </resources>

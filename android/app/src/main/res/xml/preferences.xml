@@ -11,10 +11,30 @@
             app:summary=" "
             app:title="@string/preferences_registered_hosts_title"
             app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"/>
+
+        <SwitchPreference
+            app:key="log_verbose"
+            app:title="@string/preferences_log_verbose_title"
+            app:summary="@string/preferences_log_verbose_summary"/>
     </PreferenceCategory>
 
     <PreferenceCategory
         app:key="category_stream"
         app:title="@string/preferences_category_title_stream">
+        <ListPreference
+            app:key="resolution"
+            app:title="@string/preferences_resolution_title"
+            app:entries="@array/preferences_resolution_names"
+            app:entryValues="@array/preferences_resolution_ids" />
+
+        <ListPreference
+            app:key="fps"
+            app:title="@string/preferences_fps_title"
+            app:entries="@array/preferences_fps_names"
+            app:entryValues="@array/preferences_fps_ids" />
+
+        <EditTextPreference
+            app:key="bitrate"
+            app:title="@string/preferences_bitrate_title" />
     </PreferenceCategory>
 </PreferenceScreen>
