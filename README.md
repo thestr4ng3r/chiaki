@@ -23,15 +23,21 @@ The following features however are yet to be implemented:
 * Rumble
 * Configurable Keybindings
 
-## Downloading a Release
+## Installing
 
-Builds are provided for Linux, macOS and Windows. You can find them [here](https://github.com/thestr4ng3r/chiaki/releases).
+You can either download a pre-built release (easier) or build Chiaki from source.
+
+### Downloading a Release
+
+Builds are provided for Linux, macOS and Windows.
+
+You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 * **Linux**: The provided file is an [AppImage](https://appimage.org/). Simply make it executable (`chmod +x <file>.AppImage`) and run it.
 * **macOS**: Drag the application from the `.dmg` into your Applications folder.
 * **Windows**: Extract the `.zip` file and execute `chiaki.exe`.
 
-## Building from Source
+### Building from Source
 
 Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1,
 protoc and the protobuf Python library (only used during compilation for Nanopb).
