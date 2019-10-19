@@ -43,12 +43,28 @@ cmake ..
 make
 ```
 
-## Obtaining your PSN AccountID
+## Usage
+
+If your PS4 is on your local network and on, Chiaki should find it.
+Otherwise, you can add it manually.
+To do so, click the "+" icon in the top right, and enter your PS4's IP address.
+
+You will then need to register your PS4 with Chiaki. You will need two more pieces of information to do this.
+
+### Obtaining your PSN AccountID
 
 Starting with PS4 7.0, it is necessary to use a so-called "AccountID" as opposed to the "Online-ID" for registration (streaming itself did not change).
 This ID seems to be a unique identifier for a PSN Account and it can be obtained from the PSN after logging in using OAuth.
 A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
 Simply run it in a terminal and follow the instructions. Once you know your ID, write it down. You will likely never have to do this process again.
+
+### Obtaining a registration PIN
+
+Each PS4 you which to register with Chiaki must be manually authorised to do so.
+To create a registration PIN, on your PS4, simply go to:
+Settings -> Remote Play (ensure this is ticked) -> Add Device
+
+You can now click on your PS4 in Chiaki's main window to start remote play.
 
 ## Acknowledgements
 
