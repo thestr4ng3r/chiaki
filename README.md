@@ -23,15 +23,21 @@ The following features however are yet to be implemented:
 * Rumble
 * Configurable Keybindings
 
-## Downloading a Release
+## Installing
 
-Builds are provided for Linux, macOS and Windows. You can find them [here](https://github.com/thestr4ng3r/chiaki/releases).
+You can either download a pre-built release (easier) or build Chiaki from source.
+
+### Downloading a Release
+
+Builds are provided for Linux, macOS and Windows.
+
+You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 * **Linux**: The provided file is an [AppImage](https://appimage.org/). Simply make it executable (`chmod +x <file>.AppImage`) and run it.
 * **macOS**: Drag the application from the `.dmg` into your Applications folder.
 * **Windows**: Extract the `.zip` file and execute `chiaki.exe`.
 
-## Building from Source
+### Building from Source
 
 Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1,
 protoc and the protobuf Python library (only used during compilation for Nanopb).
@@ -43,12 +49,27 @@ cmake ..
 make
 ```
 
-## Obtaining your PSN AccountID
+## Usage
+
+If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
+Otherwise, you can add it manually.
+To do so, click the "+" icon in the top right, and enter your PS4's IP address.
+
+You will then need to register your PS4 with Chiaki. You will need two more pieces of information to do this.
+
+### Obtaining your PSN AccountID
 
 Starting with PS4 7.0, it is necessary to use a so-called "AccountID" as opposed to the "Online-ID" for registration (streaming itself did not change).
 This ID seems to be a unique identifier for a PSN Account and it can be obtained from the PSN after logging in using OAuth.
 A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
 Simply run it in a terminal and follow the instructions. Once you know your ID, write it down. You will likely never have to do this process again.
+
+### Obtaining a Registration PIN
+
+To register a PS4 with a PIN, it must be put into registration mode. To do this, on your PS4, simply go to:
+Settings -> Remote Play (ensure this is ticked) -> Add Device
+
+You can now double-click your PS4 in Chiaki's main window to start Remote Play.
 
 ## Acknowledgements
 
