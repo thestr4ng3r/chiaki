@@ -51,7 +51,7 @@ make
 
 ## Usage
 
-If your PS4 is on your local network and on, Chiaki should find it.
+If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
 Otherwise, you can add it manually.
 To do so, click the "+" icon in the top right, and enter your PS4's IP address.
 
@@ -64,13 +64,12 @@ This ID seems to be a unique identifier for a PSN Account and it can be obtained
 A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
 Simply run it in a terminal and follow the instructions. Once you know your ID, write it down. You will likely never have to do this process again.
 
-### Obtaining a registration PIN
+### Obtaining a Registration PIN
 
-Each PS4 you which to register with Chiaki must be manually authorised to do so.
-To create a registration PIN, on your PS4, simply go to:
+To register a PS4 with a PIN, it must be put into registration mode. To do this, on your PS4, simply go to:
 Settings -> Remote Play (ensure this is ticked) -> Add Device
 
-You can now click on your PS4 in Chiaki's main window to start remote play.
+You can now double-click your PS4 in Chiaki's main window to start Remote Play.
 
 ## Acknowledgements
 
