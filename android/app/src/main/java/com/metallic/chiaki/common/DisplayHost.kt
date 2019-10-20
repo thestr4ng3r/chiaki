@@ -25,6 +25,8 @@ sealed class DisplayHost
 	abstract val host: String
 	abstract val name: String?
 	abstract val id: String?
+
+	val isRegistered get() = registeredHost != null
 }
 
 class DiscoveredDisplayHost(

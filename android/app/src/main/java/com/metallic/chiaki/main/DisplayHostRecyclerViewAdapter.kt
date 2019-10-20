@@ -51,7 +51,22 @@ class DisplayHostRecyclerViewAdapter: RecyclerView.Adapter<DisplayHostRecyclerVi
 			it.nameTextView.text = host.name
 			it.hostTextView.text = context.getString(R.string.display_host_host, host.host)
 			val id = host.id
-			it.idTextView.text = if(id != null) context.getString(R.string.display_host_id, id) else ""
+			it.idTextView.text =
+				if(id != null)
+					context.getString(
+						if(host.isRegistered)
+							R.string.display_host_id_registered
+						else
+							R.string.display_host_id_unregistered,
+						id)
+				else
+					""
+			it.bottomInfoTextView.text = (host as? DiscoveredDisplayHost)?.discoveredHost?.let { discoveredHost ->
+				if(discoveredHost.runningAppName != null || discoveredHost.runningAppTitleid != null)
+					context.getString(R.string.display_host_app_title_id, discoveredHost.runningAppName ?: "", discoveredHost.runningAppTitleid ?: "")
+				else
+					""
+			} ?: ""
 			it.discoveredIndicatorLayout.visibility = if(host is DiscoveredDisplayHost) View.VISIBLE else View.GONE
 			it.stateIndicatorImageView.setImageResource(
 				if(host is DiscoveredDisplayHost)

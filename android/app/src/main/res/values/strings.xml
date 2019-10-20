@@ -12,7 +12,9 @@
     <string name="action_settings">Settings</string>
     <string name="action_discover">Discover Consoles Automatically</string>
     <string name="display_host_host">Address: %s</string>
-    <string name="display_host_id">ID: %s</string>
+    <string name="display_host_id_unregistered">ID: %s</string>
+    <string name="display_host_id_registered">ID: %s (registered)</string>
+    <string name="display_host_app_title_id">App: %s\nTitle ID: %s</string>
     <string name="action_register">Register Console</string>
     <string name="action_add_manual">Add Console Manually</string>
     <string name="regist_pin_instructions_before">On the PS4, navigate to</string>

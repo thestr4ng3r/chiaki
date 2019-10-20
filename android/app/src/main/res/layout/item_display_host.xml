@@ -60,7 +60,9 @@
                 tools:text="Address: Host"
                 android:textSize="16sp"
                 android:gravity="center"
-                android:textColor="?attr/colorOnSurface"/>
+                android:textColor="?attr/colorOnSurface"
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/idTextView"
@@ -71,17 +73,34 @@
                 tools:text="ID: C0FFEE1337"
                 android:textSize="16sp"
                 android:gravity="center"
-                android:textColor="?attr/colorOnSurface"/>
+                android:textColor="?attr/colorOnSurface"
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
             <ImageView
                 android:id="@+id/stateIndicatorImageView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
                 android:src="@drawable/ic_console"
                 app:layout_constraintTop_toBottomOf="@id/idTextView"
-                app:layout_constraintBottom_toBottomOf="parent"
                 android:layout_marginLeft="32dp"
-                android:layout_marginRight="32dp" />
+                android:layout_marginRight="32dp"
+                android:layout_marginTop="8dp"/>
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/bottomInfoTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-condensed-light"
+                android:gravity="center"
+                tools:text="App: Persona 5\nTitle ID: 1337"
+                app:layout_constraintTop_toBottomOf="@id/stateIndicatorImageView"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginBottom="8dp"
+                android:maxLines="2"
+                android:ellipsize="end"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

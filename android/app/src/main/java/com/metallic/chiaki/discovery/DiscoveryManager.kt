@@ -18,6 +18,8 @@
 package com.metallic.chiaki.discovery
 
 import android.util.Log
+import com.metallic.chiaki.common.MacAddress
+import com.metallic.chiaki.common.ext.hexToByteArray
 import com.metallic.chiaki.lib.CreateError
 import com.metallic.chiaki.lib.DiscoveryHost
 import com.metallic.chiaki.lib.DiscoveryService
@@ -26,6 +28,13 @@ import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
 import java.net.InetSocketAddress
+
+val DiscoveryHost.ps4Mac get() = this.hostId?.hexToByteArray()?.let {
+	if(it.size == MacAddress.LENGTH)
+		MacAddress(it)
+	else
+		null
+}
 
 class DiscoveryManager
 {

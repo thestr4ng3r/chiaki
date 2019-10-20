@@ -23,6 +23,7 @@ import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.ManualDisplayHost
 import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.discovery.DiscoveryManager
+import com.metallic.chiaki.discovery.ps4Mac
 import io.reactivex.rxkotlin.Observables
 
 class MainViewModel(val database: AppDatabase): ViewModel()
@@ -30,13 +31,18 @@ class MainViewModel(val database: AppDatabase): ViewModel()
 	val discoveryManager = DiscoveryManager().also { it.active = true /* TODO: from shared preferences */ }
 
 	val displayHosts by lazy {
-		Observables.combineLatest(database.manualHostDao().getAll().toObservable(), discoveryManager.discoveredHosts)
-			{ manualHosts, discoveredHosts ->
+		Observables.combineLatest(
+			database.manualHostDao().getAll().toObservable(),
+			database.registeredHostDao().getAll().toObservable(),
+			discoveryManager.discoveredHosts)
+			{ manualHosts, registeredHosts, discoveredHosts ->
+				val macRegisteredHosts = registeredHosts.associateBy { it.ps4Mac }
+				val idRegisteredHosts = registeredHosts.associateBy { it.id }
 				discoveredHosts.map {
-					DiscoveredDisplayHost(null /* TODO */, it)
+					DiscoveredDisplayHost(it.ps4Mac?.let { mac -> macRegisteredHosts[mac] }, it)
 				} +
 				manualHosts.map {
-					ManualDisplayHost(null /* TODO */, it)
+					ManualDisplayHost(it.registeredHost?.let { id -> idRegisteredHosts[id] }, it)
 				}
 			}
 			.toLiveData()

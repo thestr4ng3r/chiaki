@@ -22,13 +22,18 @@ import java.nio.ByteOrder
 
 class MacAddress(v: Long)
 {
+	companion object
+	{
+		val LENGTH = 6
+	}
+
 	constructor(data: ByteArray) : this(
-		if(data.size != 6)
+		if(data.size != LENGTH)
 			throw IllegalArgumentException("Data has invalid length for MAC")
 		else
 			data.let {
 				val buf = ByteBuffer.allocate(8)
-				buf.put(it, 0, 6)
+				buf.put(it, 0, LENGTH)
 				buf.order(ByteOrder.LITTLE_ENDIAN)
 				buf.getLong(0)
 			})
