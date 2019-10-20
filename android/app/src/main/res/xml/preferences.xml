@@ -22,19 +22,17 @@
         app:key="category_stream"
         app:title="@string/preferences_category_title_stream">
         <ListPreference
-            app:key="resolution"
+            app:key="@string/preferences_resolution_key"
             app:title="@string/preferences_resolution_title"
-            app:entries="@array/preferences_resolution_names"
-            app:entryValues="@array/preferences_resolution_ids" />
+            app:summary="%s" />
 
         <ListPreference
-            app:key="fps"
+            app:key="@string/preferences_fps_key"
             app:title="@string/preferences_fps_title"
-            app:entries="@array/preferences_fps_names"
-            app:entryValues="@array/preferences_fps_ids" />
+            app:summary="%s"/>
 
         <EditTextPreference
-            app:key="bitrate"
-            app:title="@string/preferences_bitrate_title" />
+            app:key="@string/preferences_bitrate_key"
+            app:title="@string/preferences_bitrate_title"/>
     </PreferenceCategory>
 </PreferenceScreen>

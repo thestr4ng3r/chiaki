@@ -8,6 +8,20 @@ import java.lang.Exception
 import java.net.InetSocketAddress
 import kotlin.math.abs
 
+enum class VideoResolutionPreset(val value: Int)
+{
+	RES_360P(1),
+	RES_540P(2),
+	RES_720P(3),
+	RES_1080P(4)
+}
+
+enum class VideoFPSPreset(val value: Int)
+{
+	FPS_30(30),
+	FPS_60(60)
+}
+
 @Parcelize
 data class ConnectVideoProfile(
 	val width: Int,

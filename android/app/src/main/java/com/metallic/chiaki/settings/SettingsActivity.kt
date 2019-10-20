@@ -23,11 +23,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import androidx.transition.TransitionManager
 import com.metallic.chiaki.R
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_settings.*
-import kotlinx.android.synthetic.main.activity_settings.toolbar
 
 interface TitleFragment
 {
