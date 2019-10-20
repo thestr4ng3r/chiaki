@@ -1,109 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+
+<androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="250dp"
+    app:cardCornerRadius="4dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginLeft="8dp"
+    android:layout_marginRight="8dp"
+    android:layout_marginBottom="0dp"
+    android:elevation="8dp"
+    android:foreground="?android:attr/selectableItemBackground">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="250dp"
-        app:cardCornerRadius="4dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginBottom="0dp"
-        android:elevation="8dp">
-
-        <FrameLayout
-            android:id="@+id/discoveredIndicatorLayout"
+    <FrameLayout
+        android:id="@+id/discoveredIndicatorLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left|top" >
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/ic_triangle"/>
+        <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="left|top" >
-            <ImageView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:src="@drawable/ic_triangle"/>
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_discovered_on_secondary"
-                android:layout_gravity="left|top"
-                android:layout_margin="8dp" />
-        </FrameLayout>
+            android:src="@drawable/ic_discovered_on_secondary"
+            android:layout_gravity="left|top"
+            android:layout_margin="8dp" />
+    </FrameLayout>
 
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nameTextView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="8dp">
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed-medium"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Name"
+            android:textSize="32sp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurface"/>
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nameTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-condensed-medium"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="Name"
-                android:textSize="32sp"
-                android:gravity="center"
-                android:textColor="?attr/colorOnSurface"/>
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/hostTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed-medium"
+            app:layout_constraintTop_toBottomOf="@id/nameTextView"
+            tools:text="Address: Host"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurface"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/hostTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-condensed-medium"
-                app:layout_constraintTop_toBottomOf="@id/nameTextView"
-                tools:text="Address: Host"
-                android:textSize="16sp"
-                android:gravity="center"
-                android:textColor="?attr/colorOnSurface"
-                android:maxLines="1"
-                android:ellipsize="end"/>
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/idTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed-medium"
+            app:layout_constraintTop_toBottomOf="@id/hostTextView"
+            tools:text="ID: C0FFEE1337"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurface"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/idTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-condensed-medium"
-                app:layout_constraintTop_toBottomOf="@id/hostTextView"
-                tools:text="ID: C0FFEE1337"
-                android:textSize="16sp"
-                android:gravity="center"
-                android:textColor="?attr/colorOnSurface"
-                android:maxLines="1"
-                android:ellipsize="end"/>
+        <ImageView
+            android:id="@+id/stateIndicatorImageView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:src="@drawable/ic_console"
+            app:layout_constraintTop_toBottomOf="@id/idTextView"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:layout_marginTop="8dp"/>
 
-            <ImageView
-                android:id="@+id/stateIndicatorImageView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:src="@drawable/ic_console"
-                app:layout_constraintTop_toBottomOf="@id/idTextView"
-                android:layout_marginLeft="32dp"
-                android:layout_marginRight="32dp"
-                android:layout_marginTop="8dp"/>
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/bottomInfoTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-condensed-light"
+            android:gravity="center"
+            tools:text="App: Persona 5\nTitle ID: 1337"
+            app:layout_constraintTop_toBottomOf="@id/stateIndicatorImageView"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginBottom="8dp"
+            android:maxLines="2"
+            android:ellipsize="end"/>
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/bottomInfoTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="16sp"
-                android:fontFamily="sans-serif-condensed-light"
-                android:gravity="center"
-                tools:text="App: Persona 5\nTitle ID: 1337"
-                app:layout_constraintTop_toBottomOf="@id/stateIndicatorImageView"
-                app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="8dp"
-                android:maxLines="2"
-                android:ellipsize="end"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </androidx.cardview.widget.CardView>
-
-</LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -27,7 +27,7 @@ import com.metallic.chiaki.common.ext.inflate
 import com.metallic.chiaki.lib.DiscoveryHost
 import kotlinx.android.synthetic.main.item_display_host.view.*
 
-class DisplayHostRecyclerViewAdapter: RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
+class DisplayHostRecyclerViewAdapter(val clickCallback: (DisplayHost) -> Unit): RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
 {
 	var hosts: List<DisplayHost> = listOf()
 		set(value)
@@ -78,6 +78,7 @@ class DisplayHostRecyclerViewAdapter: RecyclerView.Adapter<DisplayHostRecyclerVi
 					}
 				else
 					R.drawable.ic_console)
+			it.setOnClickListener { clickCallback(host) }
 		}
 	}
 }
