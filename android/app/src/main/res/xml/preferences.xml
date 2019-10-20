@@ -10,12 +10,14 @@
             tools:summary="@string/preferences_registered_hosts_summary"
             app:summary=" "
             app:title="@string/preferences_registered_hosts_title"
-            app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"/>
+            app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"
+            app:icon="@drawable/ic_console_simple"/>
 
         <SwitchPreference
             app:key="log_verbose"
             app:title="@string/preferences_log_verbose_title"
-            app:summary="@string/preferences_log_verbose_summary"/>
+            app:summary="@string/preferences_log_verbose_summary"
+            app:icon="@drawable/ic_log" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -24,15 +26,18 @@
         <ListPreference
             app:key="@string/preferences_resolution_key"
             app:title="@string/preferences_resolution_title"
-            app:summary="%s" />
+            app:summary="%s"
+            app:icon="@drawable/ic_resolution"/>
 
         <ListPreference
             app:key="@string/preferences_fps_key"
             app:title="@string/preferences_fps_title"
-            app:summary="%s"/>
+            app:summary="%s"
+            app:icon="@drawable/ic_fps"/>
 
         <EditTextPreference
             app:key="@string/preferences_bitrate_key"
-            app:title="@string/preferences_bitrate_title"/>
+            app:title="@string/preferences_bitrate_title"
+            app:icon="@drawable/ic_bitrate"/>
     </PreferenceCategory>
 </PreferenceScreen>

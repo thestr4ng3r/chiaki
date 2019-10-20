@@ -46,6 +46,7 @@ class SettingsRegisteredHostsFragment: PreferenceFragmentCompat(), TitleFragment
 				val pref = Preference(context)
 				pref.title = host.ps4Nickname
 				pref.summary = host.ps4Mac.toString()
+				pref.setIcon(R.drawable.ic_console_simple)
 				preferenceScreen.addPreference(pref)
 			}
 		})
