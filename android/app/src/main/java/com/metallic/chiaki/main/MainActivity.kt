@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.AnimationUtils
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -72,7 +73,10 @@ class MainActivity : AppCompatActivity()
 		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter()
 		hostsRecyclerView.adapter = recyclerViewAdapter
 		hostsRecyclerView.layoutManager = LinearLayoutManager(this)
-		viewModel.displayHosts.observe(this, Observer { recyclerViewAdapter.hosts = it })
+		viewModel.displayHosts.observe(this, Observer {
+			recyclerViewAdapter.hosts = it
+			hostsRecyclerView.scheduleLayoutAnimation()
+		})
 
 		viewModel.discoveryActive.observe(this, Observer { active ->
 			discoveryMenuItem?.let { updateDiscoveryMenuItem(it, active) }
