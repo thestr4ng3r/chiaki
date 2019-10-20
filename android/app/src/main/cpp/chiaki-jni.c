@@ -148,6 +148,15 @@ JNIEXPORT jboolean JNICALL JNI_FCN(quitReasonIsStopped)(JNIEnv *env, jobject obj
 	return value == CHIAKI_QUIT_REASON_STOPPED;
 }
 
+JNIEXPORT jobject JNICALL JNI_FCN(videoProfilePreset)(JNIEnv *env, jobject obj, jint resolution_preset, jint fps_preset)
+{
+	ChiakiConnectVideoProfile profile = { 0 };
+	chiaki_connect_video_profile_preset(&profile, (ChiakiVideoResolutionPreset)resolution_preset, (ChiakiVideoFPSPreset)fps_preset);
+	jclass profile_class = E->FindClass(env, BASE_PACKAGE"/ConnectVideoProfile");
+	jmethodID profile_ctor = E->GetMethodID(env, profile_class, "<init>", "(IIII)V");
+	return E->NewObject(env, profile_class, profile_ctor, profile.width, profile.height, profile.max_fps, profile.bitrate);
+}
+
 typedef struct android_chiaki_session_t
 {
 	ChiakiSession session;

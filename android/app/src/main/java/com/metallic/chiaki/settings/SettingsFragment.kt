@@ -19,11 +19,13 @@ package com.metallic.chiaki.settings
 
 import android.content.res.Resources
 import android.os.Bundle
+import android.text.InputType
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.preference.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 
@@ -47,6 +49,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 	{
 		preferences.resolutionKey -> preferences.resolution.value
 		preferences.fpsKey -> preferences.fps.value
+		preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
 		else -> defValue
 	}
 
@@ -64,6 +67,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 				val fps = Preferences.FPS.values().firstOrNull { it.value == value } ?: return
 				preferences.fps = fps
 			}
+			preferences.bitrateKey -> preferences.bitrate = value?.toIntOrNull()
 		}
 	}
 }
@@ -74,12 +78,13 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	{
 		val context = context ?: return
 
-		val preferences = Preferences(context)
+		val viewModel = ViewModelProviders
+			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
+			.get(SettingsViewModel::class.java)
+
+		val preferences = viewModel.preferences
 		preferenceManager.preferenceDataStore = DataStore(preferences)
 		setPreferencesFromResource(R.xml.preferences, rootKey)
-
-
-		val registeredHostsPreference = preferenceScreen.findPreference<Preference>("registered_hosts")
 
 		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_resolution_key))?.let {
 			it.entryValues = Preferences.resolutionAll.map { res -> res.value }.toTypedArray()
@@ -91,13 +96,23 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			it.entries = Preferences.fpsAll.map { fps -> getString(fps.title) }.toTypedArray()
 		}
 
-		val bitratePreference = preferenceScreen.findPreference<EditTextPreference>("bitrate")
-		bitratePreference?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { it.text }
+		val bitratePreference = preferenceScreen.findPreference<EditTextPreference>(getString(R.string.preferences_bitrate_key))
+		val bitrateSummaryProvider = Preference.SummaryProvider<EditTextPreference> {
+			preferences.bitrate?.toString() ?: getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
+		}
+		bitratePreference?.let {
+			it.summaryProvider = bitrateSummaryProvider
+			it.setOnBindEditTextListener { editText ->
+				editText.hint = getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
+				editText.inputType = InputType.TYPE_CLASS_NUMBER
+				editText.setText(preferences.bitrate?.toString() ?: "")
+			}
+		}
+		viewModel.bitrateAuto.observe(this, Observer {
+			bitratePreference?.summaryProvider = bitrateSummaryProvider
+		})
 
-		val viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context!!)) })
-			.get(SettingsViewModel::class.java)
-
+		val registeredHostsPreference = preferenceScreen.findPreference<Preference>("registered_hosts")
 		viewModel.registeredHostsCount.observe(this, Observer {
 			registeredHostsPreference?.summary = getString(R.string.preferences_registered_hosts_summary, it)
 		})

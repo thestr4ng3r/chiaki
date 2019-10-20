@@ -26,9 +26,9 @@ import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.widget.addTextChangedListener
+import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.lib.ConnectInfo
-import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.stream.StreamActivity
 import kotlinx.android.synthetic.main.activity_test_start.*
 
@@ -75,7 +75,7 @@ class TestStartActivity : AppCompatActivity(), RevealActivity
 			val connectInfo = ConnectInfo(hostEditText.text.toString(),
 				registKey,
 				morning,
-				ConnectVideoProfile(1280, 720, 60, 10000))
+				Preferences(this).videoProfile)
 
 			Intent(this, StreamActivity::class.java).let {
 				it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)

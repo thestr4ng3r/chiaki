@@ -60,4 +60,5 @@
     <string name="preferences_fps_title_30">30</string>
     <string name="preferences_fps_title_60">60</string>
     <string name="preferences_bitrate_key">stream_bitrate</string>
+    <string name="preferences_bitrate_auto">Auto (%d)</string>
 </resources>

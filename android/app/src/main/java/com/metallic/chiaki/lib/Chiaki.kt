@@ -29,6 +29,13 @@ data class ConnectVideoProfile(
 	val maxFPS: Int,
 	val bitrate: Int
 ): Parcelable
+{
+	companion object
+	{
+		fun preset(resolutionPreset: VideoResolutionPreset, fpsPreset: VideoFPSPreset)
+				= ChiakiNative.videoProfilePreset(resolutionPreset.value, fpsPreset.value)
+	}
+}
 
 @Parcelize
 data class ConnectInfo(
@@ -50,6 +57,7 @@ private class ChiakiNative
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun quitReasonToString(value: Int): String
 		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
+		@JvmStatic external fun videoProfilePreset(resolutionPreset: Int, fpsPreset: Int): ConnectVideoProfile
 		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
