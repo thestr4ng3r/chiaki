@@ -8,6 +8,9 @@
     <string name="alert_message_login_pin_request">Login PIN:</string>
     <string name="alert_message_login_pin_request_incorrect">Entered PIN was incorrect!\nLogin PIN:</string>
     <string name="action_reconnect">Reconnect</string>
+    <string name="action_wakeup">Wakeup</string>
+    <string name="action_connect_immediately">Connect</string>
+    <string name="action_connect_cancel_connect">Cancel</string>
     <string name="action_quit_session">Quit</string>
     <string name="action_login_pin_connect">Connect</string>
     <string name="action_settings">Settings</string>

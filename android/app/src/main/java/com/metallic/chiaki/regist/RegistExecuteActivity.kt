@@ -18,15 +18,15 @@
 package com.metallic.chiaki.regist
 
 import android.app.Activity
-import android.app.AlertDialog
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.MacAddress
 import com.metallic.chiaki.common.ext.viewModelFactory
@@ -54,6 +54,9 @@ class RegistExecuteActivity: AppCompatActivity()
 		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
 			.get(RegistExecuteViewModel::class.java)
+
+		showDuplicateDialog()
+		return
 
 		logTextView.setHorizontallyScrolling(true)
 		logTextView.movementMethod = ScrollingMovementMethod()
@@ -123,7 +126,7 @@ class RegistExecuteActivity: AppCompatActivity()
 
 		val macStr = viewModel.host?.ps4Mac?.let { MacAddress(it).toString() } ?: ""
 
-		dialog = AlertDialog.Builder(this)
+		dialog = MaterialAlertDialogBuilder(this)
 			.setMessage(getString(R.string.alert_regist_duplicate, macStr))
 			.setNegativeButton(R.string.action_regist_discard) { _, _ ->  }
 			.setPositiveButton(R.string.action_regist_overwrite) { _, _ ->

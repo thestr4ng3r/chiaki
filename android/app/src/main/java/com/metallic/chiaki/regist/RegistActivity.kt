@@ -79,7 +79,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 		viewModel.ps4Version.observe(this, Observer {
 			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.PS4Version.GE_7) View.VISIBLE else View.GONE
-			psnIdTextInputLayout.hint = getString(when(it)
+			psnIdTextInputLayout.hint = getString(when(it!!)
 			{
 				RegistViewModel.PS4Version.GE_7 -> R.string.hint_regist_psn_account_id
 				RegistViewModel.PS4Version.LT_7 -> R.string.hint_regist_psn_online_id

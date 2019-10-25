@@ -18,31 +18,30 @@
 package com.metallic.chiaki.main
 
 import android.app.ActivityOptions
+import android.app.AlertDialog
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.view.animation.AnimationUtils
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
 import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
 import com.metallic.chiaki.common.Preferences
-import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.common.ext.putRevealExtra
-import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.DiscoveryHost
+import com.metallic.chiaki.lib.RegistEventSuccess
 import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import com.metallic.chiaki.stream.StreamActivity
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity()
@@ -173,23 +172,38 @@ class MainActivity : AppCompatActivity()
 		val registeredHost = host.registeredHost
 		if(registeredHost != null)
 		{
-			if(host is DiscoveredDisplayHost && host.discoveredHost.state == DiscoveryHost.State.STANDBY)
-			{
-				// TODO: show AlertDialog
-				viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
-			}
-			else
-			{
+			fun connect() {
 				val connectInfo = ConnectInfo(host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
 				Intent(this, StreamActivity::class.java).let {
 					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
 					startActivity(it)
 				}
 			}
+
+			if(host is DiscoveredDisplayHost && host.discoveredHost.state == DiscoveryHost.State.STANDBY)
+			{
+				MaterialAlertDialogBuilder(this)
+					.setMessage(R.string.alert_message_standby_wakeup)
+					.setPositiveButton(R.string.action_wakeup) { _, _ ->
+						viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
+					}
+					.setNeutralButton(R.string.action_connect_immediately) { _, _ ->
+						connect()
+					}
+					.setNegativeButton(R.string.action_connect_cancel_connect) { _, _ -> }
+					.create()
+					.show()
+			}
+			else
+				connect()
 		}
 		else
 		{
-			// TODO: show registration
+			Intent(this, RegistActivity::class.java).let {
+				it.putExtra(RegistActivity.EXTRA_HOST, host.host)
+				it.putExtra(RegistActivity.EXTRA_BROADCAST, false)
+				startActivity(it)
+			}
 		}
 	}
 }

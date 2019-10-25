@@ -30,6 +30,7 @@ import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ConnectInfo
@@ -142,7 +143,7 @@ class StreamActivity : AppCompatActivity()
 				{
 					dialog?.dismiss()
 					val reasonStr = state.reasonString
-					val dialog = AlertDialog.Builder(this)
+					val dialog = MaterialAlertDialogBuilder(this)
 						.setMessage(getString(R.string.alert_message_session_quit, state.reason.toString())
 								+ (if(reasonStr != null) "\n$reasonStr" else ""))
 						.setPositiveButton(R.string.action_reconnect) { _, _ ->
@@ -168,7 +169,7 @@ class StreamActivity : AppCompatActivity()
 				if(dialogContents != CreateErrorDialog)
 				{
 					dialog?.dismiss()
-					val dialog = AlertDialog.Builder(this)
+					val dialog = MaterialAlertDialogBuilder(this)
 						.setMessage(getString(R.string.alert_message_session_create_error, state.error.errorCode.toString()))
 						.setOnDismissListener {
 							dialog = null
@@ -190,7 +191,7 @@ class StreamActivity : AppCompatActivity()
 					val view = layoutInflater.inflate(R.layout.dialog_login_pin, null)
 					val pinEditText = view.findViewById<EditText>(R.id.pinEditText)
 
-					val dialog = AlertDialog.Builder(this)
+					val dialog = MaterialAlertDialogBuilder(this)
 						.setMessage(
 							if(state.pinIncorrect)
 								R.string.alert_message_login_pin_request_incorrect
