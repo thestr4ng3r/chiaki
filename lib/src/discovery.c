@@ -159,7 +159,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	}
 
 	const int broadcast = 1;
-	r = setsockopt(discovery->socket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+	r = setsockopt(discovery->socket, SOL_SOCKET, SO_BROADCAST, (const void *)&broadcast, sizeof(broadcast));
 	if(r < 0)
 		CHIAKI_LOGE(discovery->log, "Discovery failed to setsockopt SO_BROADCAST");
 
