@@ -77,6 +77,14 @@
         <item name="boxBackgroundColor">?attr/colorPrimaryDark</item>
     </style>
 
+    <style name="MageTheme.TextInputStyle.ExposedDropdownMenu" parent="Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu">
+        <item name="hintTextColor">?attr/colorAccent</item>
+        <item name="boxCornerRadiusTopStart">16dp</item>
+        <item name="boxCornerRadiusTopEnd">16dp</item>
+        <item name="boxStrokeColor">@color/mage_text_input_box_stroke</item>
+        <item name="boxBackgroundColor">?attr/colorPrimaryDark</item>
+    </style>
+
     <style name="MageTheme.Button" parent="Widget.MaterialComponents.Button">
         <item name="tint">?attr/colorOnSecondary</item>
         <item name="android:backgroundTint">?attr/colorSecondary</item>

@@ -55,9 +55,6 @@ class RegistExecuteActivity: AppCompatActivity()
 			.of(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
 			.get(RegistExecuteViewModel::class.java)
 
-		showDuplicateDialog()
-		return
-
 		logTextView.setHorizontallyScrolling(true)
 		logTextView.movementMethod = ScrollingMovementMethod()
 		viewModel.logText.observe(this, Observer {

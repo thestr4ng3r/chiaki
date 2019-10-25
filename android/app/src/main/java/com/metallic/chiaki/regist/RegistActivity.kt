@@ -20,7 +20,6 @@ package com.metallic.chiaki.regist
 import android.content.Intent
 import android.os.Bundle
 import android.util.Base64
-import android.util.Log
 import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
@@ -112,7 +111,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		val pin = pinEditText.text.toString()
 		val pinValid = pin.length == PIN_LENGTH
 
-		hostEditText.error = if(!hostValid) getString(R.string.regist_host_invalid) else null
+		hostEditText.error = if(!hostValid) getString(R.string.entered_host_invalid) else null
 		psnIdEditText.error =
 			if(!psnIdValid)
 				getString(when(ps4Version)

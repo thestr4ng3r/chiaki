@@ -35,7 +35,7 @@
     <string name="hint_regist_psn_account_id">PSN Account ID (8 bytes, base64)</string>
     <string name="hint_regist_pin">PIN</string>
     <string name="action_regist">Register</string>
-    <string name="regist_host_invalid">Please enter a valid host name</string>
+    <string name="entered_host_invalid">Please enter a valid host name</string>
     <string name="regist_psn_online_id_invalid">Please enter a valid PSN ID</string>
     <string name="regist_psn_account_id_invalid">Please enter a valid 8-byte Account ID in Base64</string>
     <string name="regist_pin_invalid">Please enter a valid %d-digit PIN</string>
@@ -45,6 +45,10 @@
     <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
     <string name="action_regist_overwrite">Overwrite</string>
     <string name="action_regist_discard">Cancel</string>
+    <string name="title_add_manual">Add Console Manually</string>
+    <string name="action_add_manual_save">Save</string>
+    <string name="hint_add_manual_regist_host">Registered Console</string>
+    <string name="add_manual_regist_on_connect">Register on first Connection</string>
     <string name="preferences_category_title_general">General</string>
     <string name="preferences_category_title_stream">Stream</string>
     <string name="preferences_registered_hosts_title">Registered Consoles</string>

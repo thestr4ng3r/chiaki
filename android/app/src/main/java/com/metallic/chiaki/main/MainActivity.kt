@@ -18,7 +18,6 @@
 package com.metallic.chiaki.main
 
 import android.app.ActivityOptions
-import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -29,7 +28,6 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
-import com.metallic.chiaki.TestStartActivity
 import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
 import com.metallic.chiaki.common.Preferences
@@ -38,7 +36,7 @@ import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.DiscoveryHost
-import com.metallic.chiaki.lib.RegistEventSuccess
+import com.metallic.chiaki.manualconsole.AddManualConsoleActivity
 import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import com.metallic.chiaki.stream.StreamActivity
@@ -153,7 +151,7 @@ class MainActivity : AppCompatActivity()
 
 	private fun addManualConsole()
 	{
-		Intent(this, TestStartActivity::class.java).also {
+		Intent(this, AddManualConsoleActivity::class.java).also {
 			it.putRevealExtra(addManualButton, rootLayout)
 			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
 		}

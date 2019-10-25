@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="add_console.svg"
+   inkscape:version="1.0beta1 (5c3063637d, 2019-10-15)"
+   id="svg965"
+   version="1.1"
+   viewBox="0 0 133.61458 33.866667"
+   height="128"
+   width="505">
+  <defs
+     id="defs959" />
+  <sodipodi:namedview
+     inkscape:guide-bbox="true"
+     showguides="true"
+     inkscape:document-rotation="0"
+     inkscape:lockguides="true"
+     inkscape:object-paths="true"
+     inkscape:window-maximized="1"
+     inkscape:window-y="15"
+     inkscape:window-x="1920"
+     inkscape:window-height="1048"
+     inkscape:window-width="1918"
+     units="px"
+     showgrid="false"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="95.042315"
+     inkscape:cx="242.99039"
+     inkscape:zoom="1.979899"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata962">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(0,-263.13332)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Ebene 1">
+    <g
+       transform="matrix(1.3766446,0,0,1.3780225,-1.5050122e-6,-108.03923)"
+       id="g936">
+      <path
+         sodipodi:nodetypes="cccccccccccccccc"
+         inkscape:connector-curvature="0"
+         transform="matrix(0.26458333,0,0,0.26458333,0,264.7064)"
+         d="M 42.828125,28.005859 25.089844,57.822266 H 263.94727 v -5.429688 c -0.002,-5.521857 4.47228,-10.000119 9.99414,-10.003906 h 24.83984 V 28.005859 Z M 17.738281,70.179688 0,99.994141 H 298.78125 V 85.609375 h -24.83984 c -5.52109,-0.0038 -9.99467,-4.480859 -9.99414,-10.001953 v -5.427734 z"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:53.1311;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path950" />
+      <g
+         style="opacity:1"
+         id="g859">
+        <path
+           inkscape:connector-curvature="0"
+           id="path863"
+           d="m 81.697855,269.35159 v 9.21598 h -9.216493 v 6.14433 h 9.216493 v 9.21597 h 6.143811 v -9.21597 h 9.21649 v -6.14433 h -9.21649 v -9.21598 z"
+           style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5.29167;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000000;stop-opacity:1" />
+      </g>
+    </g>
+  </g>
+</svg>

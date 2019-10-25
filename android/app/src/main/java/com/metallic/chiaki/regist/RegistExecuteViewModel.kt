@@ -28,7 +28,6 @@ import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.lib.*
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.functions.Action
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 
@@ -113,7 +112,7 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 			.andThen(dao.insert(registeredHost))
 			.subscribeOn(Schedulers.io())
 			.observeOn(AndroidSchedulers.mainThread())
-			.subscribe { _ ->
+			.subscribe { _ -> /* No, IntelliJ, this "_ ->" IS necessary. */
 				Log.i("RegistExecute", "Registered Host saved in db")
 				_state.value = State.SUCCESSFUL
 			}
