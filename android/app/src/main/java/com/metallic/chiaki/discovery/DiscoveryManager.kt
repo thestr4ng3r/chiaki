@@ -27,7 +27,10 @@ import com.metallic.chiaki.lib.DiscoveryServiceOptions
 import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
+import java.lang.NumberFormatException
 import java.net.InetSocketAddress
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 val DiscoveryHost.ps4Mac get() = this.hostId?.hexToByteArray()?.let {
 	if(it.size == MacAddress.LENGTH)
@@ -79,6 +82,16 @@ class DiscoveryManager
 	fun dispose()
 	{
 		active = false
+	}
+
+	fun sendWakeup(host: String, registKey: ByteArray)
+	{
+		val registKeyString = registKey.indexOfFirst { it == 0.toByte() }.let { end -> registKey.copyOfRange(0, if(end >= 0) end else registKey.size) }.toString(StandardCharsets.UTF_8)
+		val credential = try { registKeyString.toULong(16) } catch(e: NumberFormatException) {
+			Log.e("DiscoveryManager", "Failed to convert registKey to int", e)
+			return
+		}
+		DiscoveryService.wakeup(discoveryService, host, credential)
 	}
 
 	private fun updateService()

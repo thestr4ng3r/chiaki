@@ -30,6 +30,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.metallic.chiaki.R
 import com.metallic.chiaki.TestStartActivity
+import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.RevealActivity
@@ -37,6 +38,7 @@ import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.lib.DiscoveryHost
 import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import com.metallic.chiaki.stream.StreamActivity
@@ -171,12 +173,18 @@ class MainActivity : AppCompatActivity()
 		val registeredHost = host.registeredHost
 		if(registeredHost != null)
 		{
-			// TODO: check standby
-
-			val connectInfo = ConnectInfo(host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
-			Intent(this, StreamActivity::class.java).let {
-				it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
-				startActivity(it)
+			if(host is DiscoveredDisplayHost && host.discoveredHost.state == DiscoveryHost.State.STANDBY)
+			{
+				// TODO: show AlertDialog
+				viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
+			}
+			else
+			{
+				val connectInfo = ConnectInfo(host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
+				Intent(this, StreamActivity::class.java).let {
+					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
+					startActivity(it)
+				}
 			}
 		}
 		else

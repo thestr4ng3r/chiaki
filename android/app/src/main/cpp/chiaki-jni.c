@@ -639,6 +639,16 @@ JNIEXPORT void JNICALL JNI_FCN(discoveryServiceFree)(JNIEnv *env, jobject obj, j
 	free(service);
 }
 
+JNIEXPORT jint JNICALL JNI_FCN(discoveryServiceWakeup)(JNIEnv *env, jobject obj, jlong ptr, jstring host_string, jlong user_credential)
+{
+	AndroidDiscoveryService *service = (AndroidDiscoveryService *)ptr;
+	const char *host = E->GetStringUTFChars(env, host_string, NULL);
+	ChiakiErrorCode r = chiaki_discovery_wakeup(&global_log, service ? &service->service.discovery : NULL, host, (uint64_t)user_credential);
+	E->ReleaseStringUTFChars(env, host_string, host);
+	return r;
+}
+
+
 typedef struct android_chiaki_regist_t
 {
 	AndroidChiakiLog log;

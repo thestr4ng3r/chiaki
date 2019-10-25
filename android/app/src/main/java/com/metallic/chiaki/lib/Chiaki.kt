@@ -68,6 +68,7 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
 		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
 		@JvmStatic external fun discoveryServiceFree(ptr: Long)
+		@JvmStatic external fun discoveryServiceWakeup(ptr: Long, host: String, userCredential: Long)
 		@JvmStatic external fun registStart(result: CreateResult, registInfo: RegistInfo, javaLog: ChiakiLog, javaRegist: Regist)
 		@JvmStatic external fun registStop(ptr: Long)
 		@JvmStatic external fun registFree(ptr: Long)
@@ -278,6 +279,12 @@ class DiscoveryService(
 	options: DiscoveryServiceOptions,
 	val callback: ((hosts: List<DiscoveryHost>) -> Unit)?)
 {
+	companion object
+	{
+		fun wakeup(service: DiscoveryService?, host: String, userCredential: ULong) =
+			ChiakiNative.discoveryServiceWakeup(service?.nativePtr ?: 0, host, userCredential.toLong())
+	}
+
 	private var nativePtr: Long
 
 	init
