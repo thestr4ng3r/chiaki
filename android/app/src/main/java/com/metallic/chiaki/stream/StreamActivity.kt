@@ -149,7 +149,7 @@ class StreamActivity : AppCompatActivity()
 							dialog = null
 							reconnect()
 						}
-						.setOnDismissListener {
+						.setOnCancelListener {
 							dialog = null
 							finish()
 						}
@@ -174,10 +174,7 @@ class StreamActivity : AppCompatActivity()
 							dialog = null
 							finish()
 						}
-						.setNegativeButton(R.string.action_quit_session) { _, _ ->
-							dialog = null
-							finish()
-						}
+						.setNegativeButton(R.string.action_quit_session) { _, _ -> }
 						.create()
 					dialogContents = CreateErrorDialog
 					dialog.show()
@@ -204,7 +201,7 @@ class StreamActivity : AppCompatActivity()
 							dialog = null
 							viewModel.session.setLoginPin(pinEditText.text.toString())
 						}
-						.setOnDismissListener {
+						.setOnCancelListener {
 							dialog = null
 							finish()
 						}
