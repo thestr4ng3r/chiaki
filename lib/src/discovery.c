@@ -290,3 +290,59 @@ static void *discovery_thread_func(void *user)
 
 	return NULL;
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDiscovery *discovery, const char *host, uint64_t user_credential)
+{
+	struct addrinfo *addrinfos;
+	int r = getaddrinfo(host, NULL, NULL, &addrinfos); // TODO: this blocks, use something else
+	if(r != 0)
+	{
+		CHIAKI_LOGE(log, "DiscoveryManager failed to getaddrinfo for wakeup");
+		return CHIAKI_ERR_NETWORK;
+	}
+	struct sockaddr addr = {};
+	socklen_t addr_len = 0;
+	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
+	{
+		if(ai->ai_family != AF_INET)
+			continue;
+		//if(ai->ai_protocol != IPPROTO_UDP)
+		//	continue;
+		if(ai->ai_addrlen > sizeof(addr))
+			continue;
+		memcpy(&addr, ai->ai_addr, ai->ai_addrlen);
+		addr_len = ai->ai_addrlen;
+		break;
+	}
+	freeaddrinfo(addrinfos);
+
+	if(!addr_len)
+	{
+		CHIAKI_LOGE(log, "DiscoveryManager failed to get suitable address from getaddrinfo for wakeup");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	((struct sockaddr_in *)&addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT);
+
+	ChiakiDiscoveryPacket packet = {};
+	packet.cmd = CHIAKI_DISCOVERY_CMD_WAKEUP;
+	packet.user_credential = user_credential;
+
+	ChiakiErrorCode err;
+	if(discovery)
+		err = chiaki_discovery_send(discovery, &packet, &addr, addr_len);
+	else
+	{
+		ChiakiDiscovery tmp_discovery;
+		err = chiaki_discovery_init(&tmp_discovery, log, AF_INET);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(log, "Failed to init temporary discovery for wakeup: %s", chiaki_error_string(err));
+			return err;
+		}
+		err = chiaki_discovery_send(&tmp_discovery, &packet, &addr, addr_len);
+		chiaki_discovery_fini(&tmp_discovery);
+	}
+
+	return err;
+}

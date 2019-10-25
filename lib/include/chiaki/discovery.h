@@ -112,6 +112,12 @@ typedef struct chiaki_discovery_thread_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread);
 
+/**
+ * Convenience function to send a wakeup packet
+ * @param discovery Discovery to send the packet on. May be NULL, in which case a new temporary Discovery will be created
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDiscovery *discovery, const char *host, uint64_t user_credential);
+
 #ifdef __cplusplus
 }
 #endif

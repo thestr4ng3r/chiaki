@@ -97,37 +97,6 @@ void DiscoveryManager::SetActive(bool active)
 
 void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_key)
 {
-	addrinfo *addrinfos;
-	int r = getaddrinfo(host.toLocal8Bit().constData(), nullptr, nullptr, &addrinfos);
-	if(r != 0)
-	{
-		CHIAKI_LOGE(&log, "DiscoveryManager failed to getaddrinfo for wakeup");
-		throw Exception("Failed to getaddrinfo");
-	}
-	sockaddr addr = {};
-	socklen_t addr_len = 0;
-	for(addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
-	{
-		if(ai->ai_family != AF_INET)
-			continue;
-		//if(ai->ai_protocol != IPPROTO_UDP)
-		//	continue;
-		if(ai->ai_addrlen > sizeof(addr))
-			continue;
-		std::memcpy(&addr, ai->ai_addr, ai->ai_addrlen);
-		addr_len = ai->ai_addrlen;
-		break;
-	}
-	freeaddrinfo(addrinfos);
-
-	if(!addr_len)
-	{
-		CHIAKI_LOGE(&log, "DiscoveryManager failed to get suitable address from getaddrinfo for wakeup");
-		throw Exception("Failed to get addr from getaddrinfo");
-	}
-
-	((sockaddr_in *)&addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT);
-
 	QByteArray key = regist_key;
 	for(size_t i=0; i<key.size(); i++)
 	{
@@ -146,22 +115,7 @@ void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_
 		throw Exception("Invalid regist key");
 	}
 
-	ChiakiDiscoveryPacket packet = {};
-	packet.cmd = CHIAKI_DISCOVERY_CMD_WAKEUP;
-	packet.user_credential = credential;
-
-	ChiakiErrorCode err;
-	if(service_active)
-		err = chiaki_discovery_send(&service.discovery, &packet, &addr, addr_len);
-	else
-	{
-		ChiakiDiscovery discovery;
-		err = chiaki_discovery_init(&discovery, &log, AF_INET);
-		if(err != CHIAKI_ERR_SUCCESS)
-			throw Exception(QString("Failed to init Discovery: %1").arg(chiaki_error_string(err)));
-		err = chiaki_discovery_send(&discovery, &packet, &addr, addr_len);
-		chiaki_discovery_fini(&discovery);
-	}
+	ChiakiErrorCode err = chiaki_discovery_wakeup(&log, service_active ? &service.discovery : nullptr, host.toUtf8().constData(), credential);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw Exception(QString("Failed to send Packet: %1").arg(chiaki_error_string(err)));
