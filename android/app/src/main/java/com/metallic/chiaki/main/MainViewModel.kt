@@ -21,14 +21,26 @@ import androidx.lifecycle.ViewModel
 import com.metallic.chiaki.common.AppDatabase
 import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.ManualDisplayHost
+import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.discovery.DiscoveryManager
 import com.metallic.chiaki.discovery.ps4Mac
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.Observables
+import io.reactivex.rxkotlin.addTo
 
-class MainViewModel(val database: AppDatabase): ViewModel()
+class MainViewModel(val database: AppDatabase, val preferences: Preferences): ViewModel()
 {
-	val discoveryManager = DiscoveryManager().also { it.active = true /* TODO: from shared preferences */ }
+	private val disposable = CompositeDisposable()
+
+	val discoveryManager = DiscoveryManager().also {
+		it.active = preferences.discoveryEnabled
+		it.discoveryActive
+			.observeOn(AndroidSchedulers.mainThread())
+			.subscribe { preferences.discoveryEnabled = it }
+			.addTo(disposable)
+	}
 
 	val displayHosts by lazy {
 		Observables.combineLatest(
@@ -55,6 +67,7 @@ class MainViewModel(val database: AppDatabase): ViewModel()
 	override fun onCleared()
 	{
 		super.onCleared()
+		disposable.dispose()
 		discoveryManager.dispose()
 	}
 }

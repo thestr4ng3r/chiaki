@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity()
 		registerLabelButton.setOnClickListener { showRegistration() }
 
 		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { MainViewModel(getDatabase(this)) })
+			.of(this, viewModelFactory { MainViewModel(getDatabase(this), Preferences(this)) })
 			.get(MainViewModel::class.java)
 
 		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered)

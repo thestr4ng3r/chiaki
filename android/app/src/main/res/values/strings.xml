@@ -60,6 +60,7 @@
     <string name="preferences_log_verbose_summary">Warning: This logs a LOT! Don\'t enable for regular use.</string>
 
     <!-- Don't localize these -->
+    <string name="preferences_discovery_enabled_key">discovery_enabled</string>
     <string name="preferences_log_verbose_key">log_verbose</string>
     <string name="preferences_resolution_key">stream_resolution</string>
     <string name="preferences_resolution_title_360p">360p</string>

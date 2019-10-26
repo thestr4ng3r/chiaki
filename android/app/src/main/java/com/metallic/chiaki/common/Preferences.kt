@@ -64,6 +64,11 @@ class Preferences(context: Context)
 
 	private val resources = context.resources
 
+	val discoveryEnabledKey get() = resources.getString(R.string.preferences_discovery_enabled_key)
+	var discoveryEnabled
+		get() = sharedPreferences.getBoolean(discoveryEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(discoveryEnabledKey, value).apply() }
+
 	val logVerboseKey get() = resources.getString(R.string.preferences_log_verbose_key)
 	var logVerbose
 		get() = sharedPreferences.getBoolean(logVerboseKey, false)
