@@ -12,4 +12,6 @@
 
     <color name="control_primary">#22ffffff</color>
     <color name="control_pressed">#88ffffff</color>
+
+    <color name="item_delete_background">#B71C1C</color>
 </resources>

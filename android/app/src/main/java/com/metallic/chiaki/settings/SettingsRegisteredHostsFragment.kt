@@ -17,40 +17,72 @@
 
 package com.metallic.chiaki.settings
 
+import android.app.ActivityOptions
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.regist.RegistActivity
+import kotlinx.android.synthetic.main.fragment_settings_registered_hosts.*
 
-class SettingsRegisteredHostsFragment: PreferenceFragmentCompat(), TitleFragment
+class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 {
 	private lateinit var viewModel: SettingsRegisteredHostsViewModel
 
-	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
-	{
-		val context = preferenceManager.context
-		preferenceScreen = preferenceManager.createPreferenceScreen(context)
+	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+		inflater.inflate(R.layout.fragment_settings_registered_hosts, container, false)
 
+	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
+	{
 		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context!!)) })
 			.get(SettingsRegisteredHostsViewModel::class.java)
 
-		viewModel.registeredHosts.observe(this, Observer {
-			preferenceScreen.removeAll()
-			it.forEach { host ->
-				val pref = Preference(context)
-				pref.title = host.ps4Nickname
-				pref.summary = host.ps4Mac.toString()
-				pref.setIcon(R.drawable.ic_console_simple)
-				preferenceScreen.addPreference(pref)
+		val adapter = SettingsRegisteredHostsAdapter()
+		hostsRecyclerView.layoutManager = LinearLayoutManager(context)
+		hostsRecyclerView.adapter = adapter
+		val itemTouchSwipeCallback = object : ItemTouchSwipeCallback(context!!)
+		{
+			override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int)
+			{
+				val pos = viewHolder.adapterPosition
+				val host = viewModel.registeredHosts.value?.getOrNull(pos) ?: return
+				MaterialAlertDialogBuilder(viewHolder.itemView.context)
+					.setMessage(getString(R.string.alert_message_delete_registered_host, host.ps4Nickname, host.ps4Mac.toString()))
+					.setPositiveButton(R.string.alert_action_delete_registered_host) { _, _ ->
+						viewModel.deleteHost(host)
+					}
+					.setNegativeButton(R.string.alert_action_keep_registered_host) { _, _ ->
+						adapter.notifyItemChanged(pos) // to reset the swipe
+					}
+					.create()
+					.show()
 			}
+		}
+		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(hostsRecyclerView)
+		viewModel.registeredHosts.observe(this, Observer {
+			adapter.hosts = it
 		})
 
+		floatingActionButton.setOnClickListener {
+			Intent(context, RegistActivity::class.java).also {
+				it.putRevealExtra(floatingActionButton, rootLayout)
+				startActivity(it, ActivityOptions.makeSceneTransitionAnimation(activity).toBundle())
+			}
+		}
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.preferences_registered_hosts_title)

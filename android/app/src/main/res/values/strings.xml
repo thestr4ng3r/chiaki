@@ -58,6 +58,9 @@
     <string name="preferences_bitrate_title">Bitrate</string>
     <string name="preferences_log_verbose_title">Verbose Logging</string>
     <string name="preferences_log_verbose_summary">Warning: This logs a LOT! Don\'t enable for regular use.</string>
+    <string name="alert_message_delete_registered_host">Are you sure you want to delete the registered console %s with ID %s?</string>
+    <string name="alert_action_delete_registered_host">Delete</string>
+    <string name="alert_action_keep_registered_host">Keep</string>
 
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key">discovery_enabled</string>

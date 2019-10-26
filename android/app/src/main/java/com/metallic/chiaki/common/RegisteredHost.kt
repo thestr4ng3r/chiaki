@@ -65,6 +65,9 @@ interface RegisteredHostDao
 	@Query("DELETE FROM registered_host WHERE ps4_mac == :mac")
 	fun deleteByMac(mac: MacAddress): Completable
 
+	@Delete
+	fun delete(host: RegisteredHost): Completable
+
 	@Query("SELECT COUNT(*) FROM registered_host")
 	fun count(): Flowable<Int>
 
