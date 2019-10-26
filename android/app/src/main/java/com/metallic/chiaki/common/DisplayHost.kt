@@ -37,6 +37,16 @@ class DiscoveredDisplayHost(
 	override val host get() = discoveredHost.hostAddr ?: ""
 	override val name get() = discoveredHost.hostName ?: registeredHost?.ps4Nickname
 	override val id get() = discoveredHost.hostId ?: registeredHost?.ps4Mac?.toString()
+
+	override fun equals(other: Any?): Boolean =
+		if(other !is DiscoveredDisplayHost)
+			false
+		else
+			other.discoveredHost == discoveredHost && other.registeredHost == registeredHost
+
+	override fun hashCode() = 31 * (registeredHost?.hashCode() ?: 0) + discoveredHost.hashCode()
+
+	override fun toString() = "DiscoveredDisplayHost{${registeredHost}, ${discoveredHost}}"
 }
 
 class ManualDisplayHost(
@@ -47,4 +57,14 @@ class ManualDisplayHost(
 	override val host get() = manualHost.host
 	override val name get() = registeredHost?.ps4Nickname
 	override val id get() = registeredHost?.ps4Mac?.toString()
+
+	override fun equals(other: Any?): Boolean =
+		if(other !is ManualDisplayHost)
+			false
+		else
+			other.manualHost == manualHost && other.registeredHost == registeredHost
+
+	override fun hashCode() = 31 * (registeredHost?.hashCode() ?: 0) + manualHost.hashCode()
+
+	override fun toString() = "ManualDisplayHost{${registeredHost}, ${manualHost}}"
 }

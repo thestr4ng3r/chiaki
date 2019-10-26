@@ -77,8 +77,10 @@ class MainActivity : AppCompatActivity()
 		hostsRecyclerView.adapter = recyclerViewAdapter
 		hostsRecyclerView.layoutManager = LinearLayoutManager(this)
 		viewModel.displayHosts.observe(this, Observer {
+			val top = hostsRecyclerView.computeVerticalScrollOffset() == 0
 			recyclerViewAdapter.hosts = it
-			hostsRecyclerView.scheduleLayoutAnimation()
+			if(top)
+				hostsRecyclerView.scrollToPosition(0)
 		})
 
 		viewModel.discoveryActive.observe(this, Observer { active ->

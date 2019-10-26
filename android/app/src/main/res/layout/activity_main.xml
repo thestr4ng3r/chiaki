@@ -14,7 +14,6 @@
         android:paddingBottom="8dp"
         android:clipToPadding="false"
         android:clipChildren="false"
-        android:layoutAnimation="@anim/layout_drop"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
     <FrameLayout
@@ -108,6 +107,7 @@
 
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_height="wrap_content"
         android:layout_width="match_parent">
         <com.google.android.material.appbar.MaterialToolbar
