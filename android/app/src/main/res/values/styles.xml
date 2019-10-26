@@ -9,6 +9,7 @@
         <item name="android:statusBarColor">?attr/colorPrimarySurface</item>
         <item name="android:navigationBarColor">?attr/colorPrimarySurface</item>
         <item name="materialAlertDialogTheme">@style/AppTheme.AlertDialog</item>
+        <item name="alertDialogTheme">@style/AppTheme.AlertDialog.NonMaterial</item>
 
         <item name="android:windowActivityTransitions">true</item>
     </style>
@@ -26,6 +27,12 @@
     <style name="AppTheme.AlertDialog" parent="Theme.MaterialComponents.Dialog.Alert">
         <item name="android:textColorPrimary">@android:color/primary_text_dark</item>
         <item name="materialButtonStyle">@style/AppTheme.AlertDialog.Button</item>
+    </style>
+
+    <style name="AppTheme.AlertDialog.NonMaterial" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:textColorPrimary">@android:color/primary_text_dark</item>
+        <item name="materialButtonStyle">@style/AppTheme.AlertDialog.Button</item>
+        <item name="colorControlActivated">@color/accent</item>
     </style>
 
     <style name="AppTheme.AlertDialog.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
