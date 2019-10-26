@@ -300,7 +300,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDisc
 		CHIAKI_LOGE(log, "DiscoveryManager failed to getaddrinfo for wakeup");
 		return CHIAKI_ERR_NETWORK;
 	}
-	struct sockaddr addr = {};
+	struct sockaddr addr = { 0 };
 	socklen_t addr_len = 0;
 	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
 	{
@@ -324,7 +324,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDisc
 
 	((struct sockaddr_in *)&addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT);
 
-	ChiakiDiscoveryPacket packet = {};
+	ChiakiDiscoveryPacket packet = { 0 };
 	packet.cmd = CHIAKI_DISCOVERY_CMD_WAKEUP;
 	packet.user_credential = user_credential;
 
