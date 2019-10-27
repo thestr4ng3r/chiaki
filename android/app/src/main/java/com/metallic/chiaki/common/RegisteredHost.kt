@@ -25,7 +25,6 @@ import io.reactivex.Flowable
 import io.reactivex.Maybe
 import io.reactivex.Single
 
-@Suppress("ArrayInDataClass")
 @Entity(tableName = "registered_host")
 data class RegisteredHost(
 	@PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -51,6 +50,42 @@ data class RegisteredHost(
 		rpKeyType = registHost.rpKeyType.toInt(),
 		rpKey = registHost.rpKey
 	)
+
+	override fun equals(other: Any?): Boolean
+	{
+		if(this === other) return true
+		if(javaClass != other?.javaClass) return false
+
+		other as RegisteredHost
+
+		if(id != other.id) return false
+		if(apSsid != other.apSsid) return false
+		if(apBssid != other.apBssid) return false
+		if(apKey != other.apKey) return false
+		if(apName != other.apName) return false
+		if(ps4Mac != other.ps4Mac) return false
+		if(ps4Nickname != other.ps4Nickname) return false
+		if(!rpRegistKey.contentEquals(other.rpRegistKey)) return false
+		if(rpKeyType != other.rpKeyType) return false
+		if(!rpKey.contentEquals(other.rpKey)) return false
+
+		return true
+	}
+
+	override fun hashCode(): Int
+	{
+		var result = id.hashCode()
+		result = 31 * result + (apSsid?.hashCode() ?: 0)
+		result = 31 * result + (apBssid?.hashCode() ?: 0)
+		result = 31 * result + (apKey?.hashCode() ?: 0)
+		result = 31 * result + (apName?.hashCode() ?: 0)
+		result = 31 * result + ps4Mac.hashCode()
+		result = 31 * result + (ps4Nickname?.hashCode() ?: 0)
+		result = 31 * result + rpRegistKey.contentHashCode()
+		result = 31 * result + rpKeyType
+		result = 31 * result + rpKey.contentHashCode()
+		return result
+	}
 }
 
 @Dao

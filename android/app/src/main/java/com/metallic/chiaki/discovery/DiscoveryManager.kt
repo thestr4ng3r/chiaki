@@ -25,12 +25,16 @@ import com.metallic.chiaki.lib.DiscoveryHost
 import com.metallic.chiaki.lib.DiscoveryService
 import com.metallic.chiaki.lib.DiscoveryServiceOptions
 import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
 import java.lang.NumberFormatException
 import java.net.InetSocketAddress
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 val DiscoveryHost.ps4Mac get() = this.hostId?.hexToByteArray()?.let {
 	if(it.size == MacAddress.LENGTH)
@@ -47,6 +51,8 @@ class DiscoveryManager
 		const val DROP_PINGS: ULong = 3U
 		const val PING_MS: ULong = 500U
 		const val PORT = 987
+
+		const val DEBOUNCE_EMPTY_MS = 1000L
 	}
 
 	private var discoveryService: DiscoveryService? = null
@@ -62,10 +68,26 @@ class DiscoveryManager
 		}
 	private var paused = false
 
-	private var discoveredHostsSubject: Subject<List<DiscoveryHost>> = BehaviorSubject.create<List<DiscoveryHost>>().also {
+	private val disposable = CompositeDisposable()
+
+	private var discoveredHostsSubjectDebounced: Subject<List<DiscoveryHost>> = BehaviorSubject.create<List<DiscoveryHost>>().also {
 		it.onNext(listOf())
 	}.toSerialized()
-	val discoveredHosts: Observable<List<DiscoveryHost>> get() = discoveredHostsSubject
+
+	private var discoveredHostsSubjectRaw: Subject<List<DiscoveryHost>> = BehaviorSubject.create<List<DiscoveryHost>>().also { subject ->
+		subject.debounce { hosts ->
+				if(hosts.isEmpty())
+					Observable.timer(DEBOUNCE_EMPTY_MS, TimeUnit.MILLISECONDS)
+				else
+					Observable.empty()
+			}
+			.subscribe { hosts ->
+				discoveredHostsSubjectDebounced.onNext(hosts)
+			}
+			.addTo(disposable)
+	}
+
+	val discoveredHosts: Observable<List<DiscoveryHost>> get() = discoveredHostsSubjectDebounced
 
 	fun resume()
 	{
@@ -82,6 +104,7 @@ class DiscoveryManager
 	fun dispose()
 	{
 		active = false
+		disposable.dispose()
 	}
 
 	fun sendWakeup(host: String, registKey: ByteArray)
@@ -102,7 +125,7 @@ class DiscoveryManager
 			{
 				discoveryService = DiscoveryService(DiscoveryServiceOptions(
 					HOSTS_MAX, DROP_PINGS, PING_MS, InetSocketAddress("255.255.255.255", PORT)
-				), discoveredHostsSubject::onNext)
+				), discoveredHostsSubjectRaw::onNext)
 			}
 			catch(e: CreateError)
 			{
@@ -114,7 +137,7 @@ class DiscoveryManager
 			val service = discoveryService ?: return
 			service.dispose()
 			discoveryService = null
-			discoveredHostsSubject.onNext(listOf())
+			discoveredHostsSubjectRaw.onNext(listOf())
 		}
 	}
 }
