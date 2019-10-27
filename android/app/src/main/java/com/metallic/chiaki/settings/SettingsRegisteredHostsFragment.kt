@@ -62,10 +62,10 @@ class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 				val host = viewModel.registeredHosts.value?.getOrNull(pos) ?: return
 				MaterialAlertDialogBuilder(viewHolder.itemView.context)
 					.setMessage(getString(R.string.alert_message_delete_registered_host, host.ps4Nickname, host.ps4Mac.toString()))
-					.setPositiveButton(R.string.alert_action_delete_registered_host) { _, _ ->
+					.setPositiveButton(R.string.action_delete) { _, _ ->
 						viewModel.deleteHost(host)
 					}
-					.setNegativeButton(R.string.alert_action_keep_registered_host) { _, _ ->
+					.setNegativeButton(R.string.action_keep) { _, _ ->
 						adapter.notifyItemChanged(pos) // to reset the swipe
 					}
 					.create()

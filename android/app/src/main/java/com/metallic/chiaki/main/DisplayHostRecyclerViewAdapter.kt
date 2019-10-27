@@ -21,11 +21,15 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.PopupMenu
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
+import com.metallic.chiaki.common.ManualDisplayHost
 import com.metallic.chiaki.common.ext.inflate
 import com.metallic.chiaki.lib.DiscoveryHost
 import kotlinx.android.synthetic.main.item_display_host.view.*
@@ -38,7 +42,12 @@ class DisplayHostDiffCallback(val old: List<DisplayHost>, val new: List<DisplayH
 	override fun getNewListSize() = new.size
 }
 
-class DisplayHostRecyclerViewAdapter(val clickCallback: (DisplayHost) -> Unit): RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
+class DisplayHostRecyclerViewAdapter(
+	val clickCallback: (DisplayHost) -> Unit,
+	val wakeupCallback: (DisplayHost) -> Unit,
+	val editCallback: (DisplayHost) -> Unit,
+	val deleteCallback: (DisplayHost) -> Unit
+): RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
 {
 	var hosts: List<DisplayHost> = listOf()
 		set(value)
@@ -91,6 +100,36 @@ class DisplayHostRecyclerViewAdapter(val clickCallback: (DisplayHost) -> Unit): 
 				else
 					R.drawable.ic_console)
 			it.setOnClickListener { clickCallback(host) }
+
+			val canWakeup = host.registeredHost != null
+			val canEditDelete = host is ManualDisplayHost
+			if(canWakeup || canEditDelete)
+			{
+				it.menuButton.isVisible = true
+				it.menuButton.setOnClickListener { _ ->
+					val menu = PopupMenu(context, it.menuButton)
+					menu.menuInflater.inflate(R.menu.display_host, menu.menu)
+					menu.menu.findItem(R.id.action_wakeup).isVisible = canWakeup
+					menu.menu.findItem(R.id.action_edit).isVisible = canEditDelete
+					menu.menu.findItem(R.id.action_delete).isVisible = canEditDelete
+					menu.setOnMenuItemClickListener { menuItem ->
+						when(menuItem.itemId)
+						{
+							R.id.action_wakeup -> wakeupCallback(host)
+							R.id.action_edit -> editCallback(host)
+							R.id.action_delete -> deleteCallback(host)
+							else -> return@setOnMenuItemClickListener false
+						}
+						true
+					}
+					menu.show()
+				}
+			}
+			else
+			{
+				it.menuButton.isGone = true
+				it.menuButton.setOnClickListener(null)
+			}
 		}
 	}
 }

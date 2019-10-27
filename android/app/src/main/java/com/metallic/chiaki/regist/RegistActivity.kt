@@ -37,6 +37,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 	{
 		const val EXTRA_HOST = "regist_host"
 		const val EXTRA_BROADCAST = "regist_broadcast"
+		const val EXTRA_ASSIGN_MANUAL_HOST_ID = "assign_manual_host_id"
 
 		private const val PIN_LENGTH = 8
 
@@ -130,6 +131,8 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 		Intent(this, RegistExecuteActivity::class.java).also {
 			it.putExtra(RegistExecuteActivity.EXTRA_REGIST_INFO, registInfo)
+			if(intent.hasExtra(EXTRA_ASSIGN_MANUAL_HOST_ID))
+				it.putExtra(RegistExecuteActivity.EXTRA_ASSIGN_MANUAL_HOST_ID, intent.getLongExtra(EXTRA_ASSIGN_MANUAL_HOST_ID, 0L))
 			startActivityForResult(it, REQUEST_REGIST)
 		}
 	}

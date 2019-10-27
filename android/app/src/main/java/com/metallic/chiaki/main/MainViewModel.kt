@@ -18,10 +18,7 @@
 package com.metallic.chiaki.main
 
 import androidx.lifecycle.ViewModel
-import com.metallic.chiaki.common.AppDatabase
-import com.metallic.chiaki.common.DiscoveredDisplayHost
-import com.metallic.chiaki.common.ManualDisplayHost
-import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.*
 import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.discovery.DiscoveryManager
 import com.metallic.chiaki.discovery.ps4Mac
@@ -29,6 +26,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.Observables
 import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
 
 class MainViewModel(val database: AppDatabase, val preferences: Preferences): ViewModel()
 {
@@ -62,6 +60,16 @@ class MainViewModel(val database: AppDatabase, val preferences: Preferences): Vi
 
 	val discoveryActive by lazy {
 		discoveryManager.discoveryActive.toLiveData()
+	}
+
+	fun deleteManualHost(manualHost: ManualHost)
+	{
+		database.manualHostDao()
+			.delete(manualHost)
+			.onErrorComplete()
+			.subscribeOn(Schedulers.io())
+			.subscribe()
+			.addTo(disposable)
 	}
 
 	override fun onCleared()

@@ -28,15 +28,12 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.DiscoveredDisplayHost
-import com.metallic.chiaki.common.DisplayHost
-import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.*
 import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.ext.viewModelFactory
-import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.DiscoveryHost
-import com.metallic.chiaki.manualconsole.AddManualConsoleActivity
+import com.metallic.chiaki.manualconsole.EditManualConsoleActivity
 import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import com.metallic.chiaki.stream.StreamActivity
@@ -73,7 +70,7 @@ class MainActivity : AppCompatActivity()
 			.of(this, viewModelFactory { MainViewModel(getDatabase(this), Preferences(this)) })
 			.get(MainViewModel::class.java)
 
-		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered)
+		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered, this::wakeupHost, this::editHost, this::deleteHost)
 		hostsRecyclerView.adapter = recyclerViewAdapter
 		hostsRecyclerView.layoutManager = LinearLayoutManager(this)
 		viewModel.displayHosts.observe(this, Observer {
@@ -153,7 +150,7 @@ class MainActivity : AppCompatActivity()
 
 	private fun addManualConsole()
 	{
-		Intent(this, AddManualConsoleActivity::class.java).also {
+		Intent(this, EditManualConsoleActivity::class.java).also {
 			it.putRevealExtra(addManualButton, rootLayout)
 			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
 		}
@@ -185,7 +182,7 @@ class MainActivity : AppCompatActivity()
 				MaterialAlertDialogBuilder(this)
 					.setMessage(R.string.alert_message_standby_wakeup)
 					.setPositiveButton(R.string.action_wakeup) { _, _ ->
-						viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
+						wakeupHost(host)
 					}
 					.setNeutralButton(R.string.action_connect_immediately) { _, _ ->
 						connect()
@@ -202,8 +199,40 @@ class MainActivity : AppCompatActivity()
 			Intent(this, RegistActivity::class.java).let {
 				it.putExtra(RegistActivity.EXTRA_HOST, host.host)
 				it.putExtra(RegistActivity.EXTRA_BROADCAST, false)
+				if(host is ManualDisplayHost)
+					it.putExtra(RegistActivity.EXTRA_ASSIGN_MANUAL_HOST_ID, host.manualHost.id)
 				startActivity(it)
 			}
 		}
+	}
+
+	private fun wakeupHost(host: DisplayHost)
+	{
+		val registeredHost = host.registeredHost ?: return
+		viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
+	}
+
+	private fun editHost(host: DisplayHost)
+	{
+		if(host !is ManualDisplayHost)
+			return
+		Intent(this, EditManualConsoleActivity::class.java).also {
+			it.putExtra(EditManualConsoleActivity.EXTRA_MANUAL_HOST_ID, host.manualHost.id)
+			startActivity(it)
+		}
+	}
+
+	private fun deleteHost(host: DisplayHost)
+	{
+		if(host !is ManualDisplayHost)
+			return
+		MaterialAlertDialogBuilder(this)
+			.setMessage(getString(R.string.alert_message_delete_manual_host, host.manualHost.host))
+			.setPositiveButton(R.string.action_delete) { _, _ ->
+				viewModel.deleteManualHost(host.manualHost)
+			}
+			.setNegativeButton(R.string.action_keep) { _, _ -> }
+			.create()
+			.show()
 	}
 }

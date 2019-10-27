@@ -56,13 +56,16 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 	var host: RegistHost? = null
 		private set
 
-	fun start(info: RegistInfo)
+	private var assignManualHostId: Long? = null
+
+	fun start(info: RegistInfo, assignManualHostId: Long?)
 	{
 		if(regist != null)
 			return
 		try
 		{
 			regist = Regist(info, log.log, this::registEvent)
+			this.assignManualHostId = assignManualHostId
 			_state.value = State.RUNNING
 		}
 		catch(error: CreateError)
@@ -106,13 +109,23 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 	fun saveHost()
 	{
 		val host = host ?: return
+		val assignManualHostId = assignManualHostId
 		val dao = database.registeredHostDao()
+		val manualHostDao = database.manualHostDao()
 		val registeredHost = RegisteredHost(host)
 		dao.deleteByMac(registeredHost.ps4Mac)
 			.andThen(dao.insert(registeredHost))
+			.let {
+				if(assignManualHostId != null)
+					it.flatMapCompletable { registeredHostId ->
+						manualHostDao.assignRegisteredHost(assignManualHostId, registeredHostId)
+					}
+				else
+					it.ignoreElement()
+			}
 			.subscribeOn(Schedulers.io())
 			.observeOn(AndroidSchedulers.mainThread())
-			.subscribe { _ -> /* No, IntelliJ, this "_ ->" IS necessary. */
+			.subscribe {
 				Log.i("RegistExecute", "Registered Host saved in db")
 				_state.value = State.SUCCESSFUL
 			}

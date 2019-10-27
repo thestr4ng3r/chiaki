@@ -22,13 +22,11 @@ import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.widget.AdapterView
-import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.ManualHost
 import com.metallic.chiaki.common.RegisteredHost
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.common.ext.viewModelFactory
@@ -36,27 +34,42 @@ import com.metallic.chiaki.common.getDatabase
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
-import kotlinx.android.synthetic.main.activity_add_manual.*
+import kotlinx.android.synthetic.main.activity_edit_manual.*
 
-class AddManualConsoleActivity: AppCompatActivity(), RevealActivity
+class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 {
+	companion object
+	{
+		const val EXTRA_MANUAL_HOST_ID = "manual_host_id"
+	}
+
 	override val revealIntent: Intent get() = intent
 	override val revealRootLayout: View get() = rootLayout
 	override val revealWindow: Window get() = window
 
-	private lateinit var viewModel: AddManualConsoleViewModel
+	private lateinit var viewModel: EditManualConsoleViewModel
 
 	private val disposable = CompositeDisposable()
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_add_manual)
+		setContentView(R.layout.activity_edit_manual)
 		handleReveal()
 
 		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { AddManualConsoleViewModel(getDatabase(this)) })
-			.get(AddManualConsoleViewModel::class.java)
+			.of(this, viewModelFactory {
+				EditManualConsoleViewModel(getDatabase(this),
+					if(intent.hasExtra(EXTRA_MANUAL_HOST_ID))
+						intent.getLongExtra(EXTRA_MANUAL_HOST_ID, 0)
+					else
+						null)
+			})
+			.get(EditManualConsoleViewModel::class.java)
+
+		viewModel.existingHost?.observe(this, Observer {
+			hostEditText.setText(it.host)
+		})
 
 		viewModel.selectedRegisteredHost.observe(this, Observer {
 			registeredHostTextView.setText(titleForRegisteredHost(it))

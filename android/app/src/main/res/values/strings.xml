@@ -45,7 +45,7 @@
     <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
     <string name="action_regist_overwrite">Overwrite</string>
     <string name="action_regist_discard">Cancel</string>
-    <string name="title_add_manual">Add Console Manually</string>
+    <string name="title_edit_manual">Manual Console Entry</string>
     <string name="action_add_manual_save">Save</string>
     <string name="hint_add_manual_regist_host">Registered Console</string>
     <string name="add_manual_regist_on_connect">Register on first Connection</string>
@@ -59,8 +59,10 @@
     <string name="preferences_log_verbose_title">Verbose Logging</string>
     <string name="preferences_log_verbose_summary">Warning: This logs a LOT! Don\'t enable for regular use.</string>
     <string name="alert_message_delete_registered_host">Are you sure you want to delete the registered console %s with ID %s?</string>
-    <string name="alert_action_delete_registered_host">Delete</string>
-    <string name="alert_action_keep_registered_host">Keep</string>
+    <string name="alert_message_delete_manual_host">Are you sure you want to delete the console entry for %s?</string>
+    <string name="action_keep">Keep</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
 
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key">discovery_enabled</string>

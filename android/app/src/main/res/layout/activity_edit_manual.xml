@@ -30,7 +30,7 @@
                 android:id="@+id/titleTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/title_add_manual"
+                android:text="@string/title_edit_manual"
                 android:textSize="32sp"
                 android:gravity="center"
                 android:layout_marginTop="16dp"

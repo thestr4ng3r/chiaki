@@ -44,7 +44,7 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize" />
 
         <activity
-            android:name=".manualconsole.AddManualConsoleActivity"
+            android:name=".manualconsole.EditManualConsoleActivity"
             android:theme="@style/MageTheme"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize" />
     </application>

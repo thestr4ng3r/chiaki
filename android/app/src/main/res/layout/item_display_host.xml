@@ -37,6 +37,16 @@
         android:layout_height="match_parent"
         android:padding="8dp">
 
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/menuButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_overflow"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:padding="4dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/nameTextView"
             android:layout_width="match_parent"

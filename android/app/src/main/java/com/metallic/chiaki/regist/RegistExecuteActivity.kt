@@ -40,6 +40,7 @@ class RegistExecuteActivity: AppCompatActivity()
 	companion object
 	{
 		const val EXTRA_REGIST_INFO = "regist_info"
+		const val EXTRA_ASSIGN_MANUAL_HOST_ID = "assign_manual_host_id"
 
 		const val RESULT_FAILED = Activity.RESULT_FIRST_USER
 	}
@@ -105,7 +106,11 @@ class RegistExecuteActivity: AppCompatActivity()
 			finish()
 			return
 		}
-		viewModel.start(registInfo)
+		viewModel.start(registInfo,
+			if(intent.hasExtra(EXTRA_ASSIGN_MANUAL_HOST_ID))
+				intent.getLongExtra(EXTRA_ASSIGN_MANUAL_HOST_ID, 0)
+			else
+				null)
 	}
 
 	override fun onStop()
