@@ -121,6 +121,7 @@ class DiscoveryManager
 	{
 		if(active && !paused && discoveryService == null)
 		{
+			discoveredHostsSubjectRaw.onNext(listOf())
 			try
 			{
 				discoveryService = DiscoveryService(DiscoveryServiceOptions(
@@ -137,7 +138,8 @@ class DiscoveryManager
 			val service = discoveryService ?: return
 			service.dispose()
 			discoveryService = null
-			discoveredHostsSubjectRaw.onNext(listOf())
+			if(!active)
+				discoveredHostsSubjectRaw.onNext(listOf())
 		}
 	}
 }
