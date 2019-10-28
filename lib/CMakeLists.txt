@@ -2,6 +2,7 @@
 set(HEADER_FILES
 		include/chiaki/session.h
 		include/chiaki/common.h
+		include/chiaki/sock.h
 		include/chiaki/thread.h
 		include/chiaki/base64.h
 		include/chiaki/http.h
@@ -37,6 +38,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
 		src/common.c
+		src/sock.c
 		src/session.c
 		src/thread.c
 		src/base64.c

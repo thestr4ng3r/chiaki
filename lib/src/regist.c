@@ -349,7 +349,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 		if(now_ms > timeout_abs_ms)
 			err = CHIAKI_ERR_TIMEOUT;
 		else
-			err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, timeout_abs_ms - now_ms);
+			err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, false, timeout_abs_ms - now_ms);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			if(err == CHIAKI_ERR_TIMEOUT)
@@ -551,7 +551,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 
 	while(buf_filled_size < content_size + header_size)
 	{
-		err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, REGIST_REPONSE_TIMEOUT_MS);
+		err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, false, REGIST_REPONSE_TIMEOUT_MS);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			if(err == CHIAKI_ERR_TIMEOUT)

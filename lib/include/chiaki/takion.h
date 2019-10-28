@@ -213,7 +213,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 /**
  * Thread-safe while Takion is running.
  *
- * @param optional pointer to write the sequence number of the sent package to
+ * @param optional pointer to write the sequence number of the sent packet to
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size, ChiakiSeqNum32 *seq_num);
 

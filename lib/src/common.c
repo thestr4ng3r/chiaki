@@ -43,6 +43,12 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code)
 			return "Memory error";
 		case CHIAKI_ERR_NETWORK:
 			return "Network error";
+		case CHIAKI_ERR_CONNECTION_REFUSED:
+			return "Connection Refused";
+		case CHIAKI_ERR_HOST_DOWN:
+			return "Host is down";
+		case CHIAKI_ERR_HOST_UNREACH:
+			return "No route to host";
 		case CHIAKI_ERR_DISCONNECTED:
 			return "Disconnected";
 		case CHIAKI_ERR_INVALID_DATA:

@@ -757,7 +757,7 @@ beach:
 
 static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *buf_size, uint64_t timeout_ms)
 {
-	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, timeout_ms);
+	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, false, timeout_ms);
 	if(err == CHIAKI_ERR_TIMEOUT || err == CHIAKI_ERR_CANCELED)
 		return err;
 	if(err != CHIAKI_ERR_SUCCESS)

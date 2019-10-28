@@ -157,7 +157,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 	{
 		if(stop_pipe)
 		{
-			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, timeout_ms);
+			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, false, timeout_ms);
 			if(err != CHIAKI_ERR_SUCCESS)
 				return err;
 		}

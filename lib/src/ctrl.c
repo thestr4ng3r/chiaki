@@ -151,17 +151,18 @@ static void *ctrl_thread_func(void *user)
 {
 	ChiakiCtrl *ctrl = user;
 
-	ChiakiErrorCode err = ctrl_connect(ctrl);
+	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->notif_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
+	err = ctrl_connect(ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED);
+		chiaki_mutex_unlock(&ctrl->notif_mutex);
 		return NULL;
 	}
 
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl connected");
-
-	err = chiaki_mutex_lock(&ctrl->notif_mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
 
 	while(true)
 	{
@@ -197,7 +198,7 @@ static void *ctrl_thread_func(void *user)
 		}
 
 		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, UINT64_MAX);
+		err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, false, UINT64_MAX);
 		chiaki_mutex_lock(&ctrl->notif_mutex);
 		if(err == CHIAKI_ERR_CANCELED)
 		{
@@ -511,29 +512,38 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		return CHIAKI_ERR_NETWORK;
 	}
 
-	int r = connect(sock, sa, addr->ai_addrlen);
+	ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
+
+
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
+	err = chiaki_stop_pipe_connect(&ctrl->notif_pipe, sock, sa, addr->ai_addrlen);
+	chiaki_mutex_lock(&ctrl->notif_mutex);
 	free(sa);
-	if(r < 0)
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-#ifdef _WIN32
-		int errsv = WSAGetLastError();
-		CHIAKI_LOGE(session->log, "Ctrl connect failed: %d", errsv);
-		ChiakiQuitReason quit_reason = errsv == WSAECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
-#else
-		int errsv = errno;
-		CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", strerror(errsv));
-		ChiakiQuitReason quit_reason = errsv == ECONNREFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
-#endif
-		ctrl_failed(ctrl, quit_reason);
-		CHIAKI_SOCKET_CLOSE(sock);
-		return CHIAKI_ERR_NETWORK;
+		if(err == CHIAKI_ERR_CANCELED)
+		{
+			if(ctrl->should_stop)
+				CHIAKI_LOGI(session->log, "Ctrl requested to stop while connecting");
+			else
+				CHIAKI_LOGE(session->log, "Ctrl notif pipe signaled without should_stop during connect");
+			CHIAKI_SOCKET_CLOSE(sock);
+		}
+		else
+		{
+			CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", chiaki_error_string(err));
+			ChiakiQuitReason quit_reason = err == CHIAKI_ERR_CONNECTION_REFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+			ctrl_failed(ctrl, quit_reason);
+		}
+		goto error;
 	}
 
-	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_CTRL_PORT);
-
+	CHIAKI_LOGI(session->log, "Ctrl connected to %s:%d", session->connect_info.hostname, SESSION_CTRL_PORT);
 
 	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
-	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
+	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char auth_b64[CHIAKI_RPCRYPT_KEY_SIZE*2];

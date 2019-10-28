@@ -18,7 +18,7 @@
 #ifndef CHIAKI_UTILS_H
 #define CHIAKI_UTILS_H
 
-#include <chiaki/common.h>
+#include <chiaki/sock.h>
 #include <chiaki/log.h>
 #ifdef _WIN32
 #include <ws2tcpip.h>

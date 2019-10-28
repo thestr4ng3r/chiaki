@@ -16,11 +16,12 @@
  */
 
 #include <chiaki/stoppipe.h>
+#include <chiaki/sock.h>
 
 #include <fcntl.h>
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <unistd.h>
 #include <sys/socket.h>
@@ -69,7 +70,7 @@ CHIAKI_EXPORT void chiaki_stop_pipe_stop(ChiakiStopPipe *stop_pipe)
 #endif
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, uint64_t timeout_ms)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, bool write, uint64_t timeout_ms)
 {
 #ifdef _WIN32
 	WSAEVENT events[2];
@@ -82,7 +83,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 		events[1] = WSACreateEvent();
 		if(events[1] == WSA_INVALID_EVENT)
 			return CHIAKI_ERR_UNKNOWN;
-		WSAEventSelect(fd, events[1], FD_READ);
+		WSAEventSelect(fd, events[1], write ? FD_WRITE : FD_READ);
 	}
 
 	DWORD r = WSAWaitForMultipleEvents(events_count, events, FALSE, timeout_ms == UINT64_MAX ? WSA_INFINITE : (DWORD)timeout_ms, FALSE);
@@ -102,14 +103,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 			return CHIAKI_ERR_UNKNOWN;
 	}
 #else
-	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(stop_pipe->fds[0], &fds);
+	fd_set rfds;
+	FD_ZERO(&rfds);
+	FD_SET(stop_pipe->fds[0], &rfds);
+
+	fd_set wfds;
+	FD_ZERO(&wfds);
 
 	int nfds = stop_pipe->fds[0];
-	if(fd >= 0)
+	if(!CHIAKI_SOCKET_IS_INVALID(fd))
 	{
-		FD_SET(fd, &fds);
+		FD_SET(fd, write ? &wfds : &rfds);
 		if(fd > nfds)
 			nfds = fd;
 	}
@@ -124,17 +128,93 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 		timeout = &timeout_s;
 	}
 
-	int r = select(nfds, &fds, NULL, NULL, timeout);
+	int r = select(nfds, &rfds, write ? &wfds : NULL, NULL, timeout);
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;
 
-	if(FD_ISSET(stop_pipe->fds[0], &fds))
+	if(FD_ISSET(stop_pipe->fds[0], &rfds))
 		return CHIAKI_ERR_CANCELED;
 
-	if(fd >= 0 && FD_ISSET(fd, &fds))
+	if(!CHIAKI_SOCKET_IS_INVALID(fd) && FD_ISSET(fd, write ? &wfds : &rfds))
 		return CHIAKI_ERR_SUCCESS;
 
 	return CHIAKI_ERR_TIMEOUT;
+#endif
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, struct sockaddr *addr, size_t addrlen)
+{
+	int r = connect(fd, addr, (socklen_t)addrlen);
+	if(r >= 0)
+		return CHIAKI_ERR_SUCCESS;
+
+	if(CHIAKI_SOCKET_EINPROGRESS)
+	{
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, fd, true, UINT64_MAX);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+	}
+	else
+	{
+#ifdef _WIN32
+		int err = WSAGetLastError();
+		if(err == WSAECONNREFUSED)
+			return CHIAKI_ERR_CONNECTION_REFUSED;
+		else
+			return CHIAKI_ERR_NETWORK;
+#else
+		if(errno == ECONNREFUSED)
+			return CHIAKI_ERR_CONNECTION_REFUSED;
+		else
+			return CHIAKI_ERR_NETWORK;
+#endif
+	}
+
+	struct sockaddr peer;
+	socklen_t peerlen = sizeof(peer);
+	if(getpeername(fd, &peer, &peerlen) == 0)
+		return CHIAKI_ERR_SUCCESS;
+
+	if(errno != ENOTCONN)
+		return CHIAKI_ERR_UNKNOWN;
+
+#ifdef _WIN32
+	DWORD sockerr;
+#else
+	int sockerr;
+#endif
+	socklen_t sockerr_sz = sizeof(sockerr);
+	if(getsockopt(fd, SOL_SOCKET, SO_ERROR, &sockerr, &sockerr_sz) < 0)
+		return CHIAKI_ERR_UNKNOWN;
+
+#ifdef _WIN32
+	switch(sockerr)
+	{
+		case WSAETIMEDOUT:
+			return CHIAKI_ERR_TIMEOUT;
+		case WSAECONNREFUSED:
+			return CHIAKI_ERR_CONNECTION_REFUSED;
+		case WSAEHOSTDOWN:
+			return CHIAKI_ERR_HOST_DOWN;
+		case WSAEHOSTUNREACH:
+			return CHIAKI_ERR_HOST_UNREACH;
+		default:
+			return CHIAKI_ERR_UNKNOWN;
+	}
+#else
+	switch(sockerr)
+	{
+		case ETIMEDOUT:
+			return CHIAKI_ERR_TIMEOUT;
+		case ECONNREFUSED:
+			return CHIAKI_ERR_CONNECTION_REFUSED;
+		case EHOSTDOWN:
+			return CHIAKI_ERR_HOST_DOWN;
+		case EHOSTUNREACH:
+			return CHIAKI_ERR_HOST_UNREACH;
+		default:
+			return CHIAKI_ERR_UNKNOWN;
+	}
 #endif
 }
 

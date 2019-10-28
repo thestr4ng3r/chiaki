@@ -628,29 +628,36 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 			free(sa);
 			continue;
 		}
-		r = connect(session_sock, sa, ai->ai_addrlen);
-		if(r < 0)
+
+		ChiakiErrorCode err = chiaki_socket_set_nonblock(session_sock, true);
+		if(err != CHIAKI_ERR_SUCCESS)
+			CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
+
+		chiaki_mutex_unlock(&session->state_mutex);
+		err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen);
+		chiaki_mutex_lock(&session->state_mutex);
+		if(err == CHIAKI_ERR_CANCELED)
 		{
-#ifdef _WIN32
-			int err = WSAGetLastError();
-			CHIAKI_LOGE(session->log, "Session request connect failed: %u", err);
-			if(err == WSAECONNREFUSED)
+			CHIAKI_LOGI(session->log, "Session stopped while connecting for session request");
+			session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = -1;
+			free(sa);
+			break;
+		}
+		else if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "Session request connect failed: %s", chiaki_error_string(err));
+			if(err == CHIAKI_ERR_CONNECTION_REFUSED)
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
 			else
 				session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-#else
-			int errsv = errno;
-			CHIAKI_LOGE(session->log, "Session request connect failed: %s", strerror(errsv));
-			if(errsv == ECONNREFUSED)
-				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
-			else
-				session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-#endif
 			CHIAKI_SOCKET_CLOSE(session_sock);
 			session_sock = -1;
 			free(sa);
 			continue;
 		}
+
 		free(sa);
 
 		session->connect_info.host_addrinfo_selected = ai;

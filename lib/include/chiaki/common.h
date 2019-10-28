@@ -18,26 +18,13 @@
 #ifndef CHIAKI_COMMON_H
 #define CHIAKI_COMMON_H
 
-#include <stdbool.h>
 #ifdef _WIN32
-#define chiaki_socket_t SOCKET
-#define CHIAKI_SOCKET_IS_INVALID(s) ((s) == INVALID_SOCKET)
-#define CHIAKI_INVALID_SOCKET INVALID_SOCKET
-#define CHIAKI_SOCKET_CLOSE(s) closesocket(s)
-#define CHIAKI_SOCKET_ERROR_FMT "%d"
-#define CHIAKI_SOCKET_ERROR_VALUE (WSAGetLastError())
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#else
-#include <unistd.h>
-#define chiaki_socket_t int
-#define CHIAKI_SOCKET_IS_INVALID(s) ((s) < 0)
-#define CHIAKI_INVALID_SOCKET (-1)
-#define CHIAKI_SOCKET_CLOSE(s) close(s)
-#define CHIAKI_SOCKET_ERROR_FMT "%s"
-#define CHIAKI_SOCKET_ERROR_VALUE (strerror(errno))
 #endif
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +43,9 @@ typedef enum
 	CHIAKI_ERR_MEMORY,
 	CHIAKI_ERR_OVERFLOW,
 	CHIAKI_ERR_NETWORK,
+	CHIAKI_ERR_CONNECTION_REFUSED,
+	CHIAKI_ERR_HOST_DOWN,
+	CHIAKI_ERR_HOST_UNREACH,
 	CHIAKI_ERR_DISCONNECTED,
 	CHIAKI_ERR_INVALID_DATA,
 	CHIAKI_ERR_BUF_TOO_SMALL,
