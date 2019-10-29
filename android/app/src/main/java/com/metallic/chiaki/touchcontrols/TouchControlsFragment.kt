@@ -23,13 +23,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ControllerState
 import kotlinx.android.synthetic.main.fragment_controls.*
 
 class TouchControlsFragment : Fragment()
 {
-	var controllerState = ControllerState()
+	private var controllerState = ControllerState()
 		private set(value)
 		{
 			val diff = field != value
@@ -39,6 +41,7 @@ class TouchControlsFragment : Fragment()
 		}
 
 	var controllerStateCallback: ((ControllerState) -> Unit)? = null
+	var onScreenControlsEnabled: LiveData<Boolean>? = null
 
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View
 		= inflater.inflate(R.layout.fragment_controls, container, false)
@@ -74,6 +77,10 @@ class TouchControlsFragment : Fragment()
 			rightX = quantizeStick(it.x)
 			rightY = quantizeStick(it.y)
 		}}
+
+		onScreenControlsEnabled?.observe(this, Observer {
+			view.visibility = if(it) View.VISIBLE else View.GONE
+		})
 	}
 
 	private fun dpadStateChanged(direction: DPadView.Direction?)

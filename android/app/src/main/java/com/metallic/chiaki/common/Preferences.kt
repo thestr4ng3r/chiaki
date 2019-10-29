@@ -69,6 +69,11 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(discoveryEnabledKey, true)
 		set(value) { sharedPreferences.edit().putBoolean(discoveryEnabledKey, value).apply() }
 
+	val onScreenControlsEnabledKey get() = resources.getString(R.string.preferences_on_screen_controls_enabled_key)
+	var onScreenControlsEnabled
+		get() = sharedPreferences.getBoolean(onScreenControlsEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(onScreenControlsEnabledKey, value).apply() }
+
 	val logVerboseKey get() = resources.getString(R.string.preferences_log_verbose_key)
 	var logVerbose
 		get() = sharedPreferences.getBoolean(logVerboseKey, false)

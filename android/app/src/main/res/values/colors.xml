@@ -6,6 +6,7 @@
 
     <color name="stream_text">@android:color/white</color>
     <color name="stream_background">@android:color/black</color>
+    <color name="stream_overlay_background">#77000000</color>
 
     <color name="floating_action_button_speed_dial_background">#fafafa</color>
     <color name="floating_action_button_speed_dial_tint">#333333</color>

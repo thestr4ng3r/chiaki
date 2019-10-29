@@ -17,22 +17,30 @@
 
 package com.metallic.chiaki.stream
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.Matrix
 import android.os.Bundle
+import android.os.Handler
 import android.speech.tts.TextToSpeech
+import android.text.method.Touch
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.*
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.LoginPinRequestEvent
 import com.metallic.chiaki.lib.QuitReason
@@ -44,20 +52,22 @@ private object StreamQuitDialog: DialogContents()
 private object CreateErrorDialog: DialogContents()
 private object PinRequestDialog: DialogContents()
 
-class StreamActivity : AppCompatActivity()
+class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListener
 {
 	companion object
 	{
 		const val EXTRA_CONNECT_INFO = "connect_info"
+		private const val HIDE_UI_TIMEOUT_MS = 2000L
 	}
 
 	private lateinit var viewModel: StreamViewModel
+	private val uiVisibilityHandler = Handler()
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
 
-		viewModel = ViewModelProviders.of(this)[StreamViewModel::class.java]
+		viewModel = ViewModelProviders.of(this, viewModelFactory { StreamViewModel(Preferences(this)) })[StreamViewModel::class.java]
 		if(!viewModel.isInitialized)
 		{
 			val connectInfo = intent.getParcelableExtra<ConnectInfo>(EXTRA_CONNECT_INFO)
@@ -70,11 +80,19 @@ class StreamActivity : AppCompatActivity()
 		}
 
 		setContentView(R.layout.activity_stream)
+		window.decorView.setOnSystemUiVisibilityChangeListener(this)
+
+		viewModel.onScreenControlsEnabled.observe(this, Observer {
+			if(onScreenControlsSwitch.isChecked != it)
+				onScreenControlsSwitch.isChecked = it
+		})
+		onScreenControlsSwitch.setOnCheckedChangeListener { _, isChecked ->
+			viewModel.setOnScreenControlsEnabled(isChecked)
+			showOverlay()
+		}
 
 		viewModel.session.attachToTextureView(textureView)
-
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
-
 		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
 			adjustTextureViewAspect()
 		}
@@ -83,7 +101,11 @@ class StreamActivity : AppCompatActivity()
 	override fun onAttachFragment(fragment: Fragment)
 	{
 		super.onAttachFragment(fragment)
-		(fragment as? TouchControlsFragment)?.controllerStateCallback = viewModel.session::updateTouchControllerState
+		if(fragment is TouchControlsFragment)
+		{
+			fragment.controllerStateCallback = viewModel.session::updateTouchControllerState
+			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
+		}
 	}
 
 	override fun onResume()
@@ -105,6 +127,45 @@ class StreamActivity : AppCompatActivity()
 		viewModel.session.resume()
 	}
 
+	private val hideSystemUIRunnable = Runnable { hideSystemUI() }
+
+	override fun onSystemUiVisibilityChange(visibility: Int)
+	{
+		if(visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0)
+			showOverlay()
+		else
+			hideOverlay()
+	}
+
+	private fun showOverlay()
+	{
+		overlay.isVisible = true
+		overlay.animate()
+			.alpha(1.0f)
+			.setListener(object: AnimatorListenerAdapter()
+			{
+				override fun onAnimationEnd(animation: Animator?)
+				{
+					overlay.alpha = 1.0f
+				}
+			})
+		uiVisibilityHandler.removeCallbacks(hideSystemUIRunnable)
+		uiVisibilityHandler.postDelayed(hideSystemUIRunnable, HIDE_UI_TIMEOUT_MS)
+	}
+
+	private fun hideOverlay()
+	{
+		overlay.animate()
+			.alpha(0.0f)
+			.setListener(object: AnimatorListenerAdapter()
+			{
+				override fun onAnimationEnd(animation: Animator?)
+				{
+					overlay.isGone = true
+				}
+			})
+	}
+
 	override fun onWindowFocusChanged(hasFocus: Boolean)
 	{
 		super.onWindowFocusChanged(hasFocus)
@@ -114,7 +175,7 @@ class StreamActivity : AppCompatActivity()
 
 	private fun hideSystemUI()
 	{
-		window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+		window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE
 				or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 				or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
 				or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
