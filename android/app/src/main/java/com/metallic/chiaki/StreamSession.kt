@@ -19,9 +19,7 @@ package com.metallic.chiaki
 
 import android.graphics.SurfaceTexture
 import android.util.Log
-import android.view.KeyEvent
-import android.view.Surface
-import android.view.TextureView
+import android.view.*
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.metallic.chiaki.lib.*
@@ -42,7 +40,8 @@ class StreamSession(val connectInfo: ConnectInfo)
 	private val _state = MutableLiveData<StreamState>(StreamStateIdle)
 	val state: LiveData<StreamState> get() = _state
 
-	private val controllerState = ControllerState()
+	private val keyControllerState = ControllerState() // from KeyEvents
+	private val motionControllerState = ControllerState() // from MotionEvents
 	private var touchControllerState = ControllerState()
 
 	var surfaceTexture: SurfaceTexture? = null
@@ -126,12 +125,28 @@ class StreamSession(val connectInfo: ConnectInfo)
 	fun dispatchKeyEvent(event: KeyEvent): Boolean
 	{
 		Log.i("StreamSession", "key event $event")
+		if(event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP)
+			return false
+
+		when(event.keyCode)
+		{
+			KeyEvent.KEYCODE_BUTTON_L2 -> {
+				keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+				return true
+			}
+			KeyEvent.KEYCODE_BUTTON_R2 -> {
+				keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+				return true
+			}
+		}
+
 		val buttonMask: UInt = when(event.keyCode)
 		{
-			KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
-			KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
-			KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
-			KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
+			// dpad handled by MotionEvents
+			//KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
+			//KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
+			//KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
+			//KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
 			KeyEvent.KEYCODE_BUTTON_A -> ControllerState.BUTTON_CROSS
 			KeyEvent.KEYCODE_BUTTON_B -> ControllerState.BUTTON_MOON
 			KeyEvent.KEYCODE_BUTTON_X -> ControllerState.BUTTON_BOX
@@ -147,7 +162,7 @@ class StreamSession(val connectInfo: ConnectInfo)
 			else -> return false
 		}
 
-		controllerState.buttons = controllerState.buttons.run {
+		keyControllerState.buttons = keyControllerState.buttons.run {
 			when(event.action)
 			{
 				KeyEvent.ACTION_DOWN -> this or buttonMask
@@ -160,6 +175,37 @@ class StreamSession(val connectInfo: ConnectInfo)
 		return true
 	}
 
+	fun onGenericMotionEvent(event: MotionEvent): Boolean
+	{
+		if(event.source and InputDevice.SOURCE_CLASS_JOYSTICK != InputDevice.SOURCE_CLASS_JOYSTICK)
+			return false
+		fun Float.signedAxis() = (this * Short.MAX_VALUE).toShort()
+		fun Float.unsignedAxis() = (this * UByte.MAX_VALUE.toFloat()).toUInt().toUByte()
+		motionControllerState.leftX = event.getAxisValue(MotionEvent.AXIS_X).signedAxis()
+		motionControllerState.leftY = event.getAxisValue(MotionEvent.AXIS_Y).signedAxis()
+		motionControllerState.rightX = event.getAxisValue(MotionEvent.AXIS_Z).signedAxis()
+		motionControllerState.rightY = event.getAxisValue(MotionEvent.AXIS_RZ).signedAxis()
+		motionControllerState.l2State = event.getAxisValue(MotionEvent.AXIS_LTRIGGER).unsignedAxis()
+		motionControllerState.r2State = event.getAxisValue(MotionEvent.AXIS_RTRIGGER).unsignedAxis()
+		motionControllerState.buttons = motionControllerState.buttons.let {
+			val dpadX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+			val dpadY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+			val dpadButtons =
+				(if(dpadX > 0.5f) ControllerState.BUTTON_DPAD_RIGHT else 0U) or
+				(if(dpadX < -0.5f) ControllerState.BUTTON_DPAD_LEFT else 0U) or
+				(if(dpadY > 0.5f) ControllerState.BUTTON_DPAD_DOWN else 0U) or
+				(if(dpadY < -0.5f) ControllerState.BUTTON_DPAD_UP else 0U)
+			it and (ControllerState.BUTTON_DPAD_RIGHT or
+					ControllerState.BUTTON_DPAD_LEFT or
+					ControllerState.BUTTON_DPAD_DOWN or
+					ControllerState.BUTTON_DPAD_UP).inv() or
+					dpadButtons
+		}
+		Log.i("StreamSession", "motionEvent => $motionControllerState")
+		sendControllerState()
+		return true
+	}
+
 	fun updateTouchControllerState(controllerState: ControllerState)
 	{
 		touchControllerState = controllerState
@@ -168,6 +214,15 @@ class StreamSession(val connectInfo: ConnectInfo)
 
 	private fun sendControllerState()
 	{
+		val controllerState = keyControllerState or motionControllerState
+
+		// prioritize motion controller's l2 and r2 over key
+		// (some controllers send only key, others both but key earlier than full press)
+		if(motionControllerState.l2State > 0U)
+			controllerState.l2State = motionControllerState.l2State
+		if(motionControllerState.r2State > 0U)
+			controllerState.r2State = motionControllerState.r2State
+
 		session?.setControllerState(controllerState or touchControllerState)
 	}
 }

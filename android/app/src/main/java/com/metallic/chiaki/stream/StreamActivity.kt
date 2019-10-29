@@ -29,6 +29,7 @@ import android.speech.tts.TextToSpeech
 import android.text.method.Touch
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
@@ -308,10 +309,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 	}
 
-	override fun dispatchKeyEvent(event: KeyEvent): Boolean
-	{
-		if(viewModel.session.dispatchKeyEvent(event))
-			return true
-		return super.dispatchKeyEvent(event)
-	}
+	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.session.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
+	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.session.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 }
