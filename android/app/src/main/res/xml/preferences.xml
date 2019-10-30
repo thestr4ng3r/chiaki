@@ -14,16 +14,23 @@
             app:icon="@drawable/ic_console_simple"/>
 
         <SwitchPreference
+            app:key="@string/preferences_swap_cross_moon_key"
+            app:title="@string/preferences_swap_cross_moon_title"
+            app:summary="@string/preferences_swap_cross_moon_summary"
+            app:icon="@drawable/ic_gamepad" />
+
+        <SwitchPreference
             app:key="@string/preferences_log_verbose_key"
             app:title="@string/preferences_log_verbose_title"
             app:summary="@string/preferences_log_verbose_summary"
             app:icon="@drawable/ic_log" />
 
-        <SwitchPreference
-            app:key="@string/preferences_swap_cross_moon_key"
-            app:title="@string/preferences_swap_cross_moon_title"
-            app:summary="@string/preferences_swap_cross_moon_summary"
-            app:icon="@drawable/ic_gamepad" />
+        <Preference
+            app:key="logs"
+            app:summary="@string/preferences_logs_summary"
+            app:title="@string/preferences_logs_title"
+            app:fragment="com.metallic.chiaki.settings.SettingsLogsFragment"
+            app:icon="@drawable/ic_log"/>
     </PreferenceCategory>
 
     <PreferenceCategory

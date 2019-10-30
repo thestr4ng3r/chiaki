@@ -52,6 +52,8 @@
     <string name="preferences_category_title_general">General</string>
     <string name="preferences_category_title_stream">Stream</string>
     <string name="preferences_registered_hosts_title">Registered Consoles</string>
+    <string name="preferences_logs_title">Session Logs</string>
+    <string name="preferences_logs_summary">Collected log files from previous sessions for debugging</string>
     <string name="preferences_registered_hosts_summary">Currently registered: %d</string>
     <string name="preferences_resolution_title">Resolution</string>
     <string name="preferences_fps_title">FPS</string>
