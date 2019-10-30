@@ -20,26 +20,19 @@ package com.metallic.chiaki.stream
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.metallic.chiaki.StreamSession
+import com.metallic.chiaki.session.StreamSession
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.lib.*
+import com.metallic.chiaki.session.StreamInput
 
-class StreamViewModel(val preferences: Preferences): ViewModel()
+class StreamViewModel(val preferences: Preferences, val connectInfo: ConnectInfo): ViewModel()
 {
-	private var connectInfo: ConnectInfo? = null
 	private var _session: StreamSession? = null
-	val session: StreamSession get() = _session ?: throw UninitializedPropertyAccessException("StreamViewModel not initialized")
-	val isInitialized get() = connectInfo != null
+	val input = StreamInput(preferences)
+	val session = StreamSession(connectInfo, input)
 
 	private var _onScreenControlsEnabled = MutableLiveData<Boolean>(preferences.onScreenControlsEnabled)
 	val onScreenControlsEnabled: LiveData<Boolean> get() = _onScreenControlsEnabled
-
-	fun init(connectInfo: ConnectInfo)
-	{
-		if(isInitialized)
-			return
-		_session = StreamSession(connectInfo)
-	}
 
 	override fun onCleared()
 	{

@@ -79,6 +79,11 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(logVerboseKey, false)
 		set(value) { sharedPreferences.edit().putBoolean(logVerboseKey, value).apply() }
 
+	val swapCrossMoonKey get() = resources.getString(R.string.preferences_swap_cross_moon_key)
+	var swapCrossMoon
+		get() = sharedPreferences.getBoolean(swapCrossMoonKey, false)
+		set(value) { sharedPreferences.edit().putBoolean(swapCrossMoonKey, value).apply() }
+
 	val resolutionKey get() = resources.getString(R.string.preferences_resolution_key)
 	var resolution
 		get() = sharedPreferences.getString(resolutionKey, resolutionDefault.value)?.let { value ->

@@ -20,14 +20,9 @@ package com.metallic.chiaki.stream
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
-import android.app.Dialog
-import android.content.DialogInterface
 import android.graphics.Matrix
 import android.os.Bundle
 import android.os.Handler
-import android.speech.tts.TextToSpeech
-import android.text.method.Touch
-import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -38,13 +33,11 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.metallic.chiaki.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
-import com.metallic.chiaki.lib.LoginPinRequestEvent
-import com.metallic.chiaki.lib.QuitReason
+import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
 
@@ -68,17 +61,16 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	{
 		super.onCreate(savedInstanceState)
 
-		viewModel = ViewModelProviders.of(this, viewModelFactory { StreamViewModel(Preferences(this)) })[StreamViewModel::class.java]
-		if(!viewModel.isInitialized)
+		val connectInfo = intent.getParcelableExtra<ConnectInfo>(EXTRA_CONNECT_INFO)
+		if(connectInfo == null)
 		{
-			val connectInfo = intent.getParcelableExtra<ConnectInfo>(EXTRA_CONNECT_INFO)
-			if(connectInfo == null)
-			{
-				finish()
-				return
-			}
-			viewModel.init(connectInfo)
+			finish()
+			return
 		}
+
+		viewModel = ViewModelProviders.of(this, viewModelFactory {
+			StreamViewModel(Preferences(this), connectInfo)
+		})[StreamViewModel::class.java]
 
 		setContentView(R.layout.activity_stream)
 		window.decorView.setOnSystemUiVisibilityChangeListener(this)
@@ -104,7 +96,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		super.onAttachFragment(fragment)
 		if(fragment is TouchControlsFragment)
 		{
-			fragment.controllerStateCallback = viewModel.session::updateTouchControllerState
+			fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
 			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
 		}
 	}
@@ -309,6 +301,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 	}
 
-	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.session.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
-	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.session.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
+	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
+	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 }
