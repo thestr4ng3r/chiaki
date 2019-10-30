@@ -32,7 +32,7 @@ data class StreamStateCreateError(val error: CreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
-class StreamSession(val connectInfo: ConnectInfo, val input: StreamInput)
+class StreamSession(val connectInfo: ConnectInfo, val logVerbose: Boolean, val input: StreamInput)
 {
 	var session: Session? = null
 		private set
@@ -69,7 +69,7 @@ class StreamSession(val connectInfo: ConnectInfo, val input: StreamInput)
 			return
 		try
 		{
-			val session = Session(connectInfo)
+			val session = Session(connectInfo, null, logVerbose) // TODO: log file
 			_state.value = StreamStateConnecting
 			session.eventCallback = this::eventCallback
 			session.start()

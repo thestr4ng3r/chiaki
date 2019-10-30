@@ -58,7 +58,7 @@ private class ChiakiNative
 		@JvmStatic external fun quitReasonToString(value: Int): String
 		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
 		@JvmStatic external fun videoProfilePreset(resolutionPreset: Int, fpsPreset: Int): ConnectVideoProfile
-		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, javaSession: Session)
+		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, logFile: String?, logVerbose: Boolean, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
 		@JvmStatic external fun sessionStop(ptr: Long): Int
@@ -179,7 +179,7 @@ data class QuitEvent(val reason: QuitReason, val reasonString: String?): Event()
 
 class CreateError(val errorCode: ErrorCode): Exception("Failed to create a native object: $errorCode")
 
-class Session(connectInfo: ConnectInfo)
+class Session(connectInfo: ConnectInfo, logFile: String?, logVerbose: Boolean)
 {
 	interface EventCallback
 	{
@@ -192,7 +192,7 @@ class Session(connectInfo: ConnectInfo)
 	init
 	{
 		val result = ChiakiNative.CreateResult(0, 0)
-		ChiakiNative.sessionCreate(result, connectInfo, this)
+		ChiakiNative.sessionCreate(result, connectInfo, logFile, logVerbose, this)
 		val errorCode = ErrorCode(result.errorCode)
 		if(!errorCode.isSuccess)
 			throw CreateError(errorCode)

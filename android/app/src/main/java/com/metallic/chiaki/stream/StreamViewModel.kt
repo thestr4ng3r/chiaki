@@ -29,7 +29,7 @@ class StreamViewModel(val preferences: Preferences, val connectInfo: ConnectInfo
 {
 	private var _session: StreamSession? = null
 	val input = StreamInput(preferences)
-	val session = StreamSession(connectInfo, input)
+	val session = StreamSession(connectInfo, preferences.logVerbose, input)
 
 	private var _onScreenControlsEnabled = MutableLiveData<Boolean>(preferences.onScreenControlsEnabled)
 	val onScreenControlsEnabled: LiveData<Boolean> get() = _onScreenControlsEnabled

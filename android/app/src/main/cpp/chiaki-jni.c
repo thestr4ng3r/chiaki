@@ -33,41 +33,8 @@
 #include "video-decoder.h"
 #include "audio-decoder.h"
 #include "audio-output.h"
-
-#define LOG_TAG "Chiaki"
-#define JNI_VERSION JNI_VERSION_1_6
-
-#define BASE_PACKAGE "com/metallic/chiaki/lib"
-#define JNI_FCN(name) Java_com_metallic_chiaki_lib_ChiakiNative_##name
-
-#define E (*env)
-
-static void log_cb_android(ChiakiLogLevel level, const char *msg, void *user)
-{
-	int prio;
-	switch(level)
-	{
-		case CHIAKI_LOG_DEBUG:
-			prio = ANDROID_LOG_DEBUG;
-			break;
-		case CHIAKI_LOG_VERBOSE:
-			prio = ANDROID_LOG_VERBOSE;
-			break;
-		case CHIAKI_LOG_INFO:
-			prio = ANDROID_LOG_INFO;
-			break;
-		case CHIAKI_LOG_WARNING:
-			prio = ANDROID_LOG_ERROR;
-			break;
-		case CHIAKI_LOG_ERROR:
-			prio = ANDROID_LOG_ERROR;
-			break;
-		default:
-			prio = ANDROID_LOG_INFO;
-			break;
-	}
-	__android_log_write(prio, LOG_TAG, msg);
-}
+#include "log.h"
+#include "chiaki-jni.h"
 
 static char *strdup_jni(const char *str)
 {
@@ -84,7 +51,7 @@ static char *strdup_jni(const char *str)
 	return r;
 }
 
-static jobject jnistr_from_ascii(JNIEnv *env, const char *str)
+jobject jnistr_from_ascii(JNIEnv *env, const char *str)
 {
 	if(!str)
 		return NULL;
@@ -121,16 +88,31 @@ static jobject get_kotlin_global_object(JNIEnv *env, const char *id)
 }
 
 static ChiakiLog global_log;
-static JavaVM *global_vm;
+JavaVM *global_vm;
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 {
 	global_vm = vm;
-	chiaki_log_init(&global_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, log_cb_android, NULL);
+
+	android_chiaki_file_log_init(&global_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, NULL);
 	CHIAKI_LOGI(&global_log, "Loading Chiaki Library");
 	ChiakiErrorCode err = chiaki_lib_init();
 	CHIAKI_LOGI(&global_log, "Chiaki Library Init Result: %s\n", chiaki_error_string(err));
 	return JNI_VERSION;
+}
+
+JNIEnv *attach_thread_jni()
+{
+	JNIEnv *env;
+	int r = (*global_vm)->GetEnv(global_vm, (void **)&env, JNI_VERSION);
+	if(r == JNI_OK)
+		return env;
+
+	if((*global_vm)->AttachCurrentThread(global_vm, &env, NULL) == 0)
+		return env;
+
+	CHIAKI_LOGE(&global_log, "Failed to get JNIEnv from JavaVM or attach");
+	return NULL;
 }
 
 JNIEXPORT jstring JNICALL JNI_FCN(errorCodeToString)(JNIEnv *env, jobject obj, jint value)
@@ -160,6 +142,7 @@ JNIEXPORT jobject JNICALL JNI_FCN(videoProfilePreset)(JNIEnv *env, jobject obj, 
 typedef struct android_chiaki_session_t
 {
 	ChiakiSession session;
+	ChiakiLog *log;
 	jobject java_session;
 	jclass java_session_class;
 	jmethodID java_session_event_connected_meth;
@@ -177,54 +160,6 @@ typedef struct android_chiaki_session_t
 	AndroidChiakiAudioDecoder audio_decoder;
 	void *audio_output;
 } AndroidChiakiSession;
-
-static JNIEnv *attach_thread_jni()
-{
-	JNIEnv *env;
-	int r = (*global_vm)->GetEnv(global_vm, (void **)&env, JNI_VERSION);
-	if(r == JNI_OK)
-		return env;
-
-	if((*global_vm)->AttachCurrentThread(global_vm, &env, NULL) == 0)
-		return env;
-
-	CHIAKI_LOGE(&global_log, "Failed to get JNIEnv from JavaVM or attach");
-	return NULL;
-}
-
-typedef struct android_chiaki_log_t
-{
-	jobject java_log;
-	jmethodID java_log_meth;
-	ChiakiLog log;
-} AndroidChiakiLog;
-
-static void android_chiaki_log_cb(ChiakiLogLevel level, const char *msg, void *user)
-{
-	log_cb_android(level, msg, NULL);
-
-	AndroidChiakiLog *log = user;
-	JNIEnv *env = attach_thread_jni();
-	if(!env)
-		return;
-	E->CallVoidMethod(env, log->java_log, log->java_log_meth, (jint)level, jnistr_from_ascii(env, msg));
-	(*global_vm)->DetachCurrentThread(global_vm);
-}
-
-static void android_chiaki_log_init(AndroidChiakiLog *log, JNIEnv *env, jobject java_log)
-{
-	log->java_log = E->NewGlobalRef(env, java_log);
-	jclass log_class = E->GetObjectClass(env, log->java_log);
-	log->java_log_meth = E->GetMethodID(env, log_class, "log", "(ILjava/lang/String;)V");
-	log->log.level_mask = (uint32_t)E->GetIntField(env, log->java_log, E->GetFieldID(env, log_class, "levelMask", "I"));
-	log->log.cb = android_chiaki_log_cb;
-	log->log.user = log;
-}
-
-static void android_chiaki_log_fini(AndroidChiakiLog *log, JNIEnv *env)
-{
-	E->DeleteGlobalRef(env, log->java_log);
-}
 
 static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
 {
@@ -263,9 +198,15 @@ static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
 	(*global_vm)->DetachCurrentThread(global_vm);
 }
 
-JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj, jobject java_session)
+JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject result, jobject connect_info_obj, jstring log_file_str, jboolean log_verbose, jobject java_session)
 {
 	AndroidChiakiSession *session = NULL;
+	ChiakiLog *log = malloc(sizeof(ChiakiLog));
+	const char *log_file = log_file_str ? E->GetStringUTFChars(env, log_file_str, NULL) : NULL;
+	android_chiaki_file_log_init(log, log_verbose ? CHIAKI_LOG_ALL : (CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE), log_file);
+	if(log_file)
+		E->ReleaseStringUTFChars(env, log_file_str, log_file);
+
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 	char *host_str = NULL;
 
@@ -290,7 +231,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 
 	if(E->GetArrayLength(env, regist_key_array) != sizeof(connect_info.regist_key))
 	{
-		CHIAKI_LOGE(&global_log, "Regist Key passed from Java has invalid length");
+		CHIAKI_LOGE(log, "Regist Key passed from Java has invalid length");
 		err = CHIAKI_ERR_INVALID_DATA;
 		goto beach;
 	}
@@ -300,7 +241,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 
 	if(E->GetArrayLength(env, morning_array) != sizeof(connect_info.morning))
 	{
-		CHIAKI_LOGE(&global_log, "Morning passed from Java has invalid length");
+		CHIAKI_LOGE(log, "Morning passed from Java has invalid length");
 		err = CHIAKI_ERR_INVALID_DATA;
 		goto beach;
 	}
@@ -320,7 +261,8 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 		goto beach;
 	}
 	memset(session, 0, sizeof(AndroidChiakiSession));
-	err = android_chiaki_video_decoder_init(&session->video_decoder, &global_log);
+	session->log = log;
+	err = android_chiaki_video_decoder_init(&session->video_decoder, log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		free(session);
@@ -328,7 +270,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 		goto beach;
 	}
 
-	err = android_chiaki_audio_decoder_init(&session->audio_decoder, &global_log);
+	err = android_chiaki_audio_decoder_init(&session->audio_decoder, log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		android_chiaki_video_decoder_fini(&session->video_decoder);
@@ -337,14 +279,14 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 		goto beach;
 	}
 
-	session->audio_output = android_chiaki_audio_output_new(&global_log);
+	session->audio_output = android_chiaki_audio_output_new(log);
 
 	android_chiaki_audio_decoder_set_cb(&session->audio_decoder, android_chiaki_audio_output_settings, android_chiaki_audio_output_frame, session->audio_output);
 
-	err = chiaki_session_init(&session->session, &connect_info, &global_log);
+	err = chiaki_session_init(&session->session, &connect_info, log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&global_log, "JNI ChiakiSession failed to init");
+		CHIAKI_LOGE(log, "JNI ChiakiSession failed to init");
 		android_chiaki_video_decoder_fini(&session->video_decoder);
 		android_chiaki_audio_decoder_fini(&session->audio_decoder);
 		android_chiaki_audio_output_free(session->audio_output);
@@ -376,6 +318,12 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	chiaki_session_set_audio_sink(&session->session, &audio_sink);
 
 beach:
+	if(!session && log)
+	{
+		android_chiaki_file_log_fini(log);
+		free(log);
+	}
+
 	free(host_str);
 	E->SetIntField(env, result, E->GetFieldID(env, result_class, "errorCode", "I"), (jint)err);
 	E->SetLongField(env, result, E->GetFieldID(env, result_class, "ptr", "J"), (jlong)session);
@@ -384,9 +332,9 @@ beach:
 JNIEXPORT void JNICALL JNI_FCN(sessionFree)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
-	CHIAKI_LOGI(&global_log, "Shutting down JNI Session");
 	if(!session)
 		return;
+	CHIAKI_LOGI(session->log, "Shutting down JNI Session");
 	chiaki_session_fini(&session->session);
 	free(session);
 	android_chiaki_video_decoder_fini(&session->video_decoder);
@@ -400,21 +348,21 @@ JNIEXPORT void JNICALL JNI_FCN(sessionFree)(JNIEnv *env, jobject obj, jlong ptr)
 JNIEXPORT jint JNICALL JNI_FCN(sessionStart)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
-	CHIAKI_LOGI(&global_log, "Start JNI Session");
+	CHIAKI_LOGI(session->log, "Start JNI Session");
 	return chiaki_session_start(&session->session);
 }
 
 JNIEXPORT jint JNICALL JNI_FCN(sessionStop)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
-	CHIAKI_LOGI(&global_log, "Stop JNI Session");
+	CHIAKI_LOGI(session->log, "Stop JNI Session");
 	return chiaki_session_stop(&session->session);
 }
 
 JNIEXPORT jint JNICALL JNI_FCN(sessionJoin)(JNIEnv *env, jobject obj, jlong ptr)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
-	CHIAKI_LOGI(&global_log, "Join JNI Session");
+	CHIAKI_LOGI(session->log, "Join JNI Session");
 	return chiaki_session_join(&session->session);
 }
 
@@ -651,7 +599,7 @@ JNIEXPORT jint JNICALL JNI_FCN(discoveryServiceWakeup)(JNIEnv *env, jobject obj,
 
 typedef struct android_chiaki_regist_t
 {
-	AndroidChiakiLog log;
+	AndroidChiakiJNILog log;
 	ChiakiRegist regist;
 
 	jobject java_regist;
@@ -709,7 +657,7 @@ static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 
 static void android_chiaki_regist_fini_partial(JNIEnv *env, AndroidChiakiRegist *regist)
 {
-	android_chiaki_log_fini(&regist->log, env);
+	android_chiaki_jni_log_fini(&regist->log, env);
 	E->DeleteGlobalRef(env, regist->java_regist);
 	E->DeleteGlobalRef(env, regist->java_regist_event_canceled);
 	E->DeleteGlobalRef(env, regist->java_regist_event_failed);
@@ -728,7 +676,7 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 		goto beach;
 	}
 
-	android_chiaki_log_init(&regist->log, env, log_obj);
+	android_chiaki_jni_log_init(&regist->log, env, log_obj);
 
 	regist->java_regist = E->NewGlobalRef(env, java_regist);
 	regist->java_regist_event_meth = E->GetMethodID(env, E->GetObjectClass(env, regist->java_regist), "event", "(L"BASE_PACKAGE"/RegistEvent;)V");
