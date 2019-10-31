@@ -22,6 +22,7 @@ import android.util.Log
 import android.view.*
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.lib.*
 
 sealed class StreamState
@@ -32,7 +33,7 @@ data class StreamStateCreateError(val error: CreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
-class StreamSession(val connectInfo: ConnectInfo, val logVerbose: Boolean, val input: StreamInput)
+class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, val logVerbose: Boolean, val input: StreamInput)
 {
 	var session: Session? = null
 		private set
@@ -69,7 +70,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logVerbose: Boolean, val i
 			return
 		try
 		{
-			val session = Session(connectInfo, null, logVerbose) // TODO: log file
+			val session = Session(connectInfo, logManager.createNewFile().file.absolutePath, logVerbose)
 			_state.value = StreamStateConnecting
 			session.eventCallback = this::eventCallback
 			session.start()

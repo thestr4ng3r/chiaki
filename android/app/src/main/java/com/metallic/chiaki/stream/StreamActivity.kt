@@ -34,6 +34,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
@@ -69,7 +70,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 
 		viewModel = ViewModelProviders.of(this, viewModelFactory {
-			StreamViewModel(Preferences(this), connectInfo)
+			StreamViewModel(Preferences(this), LogManager(this), connectInfo)
 		})[StreamViewModel::class.java]
 
 		setContentView(R.layout.activity_stream)
