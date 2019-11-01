@@ -24,6 +24,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
 
+val fileProviderAuthority = "com.metallic.chiaki.fileprovider"
+private const val baseDirName = "session_logs" // must be in sync with filepaths.xml
 private val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.US)
 private const val filePrefix = "chiaki_session_"
 private const val filePostfix = ".log"
@@ -46,7 +48,7 @@ class LogFile private constructor(val logManager: LogManager, val filename: Stri
 
 class LogManager(context: Context)
 {
-	val baseDir = File(context.filesDir, "session_logs").also {
+	val baseDir = File(context.filesDir, baseDirName).also {
 		it.mkdirs()
 	}
 

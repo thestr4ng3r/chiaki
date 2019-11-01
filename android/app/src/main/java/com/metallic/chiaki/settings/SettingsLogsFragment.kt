@@ -17,20 +17,25 @@
 
 package com.metallic.chiaki.settings
 
+import android.content.ClipData
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.LogFile
 import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.common.fileProviderAuthority
 import kotlinx.android.synthetic.main.fragment_settings_logs.*
 
 class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
@@ -51,6 +56,7 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 		val adapter = SettingsLogsAdapter()
 		logsRecyclerView.layoutManager = LinearLayoutManager(context)
 		logsRecyclerView.adapter = adapter
+		adapter.shareCallback = this::shareLogFile
 		viewModel.sessionLogs.observe(this, Observer {
 			adapter.logFiles = it
 			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
@@ -69,4 +75,18 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.preferences_logs_title)
+
+	private fun shareLogFile(file: LogFile)
+	{
+		val activity = activity ?: return
+		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority, file.file)
+		Intent(Intent.ACTION_SEND).also {
+			it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+			it.type = "text/plain"
+			it.putExtra(Intent.EXTRA_STREAM, uri)
+			it.clipData = ClipData.newRawUri("", uri)
+			startActivity(Intent.createChooser(it, resources.getString(R.string.action_share_log)))
+		}
+
+	}
 }

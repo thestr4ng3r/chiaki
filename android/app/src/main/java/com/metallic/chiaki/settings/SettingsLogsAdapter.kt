@@ -30,8 +30,10 @@ import java.util.*
 
 class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>()
 {
-	val dateFormat: DateFormat = DateFormat.getDateInstance(DateFormat.SHORT)
-	val timeFormat = SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault())
+	var shareCallback: ((LogFile) -> Unit)? = null
+
+	private val dateFormat: DateFormat = DateFormat.getDateInstance(DateFormat.SHORT)
+	private val timeFormat = SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault())
 
 	class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
 
@@ -52,5 +54,6 @@ class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>(
 		val logFile = logFiles[position]
 		view.nameTextView.text = "${dateFormat.format(logFile.date)} ${timeFormat.format(logFile.date)}"
 		view.summaryTextView.text = logFile.filename
+		view.shareButton.setOnClickListener { shareCallback?.let { it(logFile) } }
 	}
 }
