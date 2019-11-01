@@ -43,7 +43,7 @@ class StreamInput(val preferences: Preferences)
 
 	fun dispatchKeyEvent(event: KeyEvent): Boolean
 	{
-		Log.i("StreamSession", "key event $event")
+		//Log.i("StreamSession", "key event $event")
 		if(event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP)
 			return false
 

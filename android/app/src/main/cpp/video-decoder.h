@@ -34,11 +34,13 @@ typedef struct android_chiaki_video_decoder_t
 	ANativeWindow *window;
 	uint64_t timestamp_cur;
 	ChiakiThread output_thread;
+	int32_t target_width;
+	int32_t target_height;
 } AndroidChiakiVideoDecoder;
 
-ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log);
+ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log, int32_t target_width, int32_t target_height);
 void android_chiaki_video_decoder_fini(AndroidChiakiVideoDecoder *decoder);
 void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder, JNIEnv *env, jobject surface);
-void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, void *user);
+bool android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, void *user);
 
 #endif

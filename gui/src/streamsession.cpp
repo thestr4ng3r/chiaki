@@ -52,7 +52,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
-static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
+static bool VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 static void EventCb(ChiakiEvent *event, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
@@ -373,10 +373,11 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 	StreamSessionPrivate::PushAudioFrame(session, buf, samples_count);
 }
 
-static void VideoSampleCb(uint8_t *buf, size_t buf_size, void *user)
+static bool VideoSampleCb(uint8_t *buf, size_t buf_size, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushVideoSample(session, buf, buf_size);
+	return true;
 }
 
 static void EventCb(ChiakiEvent *event, void *user)

@@ -100,7 +100,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(video_receiver->frame_index_cur >= 0 && video_receiver->frame_index_prev != video_receiver->frame_index_cur)
 			chiaki_video_receiver_flush_frame(video_receiver);
 
-		ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)video_receiver->frame_index_prev_complete + 1;
+		ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)(video_receiver->frame_index_prev_complete + 1);
 		if(chiaki_seq_num_16_gt(frame_index, next_frame_expected)
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
@@ -143,12 +143,21 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 
 	// TODO: Error Concealment on CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED
 
+	bool succ = flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED;
+
 	if(video_receiver->session->video_sample_cb)
-		video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
+	{
+		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
+		if(!cb_succ)
+		{
+			succ = false;
+			CHIAKI_LOGW(video_receiver->log, "Video callback did not process frame successfully.");
+		}
+	}
 
 	video_receiver->frame_index_prev = video_receiver->frame_index_cur;
 
-	if(flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED)
+	if(succ)
 		video_receiver->frame_index_prev_complete = video_receiver->frame_index_cur;
 
 	return CHIAKI_ERR_SUCCESS;

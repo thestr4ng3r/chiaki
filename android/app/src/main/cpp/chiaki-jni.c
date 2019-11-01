@@ -262,7 +262,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	}
 	memset(session, 0, sizeof(AndroidChiakiSession));
 	session->log = log;
-	err = android_chiaki_video_decoder_init(&session->video_decoder, log);
+	err = android_chiaki_video_decoder_init(&session->video_decoder, log, connect_info.video_profile.width, connect_info.video_profile.height);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		free(session);

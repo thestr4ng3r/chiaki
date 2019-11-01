@@ -29,11 +29,13 @@
 
 static void *android_chiaki_video_decoder_output_thread_func(void *user);
 
-ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log)
+ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *decoder, ChiakiLog *log, int32_t target_width, int32_t target_height)
 {
 	decoder->log = log;
 	decoder->codec = NULL;
 	decoder->timestamp_cur = 0;
+	decoder->target_width = target_width;
+	decoder->target_height = target_height;
 	return chiaki_mutex_init(&decoder->codec_mutex, false);
 }
 
@@ -91,8 +93,8 @@ void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder
 
 	AMediaFormat *format = AMediaFormat_new();
 	AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, mime);
-	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280); // TODO: correct values
-	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
+	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, decoder->target_width);
+	AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, decoder->target_height);
 
 	media_status_t r = AMediaCodec_configure(decoder->codec, format, decoder->window, NULL, 0);
 	if(r != AMEDIA_OK)
@@ -131,8 +133,9 @@ beach:
 	chiaki_mutex_unlock(&decoder->codec_mutex);
 }
 
-void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, void *user)
+bool android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, void *user)
 {
+	bool r = true;
 	AndroidChiakiVideoDecoder *decoder = user;
 	chiaki_mutex_lock(&decoder->codec_mutex);
 
@@ -148,7 +151,7 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 		if(codec_buf_index < 0)
 		{
 			CHIAKI_LOGE(decoder->log, "Failed to get input buffer");
-			// TODO: report corrupt
+			r = false;
 			goto beach;
 		}
 
@@ -173,6 +176,7 @@ void android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, vo
 
 beach:
 	chiaki_mutex_unlock(&decoder->codec_mutex);
+	return r;
 }
 
 static void *android_chiaki_video_decoder_output_thread_func(void *user)
