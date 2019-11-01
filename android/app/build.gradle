@@ -3,6 +3,20 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
+def rootCMakeLists = "../../CMakeLists.txt"
+def rootCMakeListsContent = file(rootCMakeLists).text
+static def grepVersionComponent(content, varname) {
+    def match = content =~ /set\($varname ([0-9]+)\)/
+    if(!match.find())
+        throw new GradleException("Failed to find $varname in CMakeLists.txt")
+    return match.group(1)
+}
+def chiakiVersionMajor = grepVersionComponent(rootCMakeListsContent, "CHIAKI_VERSION_MAJOR")
+def chiakiVersionMinor = grepVersionComponent(rootCMakeListsContent, "CHIAKI_VERSION_MINOR")
+def chiakiVersionPatch = grepVersionComponent(rootCMakeListsContent, "CHIAKI_VERSION_PATCH")
+def chiakiVersion = "$chiakiVersionMajor.$chiakiVersionMinor.$chiakiVersionPatch"
+println("Determined Chiaki Version: $chiakiVersion")
+
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
@@ -11,7 +25,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "1.0"
+        versionName chiakiVersion
         externalNativeBuild {
             cmake {
                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
@@ -26,12 +40,12 @@ android {
     externalNativeBuild {
         cmake {
             version "3.10.2+"
-            path "../../CMakeLists.txt"
+            path rootCMakeLists
         }
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
