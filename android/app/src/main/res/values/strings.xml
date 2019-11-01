@@ -74,6 +74,7 @@
     <string name="action_keep">Keep</string>
     <string name="action_delete">Delete</string>
     <string name="action_edit">Edit</string>
+    <string name="session_logs_empty_info">No Session Logs recorded.</string>
 
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key">discovery_enabled</string>

@@ -21,15 +21,21 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.RegisteredHost
+import com.metallic.chiaki.common.LogFile
 import com.metallic.chiaki.common.ext.inflate
-import kotlinx.android.synthetic.main.item_registered_host.view.*
+import kotlinx.android.synthetic.main.item_log_file.view.*
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>()
 {
+	val dateFormat: DateFormat = DateFormat.getDateInstance(DateFormat.SHORT)
+	val timeFormat = SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault())
+
 	class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
 
-	var logFiles: List<String> = listOf()
+	var logFiles: List<LogFile> = listOf()
 		set(value)
 		{
 			field = value
@@ -44,6 +50,7 @@ class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>(
 	{
 		val view = holder.itemView
 		val logFile = logFiles[position]
-		// TODO
+		view.nameTextView.text = "${dateFormat.format(logFile.date)} ${timeFormat.format(logFile.date)}"
+		view.summaryTextView.text = logFile.filename
 	}
 }

@@ -24,11 +24,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
 
-private val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSSSSS", Locale.US)
-private val filePrefix = "chiaki_session_"
-private val filePostfix = ".log"
+private val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.US)
+private const val filePrefix = "chiaki_session_"
+private const val filePostfix = ".log"
 private val fileRegex = Regex("$filePrefix(.*)$filePostfix")
-private val keepLogFilesCount = 5
+private const val keepLogFilesCount = 5
 
 class LogFile private constructor(val logManager: LogManager, val filename: String)
 {

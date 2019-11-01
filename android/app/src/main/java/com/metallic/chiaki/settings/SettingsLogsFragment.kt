@@ -23,9 +23,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.ext.viewModelFactory
 import kotlinx.android.synthetic.main.fragment_settings_logs.*
 
@@ -38,13 +42,30 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
 	{
+		val context = context!!
+
 		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsLogsViewModel() })
+			.of(this, viewModelFactory { SettingsLogsViewModel(LogManager(context)) })
 			.get(SettingsLogsViewModel::class.java)
 
 		val adapter = SettingsLogsAdapter()
 		logsRecyclerView.layoutManager = LinearLayoutManager(context)
 		logsRecyclerView.adapter = adapter
+		viewModel.sessionLogs.observe(this, Observer {
+			adapter.logFiles = it
+			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
+		})
+
+		val itemTouchSwipeCallback = object : ItemTouchSwipeCallback(context)
+		{
+			override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int)
+			{
+				val pos = viewHolder.adapterPosition
+				val file = viewModel.sessionLogs.value?.getOrNull(pos) ?: return
+				viewModel.deleteLog(file)
+			}
+		}
+		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(logsRecyclerView)
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.preferences_logs_title)
