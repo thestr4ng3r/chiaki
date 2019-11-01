@@ -34,6 +34,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 	override fun getBoolean(key: String?, defValue: Boolean) = when(key)
 	{
 		preferences.logVerboseKey -> preferences.logVerbose
+		preferences.swapCrossMoonKey -> preferences.swapCrossMoon
 		else -> defValue
 	}
 
@@ -42,6 +43,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		when(key)
 		{
 			preferences.logVerboseKey -> preferences.logVerbose = value
+			preferences.swapCrossMoonKey -> preferences.swapCrossMoon = value
 		}
 	}
 
