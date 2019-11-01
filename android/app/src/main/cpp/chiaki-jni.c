@@ -336,13 +336,15 @@ JNIEXPORT void JNICALL JNI_FCN(sessionFree)(JNIEnv *env, jobject obj, jlong ptr)
 		return;
 	CHIAKI_LOGI(session->log, "Shutting down JNI Session");
 	chiaki_session_fini(&session->session);
-	free(session);
 	android_chiaki_video_decoder_fini(&session->video_decoder);
 	android_chiaki_audio_decoder_fini(&session->audio_decoder);
 	android_chiaki_audio_output_free(session->audio_output);
 	E->DeleteGlobalRef(env, session->java_session);
 	E->DeleteGlobalRef(env, session->java_session_class);
-	CHIAKI_LOGI(&global_log, "JNI Session has quit");
+	CHIAKI_LOGI(session->log, "JNI Session has quit");
+	android_chiaki_file_log_fini(session->log);
+	free(session->log);
+	free(session);
 }
 
 JNIEXPORT jint JNICALL JNI_FCN(sessionStart)(JNIEnv *env, jobject obj, jlong ptr)
