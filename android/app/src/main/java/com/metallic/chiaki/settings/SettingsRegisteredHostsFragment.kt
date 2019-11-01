@@ -75,6 +75,7 @@ class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(hostsRecyclerView)
 		viewModel.registeredHosts.observe(this, Observer {
 			adapter.hosts = it
+			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
 		})
 
 		floatingActionButton.setOnClickListener {

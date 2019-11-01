@@ -75,6 +75,9 @@
     <string name="action_delete">Delete</string>
     <string name="action_edit">Edit</string>
     <string name="session_logs_empty_info">No Session Logs recorded.</string>
+    <string name="registered_hosts_empty_info">No Consoles registered.</string>
+    <string name="display_hosts_empty_discovery_off_info">No consoles added yet.\nEnable Discovery to automatically find consoles on your local network.</string>
+    <string name="display_hosts_empty_discovery_on_info">No consoles added or discovered.</string>
 
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key">discovery_enabled</string>

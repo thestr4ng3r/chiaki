@@ -22,6 +22,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -78,11 +79,26 @@ class MainActivity : AppCompatActivity()
 			recyclerViewAdapter.hosts = it
 			if(top)
 				hostsRecyclerView.scrollToPosition(0)
+			updateEmptyInfo()
 		})
 
 		viewModel.discoveryActive.observe(this, Observer { active ->
 			discoveryMenuItem?.let { updateDiscoveryMenuItem(it, active) }
+			updateEmptyInfo()
 		})
+	}
+
+	private fun updateEmptyInfo()
+	{
+		if(viewModel.displayHosts.value?.isEmpty() ?: true)
+		{
+			emptyInfoLayout.visibility = View.VISIBLE
+			val discoveryActive = viewModel.discoveryActive.value ?: false
+			emptyInfoImageView.setImageResource(if(discoveryActive) R.drawable.ic_discover_on else R.drawable.ic_discover_off)
+			emptyInfoTextView.setText(if(discoveryActive) R.string.display_hosts_empty_discovery_on_info else R.string.display_hosts_empty_discovery_off_info)
+		}
+		else
+			emptyInfoLayout.visibility = View.GONE
 	}
 
 	private fun expandFloatingActionButton(expand: Boolean)
