@@ -17,3 +17,6 @@ appdir
 .vs
 CMakeSettings.json
 chiaki.rb
+*.jks
+secret.tar
+keystore-env.sh
