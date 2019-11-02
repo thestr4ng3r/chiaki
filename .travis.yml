@@ -141,8 +141,7 @@ matrix:
         - tar -czvf "$DEPLOY_FILE" chiaki
 
 before_install:
-  - openssl aes-256-cbc -K $encrypted_31d5e6477a29_key -iv $encrypted_31d5e6477a29_iv -in secret.tar.enc -out secret.tar -d
-  - tar -xf secret.tar
+  - if [ ! -z "$encrypted_31d5e6477a29_iv" ]; then openssl aes-256-cbc -K $encrypted_31d5e6477a29_key -iv $encrypted_31d5e6477a29_iv -in secret.tar.enc -out secret.tar -d && tar -xf secret.tar; fi
 
 after_success:
   - if [ ! -z "$DEPLOY_FILE" ]; then curl -m 300 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
