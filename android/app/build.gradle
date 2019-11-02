@@ -59,7 +59,7 @@ android {
         buildTypes.release.signingConfig = signingConfigs.release
         signingConfigs.release.storeFile = keystoreFile
         signingConfigs.release.storePassword = System.getenv("android_keystore_pw")
-        signingConfigs.release.keyAlias = System.getenv("android_keystore_alias")
+        signingConfigs.release.keyAlias = "chiaki"
         signingConfigs.release.keyPassword = System.getenv("android_keystore_alias_pw")
     }
 }
