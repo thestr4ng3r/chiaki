@@ -8,7 +8,7 @@
 [![Travis Build Status](https://travis-ci.com/thestr4ng3r/chiaki.svg?branch=master)](https://travis-ci.com/thestr4ng3r/chiaki) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
 
 Chiaki is a Free and Open Source Software Client for PlayStation 4 Remote Play
-for Linux, macOS, Windows and potentially even more platforms.
+for Linux, Android, macOS, Windows and potentially even more platforms.
 
 ![Screenshot](assets/screenshot.png)
 
@@ -29,11 +29,12 @@ You can either download a pre-built release (easier) or build Chiaki from source
 
 ### Downloading a Release
 
-Builds are provided for Linux, macOS and Windows.
+Builds are provided for Linux, Android, macOS and Windows.
 
 You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 * **Linux**: The provided file is an [AppImage](https://appimage.org/). Simply make it executable (`chmod +x <file>.AppImage`) and run it.
+* **Android**: Install from [Google Play](https://play.google.com/store/apps/details?id=com.metallic.chiaki) or download the APK from GitHub.
 * **macOS**: Drag the application from the `.dmg` into your Applications folder.
 * **Windows**: Extract the `.zip` file and execute `chiaki.exe`.
 
