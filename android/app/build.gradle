@@ -53,14 +53,30 @@ android {
         }
     }
 
+    Properties properties = new Properties()
+    def propertiesFile = file("../local.properties")
+    if (propertiesFile.exists()) {
+        properties.load(propertiesFile.newDataInputStream())
+    }
+
     def keystoreFile = file("../../keystore.jks")
-    if (System.getenv("TRAVIS") == "true" && keystoreFile.exists()) {
+    if(System.getenv("TRAVIS") == "true" && keystoreFile.exists()) {
         println("Enabling Signing on Travis")
         buildTypes.release.signingConfig = signingConfigs.release
         signingConfigs.release.storeFile = keystoreFile
         signingConfigs.release.storePassword = System.getenv("android_keystore_pw")
         signingConfigs.release.keyAlias = "chiaki"
         signingConfigs.release.keyPassword = System.getenv("android_keystore_alias_pw")
+    } else if(properties.containsKey("chiakiKeystore")) {
+        println("Enabling Local Signing")
+        buildTypes.release.signingConfig = signingConfigs.release
+        buildTypes.debug.signingConfig = signingConfigs.release
+        signingConfigs.release.storeFile = file(properties.get("chiakiKeystore"))
+        signingConfigs.release.storePassword = properties.get("chiakiKeystorePW")
+        signingConfigs.release.keyAlias = properties.get("chiakiKeyAlias")
+        signingConfigs.release.keyPassword = properties.get("chiakiKeyPW")
+    } else {
+        println("Signing not enabled")
     }
 }
 
