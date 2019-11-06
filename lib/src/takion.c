@@ -425,9 +425,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	ChiakiSeqNum32 seq_num_val = takion->seq_num_local++;
 	chiaki_mutex_unlock(&takion->seq_num_local_mutex);
 
-	*((uint32_t *)(msg_payload + 0)) = htonl(seq_num_val);
-	*((uint16_t *)(msg_payload + 4)) = htons(channel);
-	*((uint16_t *)(msg_payload + 6)) = 0;
+	*((chiaki_unaligned_uint32_t *)(msg_payload + 0)) = htonl(seq_num_val);
+	*((chiaki_unaligned_uint16_t *)(msg_payload + 4)) = htons(channel);
+	*((chiaki_unaligned_uint16_t *)(msg_payload + 6)) = 0;
 	*(msg_payload + 8) = 0;
 	memcpy(msg_payload + 9, buf, buf_size);
 
@@ -460,10 +460,10 @@ static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion,
 	takion_write_message_header(buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA_ACK, 0, 0xc);
 
 	uint8_t *data_ack = buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
-	*((uint32_t *)(data_ack + 0)) = htonl(seq_num);
-	*((uint32_t *)(data_ack + 4)) = htonl(takion->a_rwnd);
-	*((uint16_t *)(data_ack + 8)) = 0;
-	*((uint16_t *)(data_ack + 0xa)) = 0;
+	*((chiaki_unaligned_uint32_t *)(data_ack + 0)) = htonl(seq_num);
+	*((chiaki_unaligned_uint32_t *)(data_ack + 4)) = htonl(takion->a_rwnd);
+	*((chiaki_unaligned_uint16_t *)(data_ack + 8)) = 0;
+	*((chiaki_unaligned_uint16_t *)(data_ack + 0xa)) = 0;
 
 	return chiaki_takion_send(takion, buf, sizeof(buf));
 }
@@ -473,14 +473,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion
 	uint8_t buf[0xf];
 	memset(buf, 0, sizeof(buf));
 	buf[0] = TAKION_PACKET_TYPE_CONGESTION;
-	*((uint16_t *)(buf + 1)) = htons(packet->word_0);
-	*((uint16_t *)(buf + 3)) = htons(packet->word_1);
-	*((uint16_t *)(buf + 5)) = htons(packet->word_2);
+	*((chiaki_unaligned_uint16_t *)(buf + 1)) = htons(packet->word_0);
+	*((chiaki_unaligned_uint16_t *)(buf + 3)) = htons(packet->word_1);
+	*((chiaki_unaligned_uint16_t *)(buf + 5)) = htons(packet->word_2);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	*((uint32_t *)(buf + 0xb)) = htonl((uint32_t)takion->key_pos_local); // TODO: is this correct? shouldn't key_pos be 0 for mac calculation?
+	*((chiaki_unaligned_uint32_t *)(buf + 0xb)) = htonl((uint32_t)takion->key_pos_local); // TODO: is this correct? shouldn't key_pos be 0 for mac calculation?
 	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, takion->key_pos_local, buf, sizeof(buf), buf + 7);
 	takion->key_pos_local += sizeof(buf);
 	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
@@ -511,7 +511,7 @@ static ChiakiErrorCode takion_send_feedback_packet(ChiakiTakion *takion, uint8_t
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	*((uint32_t *)(buf + 4)) = htonl((uint32_t)key_pos);
+	*((chiaki_unaligned_uint32_t *)(buf + 4)) = htonl((uint32_t)key_pos);
 
 	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, buf_size, buf + 8);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -528,10 +528,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 {
 	uint8_t buf[0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE];
 	buf[0] = TAKION_PACKET_TYPE_FEEDBACK_STATE;
-	*((uint16_t *)(buf + 1)) = htons(seq_num);
+	*((chiaki_unaligned_uint16_t *)(buf + 1)) = htons(seq_num);
 	buf[3] = 0; // TODO
-	*((uint32_t *)(buf + 4)) = 0; // key pos
-	*((uint32_t *)(buf + 8)) = 0; // gmac
+	*((chiaki_unaligned_uint32_t *)(buf + 4)) = 0; // key pos
+	*((chiaki_unaligned_uint32_t *)(buf + 8)) = 0; // gmac
 	chiaki_feedback_state_format(buf + 0xc, feedback_state);
 	return takion_send_feedback_packet(takion, buf, sizeof(buf));
 }
@@ -543,10 +543,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_history(ChiakiTakion *
 	if(!buf)
 		return CHIAKI_ERR_MEMORY;
 	buf[0] = TAKION_PACKET_TYPE_FEEDBACK_HISTORY;
-	*((uint16_t *)(buf + 1)) = htons(seq_num);
+	*((chiaki_unaligned_uint16_t *)(buf + 1)) = htons(seq_num);
 	buf[3] = 0; // TODO
-	*((uint32_t *)(buf + 4)) = 0; // key pos
-	*((uint32_t *)(buf + 8)) = 0; // gmac
+	*((chiaki_unaligned_uint32_t *)(buf + 4)) = 0; // key pos
+	*((chiaki_unaligned_uint32_t *)(buf + 8)) = 0; // gmac
 	memcpy(buf + 0xc, payload, payload_size);
 	ChiakiErrorCode err = takion_send_feedback_packet(takion, buf, buf_size);
 	free(buf);
@@ -920,7 +920,7 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 			continue;
 		}
 
-		uint16_t zero_a = *((uint16_t *)(entry->payload + 6));
+		uint16_t zero_a = *((chiaki_unaligned_uint16_t *)(entry->payload + 6));
 		uint8_t data_type = entry->payload[8]; // & 0xf
 
 		if(zero_a != 0)
@@ -969,8 +969,8 @@ static void takion_handle_packet_message_data(ChiakiTakion *takion, uint8_t *pac
 	entry->packet_size = packet_buf_size;
 	entry->payload = payload;
 	entry->payload_size = payload_size;
-	entry->channel = ntohs(*((uint16_t *)(payload + 4)));
-	ChiakiSeqNum32 seq_num = ntohl(*((uint32_t *)(payload + 0)));
+	entry->channel = ntohs(*((chiaki_unaligned_uint16_t *)(payload + 4)));
+	ChiakiSeqNum32 seq_num = ntohl(*((chiaki_unaligned_uint32_t *)(payload + 0)));
 
 	chiaki_reorder_queue_push(&takion->data_queue, seq_num, entry);
 	takion_flush_data_queue(takion);
@@ -984,10 +984,10 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 		return;
 	}
 
-	uint32_t cumulative_seq_num = ntohl(*((uint32_t *)(buf + 0)));
-	uint32_t a_rwnd = ntohl(*((uint32_t *)(buf + 4)));
-	uint16_t gap_ack_blocks_count = ntohs(*((uint16_t *)(buf + 8)));
-	uint16_t dup_tsns_count = ntohs(*((uint16_t *)(buf + 0xa)));
+	uint32_t cumulative_seq_num = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 0)));
+	uint32_t a_rwnd = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 4)));
+	uint16_t gap_ack_blocks_count = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 8)));
+	uint16_t dup_tsns_count = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 0xa)));
 
 	if(buf_size != gap_ack_blocks_count * 4 + 0xc)
 	{
@@ -1023,12 +1023,12 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
  */
 static void takion_write_message_header(uint8_t *buf, uint32_t tag, uint32_t key_pos, uint8_t chunk_type, uint8_t chunk_flags, size_t payload_data_size)
 {
-	*((uint32_t *)(buf + 0)) = htonl(tag);
+	*((chiaki_unaligned_uint32_t *)(buf + 0)) = htonl(tag);
 	memset(buf + 4, 0, CHIAKI_GKCRYPT_GMAC_SIZE);
-	*((uint32_t *)(buf + 8)) = htonl(key_pos);
+	*((chiaki_unaligned_uint32_t *)(buf + 8)) = htonl(key_pos);
 	*(buf + 0xc) = chunk_type;
 	*(buf + 0xd) = chunk_flags;
-	*((uint16_t *)(buf + 0xe)) = htons((uint16_t)(payload_data_size + 4));
+	*((chiaki_unaligned_uint16_t *)(buf + 0xe)) = htons((uint16_t)(payload_data_size + 4));
 }
 
 static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, TakionMessage *msg)
@@ -1039,11 +1039,11 @@ static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, 
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
-	msg->tag = ntohl(*((uint32_t *)buf));
-	msg->key_pos = ntohl(*((uint32_t *)(buf + 0x8)));
+	msg->tag = ntohl(*((chiaki_unaligned_uint32_t *)buf));
+	msg->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 0x8)));
 	msg->chunk_type = buf[0xc];
 	msg->chunk_flags = buf[0xd];
-	msg->payload_size = ntohs(*((uint16_t *)(buf + 0xe)));
+	msg->payload_size = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 0xe)));
 
 	if(msg->tag != takion->tag_local)
 	{
@@ -1075,11 +1075,11 @@ static ChiakiErrorCode takion_send_message_init(ChiakiTakion *takion, TakionMess
 	takion_write_message_header(message + 1, takion->tag_remote, 0, TAKION_CHUNK_TYPE_INIT, 0, 0x10);
 
 	uint8_t *pl = message + 1 + TAKION_MESSAGE_HEADER_SIZE;
-	*((uint32_t *)(pl + 0)) = htonl(payload->tag);
-	*((uint32_t *)(pl + 4)) = htonl(payload->a_rwnd);
-	*((uint16_t *)(pl + 8)) = htons(payload->outbound_streams);
-	*((uint16_t *)(pl + 0xa)) = htons(payload->inbound_streams);
-	*((uint32_t *)(pl + 0xc)) = htonl(payload->initial_seq_num);
+	*((chiaki_unaligned_uint32_t *)(pl + 0)) = htonl(payload->tag);
+	*((chiaki_unaligned_uint32_t *)(pl + 4)) = htonl(payload->a_rwnd);
+	*((chiaki_unaligned_uint16_t *)(pl + 8)) = htons(payload->outbound_streams);
+	*((chiaki_unaligned_uint16_t *)(pl + 0xa)) = htons(payload->inbound_streams);
+	*((chiaki_unaligned_uint32_t *)(pl + 0xc)) = htonl(payload->initial_seq_num);
 
 	return chiaki_takion_send_raw(takion, message, sizeof(message));
 }
@@ -1134,11 +1134,11 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 	assert(msg.payload_size == 0x10 + TAKION_COOKIE_SIZE);
 
 	uint8_t *pl = msg.payload;
-	payload->tag = ntohl(*((uint32_t *)(pl + 0)));
-	payload->a_rwnd = ntohl(*((uint32_t *)(pl + 4)));
-	payload->outbound_streams = ntohs(*((uint16_t *)(pl + 8)));
-	payload->inbound_streams = ntohs(*((uint16_t *)(pl + 0xa)));
-	payload->initial_seq_num = ntohl(*((uint16_t *)(pl + 0xc)));
+	payload->tag = ntohl(*((chiaki_unaligned_uint32_t *)(pl + 0)));
+	payload->a_rwnd = ntohl(*((chiaki_unaligned_uint32_t *)(pl + 4)));
+	payload->outbound_streams = ntohs(*((chiaki_unaligned_uint16_t *)(pl + 8)));
+	payload->inbound_streams = ntohs(*((chiaki_unaligned_uint16_t *)(pl + 0xa)));
+	payload->initial_seq_num = ntohl(*((chiaki_unaligned_uint32_t *)(pl + 0xc)));
 	memcpy(payload->cookie, pl + 0x10, TAKION_COOKIE_SIZE);
 
 	return CHIAKI_ERR_SUCCESS;
@@ -1231,10 +1231,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 	if(av_size < av_header_size + 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	packet->packet_index = ntohs(*((uint16_t *)(av + 0)));
-	packet->frame_index = ntohs(*((uint16_t *)(av + 2)));
+	packet->packet_index = ntohs(*((chiaki_unaligned_uint16_t *)(av + 0)));
+	packet->frame_index = ntohs(*((chiaki_unaligned_uint16_t *)(av + 2)));
 
-	uint32_t dword_2 = ntohl(*((uint32_t *)(av + 4)));
+	uint32_t dword_2 = ntohl(*((chiaki_unaligned_uint32_t *)(av + 4)));
 	if(packet->is_video)
 	{
 		packet->unit_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
@@ -1250,7 +1250,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	packet->codec = av[8];
 
-	packet->key_pos = ntohl(*((uint32_t *)(av + 0xd)));
+	packet->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(av + 0xd)));
 
 	uint8_t unknown_1 = av[0x11];
 
@@ -1259,7 +1259,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	if(packet->is_video)
 	{
-		packet->word_at_0x18 = ntohs(*((uint16_t *)(av + 0)));
+		packet->word_at_0x18 = ntohs(*((chiaki_unaligned_uint16_t *)(av + 0)));
 		packet->adaptive_stream_index = av[2] >> 5;
 		av += 3;
 		av_size -= 3;
@@ -1308,31 +1308,31 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *
 	if(packet->uses_nalu_info_structs)
 		buf[0] |= 0x10;
 
-	*(uint16_t *)(buf + 1) = htons(packet->packet_index);
-	*(uint16_t *)(buf + 3) = htons(packet->frame_index);
+	*(chiaki_unaligned_uint16_t *)(buf + 1) = htons(packet->packet_index);
+	*(chiaki_unaligned_uint16_t *)(buf + 3) = htons(packet->frame_index);
 
-	*(uint32_t *)(buf + 5) = htonl(
+	*(chiaki_unaligned_uint32_t *)(buf + 5) = htonl(
 			(packet->units_in_frame_fec & 0x3ff)
 			| (((packet->units_in_frame_total - 1) & 0x7ff) << 0xa)
 			| ((packet->unit_index & 0xffff) << 0x15));
 
 	buf[9] = packet->codec & 0xff;
 
-	*(uint32_t *)(buf + 0xa) = 0; // unknown
+	*(chiaki_unaligned_uint32_t *)(buf + 0xa) = 0; // unknown
 
-	*(uint32_t *)(buf + 0xe) = packet->key_pos;
+	*(chiaki_unaligned_uint32_t *)(buf + 0xe) = packet->key_pos;
 
 	uint8_t *cur = buf + 0x12;
 	if(packet->is_video)
 	{
-		*(uint16_t *)cur = htons(packet->word_at_0x18);
+		*(chiaki_unaligned_uint16_t *)cur = htons(packet->word_at_0x18);
 		cur[2] = packet->adaptive_stream_index << 5;
 		cur += 3;
 	}
 
 	if(packet->uses_nalu_info_structs)
 	{
-		*(uint16_t *)cur = 0; // unknown
+		*(chiaki_unaligned_uint16_t *)cur = 0; // unknown
 		cur[2] = 0; // unknown
 	}
 
@@ -1363,24 +1363,24 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPac
 	if(buf_size < header_size)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	packet->packet_index = ntohs(*((uint16_t *)(buf + 1)));
-	packet->frame_index = ntohs(*((uint16_t *)(buf + 3)));
+	packet->packet_index = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 1)));
+	packet->frame_index = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 3)));
 
-	uint32_t dword_2 = ntohl(*((uint32_t *)(buf + 5)));
+	uint32_t dword_2 = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 5)));
 	packet->unit_index = (uint16_t)((dword_2 >> 0x15) & 0x7ff);
 	packet->units_in_frame_total = (uint16_t)(((dword_2 >> 0xa) & 0x7ff) + 1);
 	packet->units_in_frame_fec = (uint16_t)(dword_2 & 0x3ff);
 
 	packet->codec = buf[9];
-	// unknown *(uint32_t *)(buf + 0xa)
-	packet->key_pos = ntohl(*((uint32_t *)(buf + 0xe)));
+	// unknown *(chiaki_unaligned_uint32_t *)(buf + 0xa)
+	packet->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 0xe)));
 
 	buf += 0x12;
 	buf_size -= 0x12;
 
 	if(packet->is_video)
 	{
-		packet->word_at_0x18 = ntohs(*((uint16_t *)(buf + 0)));
+		packet->word_at_0x18 = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 0)));
 		packet->adaptive_stream_index = buf[2] >> 5;
 		buf += 3;
 		buf_size -= 3;

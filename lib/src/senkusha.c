@@ -295,7 +295,7 @@ static ChiakiErrorCode senkusha_run_rtt_test(ChiakiSenkusha *senkusha, uint16_t 
 		}
 
 		uint32_t tag = chiaki_random_32();
-		*((uint32_t *)(data + header_size + 4)) = htonl(tag);
+		*((chiaki_unaligned_uint32_t *)(data + header_size + 4)) = htonl(tag);
 
 		senkusha->state = STATE_EXPECT_PONG;
 		senkusha->state_finished = false;
@@ -511,8 +511,8 @@ static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint3
 			}
 			assert(header_size == MTU_AV_PACKET_ADD);
 
-			*((uint32_t *)(packet_buf + MTU_AV_PACKET_ADD)) = 0;
-			*((uint32_t *)(packet_buf + MTU_AV_PACKET_ADD + 4)) = htonl(tag);
+			*((chiaki_unaligned_uint32_t *)(packet_buf + MTU_AV_PACKET_ADD)) = 0;
+			*((chiaki_unaligned_uint32_t *)(packet_buf + MTU_AV_PACKET_ADD + 4)) = htonl(tag);
 
 			CHIAKI_LOGI(senkusha->log, "Senkusha MTU %u out ping attempt %u", (unsigned int)cur, (unsigned int)attempt);
 

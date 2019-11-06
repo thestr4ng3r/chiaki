@@ -44,10 +44,10 @@ CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackStat
 	buf[0xe] = 0xf7; // TODO
 	buf[0xf] = 0xef; // TODO
 	buf[0x10] = 0x1f; // TODO
-	*((uint16_t *)(buf + 0x11)) = htons((uint16_t)state->left_x);
-	*((uint16_t *)(buf + 0x13)) = htons((uint16_t)state->left_y);
-	*((uint16_t *)(buf + 0x15)) = htons((uint16_t)state->right_x);
-	*((uint16_t *)(buf + 0x17)) = htons((uint16_t)state->right_y);
+	*((chiaki_unaligned_uint16_t *)(buf + 0x11)) = htons((uint16_t)state->left_x);
+	*((chiaki_unaligned_uint16_t *)(buf + 0x13)) = htons((uint16_t)state->left_y);
+	*((chiaki_unaligned_uint16_t *)(buf + 0x15)) = htons((uint16_t)state->right_x);
+	*((chiaki_unaligned_uint16_t *)(buf + 0x17)) = htons((uint16_t)state->right_y);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state)

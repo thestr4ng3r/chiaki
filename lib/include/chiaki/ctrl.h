@@ -48,7 +48,12 @@ typedef struct chiaki_ctrl_t
 	bool login_pin_requested;
 
 	chiaki_socket_t sock;
+
+#ifdef __GNUC__
+	__attribute__((aligned(__alignof__(uint32_t))))
+#endif
 	uint8_t recv_buf[512];
+
 	size_t recv_buf_size;
 	uint64_t crypt_counter_local;
 	uint64_t crypt_counter_remote;

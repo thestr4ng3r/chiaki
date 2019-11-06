@@ -25,9 +25,18 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef __GNUC__
+typedef uint32_t chiaki_unaligned_uint32_t __attribute__((aligned(1)));
+typedef uint16_t chiaki_unaligned_uint16_t __attribute__((aligned(1)));
+#else
+typedef uint32_t chiaki_unaligned_uint32_t;
+typedef uint16_t chiaki_unaligned_uint16_t;
 #endif
 
 #define CHIAKI_EXPORT

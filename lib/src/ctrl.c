@@ -182,7 +182,7 @@ static void *ctrl_thread_func(void *user)
 				break;
 			}
 
-			uint16_t msg_type = *((uint16_t *)(ctrl->recv_buf + 4));
+			uint16_t msg_type = *((chiaki_unaligned_uint16_t *)(ctrl->recv_buf + 4));
 			msg_type = ntohs(msg_type);
 
 			ctrl_message_received(ctrl, msg_type, ctrl->recv_buf + 8, (size_t)payload_size);
@@ -270,6 +270,9 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type,
 		}
 	}
 
+#ifdef __GNUC__
+	__attribute__((aligned(__alignof__(uint32_t))))
+#endif
 	uint8_t header[8];
 	*((uint32_t *)header) = htonl((uint32_t)payload_size);
 	*((uint16_t *)(header + 4)) = htons(type);

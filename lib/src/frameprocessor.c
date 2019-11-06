@@ -75,7 +75,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 			CHIAKI_LOGE(frame_processor->log, "Packet too small to read buf size extension");
 			return CHIAKI_ERR_BUF_TOO_SMALL;
 		}
-		frame_processor->buf_size_per_unit += ntohs(((uint16_t *)packet->data)[0]);
+		frame_processor->buf_size_per_unit += ntohs(((chiaki_unaligned_uint16_t *)packet->data)[0]);
 	}
 
 	if(frame_processor->buf_size_per_unit == 0)
@@ -225,7 +225,7 @@ static ChiakiErrorCode chiaki_frame_processor_fec(ChiakiFrameProcessor *frame_pr
 		{
 			ChiakiFrameUnit *slot = frame_processor->unit_slots + i;
 			uint8_t *buf_ptr = frame_processor->frame_buf + frame_processor->buf_size_per_unit * i;
-			uint16_t padding = ntohs(*((uint16_t *)buf_ptr));
+			uint16_t padding = ntohs(*((chiaki_unaligned_uint16_t *)buf_ptr));
 			if(padding >= frame_processor->buf_size_per_unit)
 			{
 				CHIAKI_LOGE(frame_processor->log, "Padding in unit (%#x) is larger or equals to the whole unit size (%#llx)",
