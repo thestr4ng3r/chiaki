@@ -59,8 +59,9 @@ class RegistExecuteActivity: AppCompatActivity()
 		logTextView.setHorizontallyScrolling(true)
 		logTextView.movementMethod = ScrollingMovementMethod()
 		viewModel.logText.observe(this, Observer {
+			val textLayout = logTextView.layout ?: return@Observer
 			logTextView.text = it
-			val scrollY = logTextView.layout.getLineBottom(logTextView.lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
+			val scrollY = textLayout.getLineBottom(logTextView.lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
 			logTextView.scrollTo(0, max(scrollY, 0))
 		})
 
