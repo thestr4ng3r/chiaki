@@ -217,6 +217,7 @@ static void *ctrl_thread_func(void *user)
 				ctrl->login_pin = NULL;
 				ctrl->login_pin_size = 0;
 				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
+				continue;
 			}
 			else
 			{
