@@ -23,6 +23,9 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLDebugLogger>
 #include <QThread>
+#include <QTimer>
+
+#define MOUSE_TIMEOUT_MS 1000
 
 //#define DEBUG_OPENGL
 
@@ -96,6 +99,11 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	frame_uploader = nullptr;
 	frame_uploader_thread = nullptr;
 	frame_fg = 0;
+
+	setMouseTracking(true);
+	mouse_timer = new QTimer(this);
+	connect(mouse_timer, &QTimer::timeout, this, &AVOpenGLWidget::HideMouse);
+	ResetMouseTimeout();
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
@@ -108,6 +116,23 @@ AVOpenGLWidget::~AVOpenGLWidget()
 	}
 	delete frame_uploader;
 	delete frame_uploader_context;
+}
+
+void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
+{
+	QOpenGLWidget::mouseMoveEvent(event);
+	ResetMouseTimeout();
+}
+
+void AVOpenGLWidget::ResetMouseTimeout()
+{
+	unsetCursor();
+	mouse_timer->start(MOUSE_TIMEOUT_MS);
+}
+
+void AVOpenGLWidget::HideMouse()
+{
+	setCursor(Qt::BlankCursor);
 }
 
 void AVOpenGLWidget::SwapFrames()

@@ -126,13 +126,11 @@ void StreamWindow::LoginPINRequested(bool incorrect)
 void StreamWindow::ToggleFullscreen()
 {
 	if(isFullScreen())
-	{
-		setCursor(Qt::ArrowCursor);
 		showNormal();
-	}
 	else
 	{
-		setCursor(Qt::BlankCursor);
 		showFullScreen();
+		if(av_widget)
+			av_widget->HideMouse();
 	}
 }

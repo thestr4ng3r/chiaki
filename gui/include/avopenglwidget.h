@@ -59,6 +59,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 		AVOpenGLFrameUploader *frame_uploader;
 		QThread *frame_uploader_thread;
 
+		QTimer *mouse_timer;
+
 	public:
 		static QSurfaceFormat CreateSurfaceFormat();
 
@@ -69,8 +71,15 @@ class AVOpenGLWidget: public QOpenGLWidget
 		AVOpenGLFrame *GetBackgroundFrame()	{ return &frames[1 - frame_fg]; }
 
 	protected:
+		void mouseMoveEvent(QMouseEvent *event) override;
+
 		void initializeGL() override;
 		void paintGL() override;
+
+	private slots:
+		void ResetMouseTimeout();
+	public slots:
+		void HideMouse();
 };
 
 #endif // CHIAKI_AVOPENGLWIDGET_H
