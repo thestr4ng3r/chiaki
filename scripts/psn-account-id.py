@@ -6,6 +6,11 @@ if sys.version_info < (3, 0, 0):
     print("DO NOT use Python 2.\nEVER.\nhttps://pythonclock.org")
     exit(1)
 
+if sys.stdout.encoding.lower() == "ascii":
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+
 try:
     import requests
 except ImportError as e:
