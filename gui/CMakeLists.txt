@@ -106,4 +106,4 @@ install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
 install(FILES chiaki.desktop DESTINATION share/applications)
-install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512)
+install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512/apps)
