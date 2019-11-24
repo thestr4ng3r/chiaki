@@ -78,7 +78,8 @@ class AnalogStickView @JvmOverloads constructor(
 		val center = center
 		if(center != null)
 		{
-			drawableBase?.setBounds((center.x - radius).toInt(), (center.y - radius).toInt(), (center.x + radius).toInt(), (center.y + radius).toInt())
+			val circleRadius = radius + handleRadius
+			drawableBase?.setBounds((center.x - circleRadius).toInt(), (center.y - circleRadius).toInt(), (center.x + circleRadius).toInt(), (center.y + circleRadius).toInt())
 			drawableBase?.draw(canvas)
 
 			val handleX = center.x + handlePosition.x * radius
