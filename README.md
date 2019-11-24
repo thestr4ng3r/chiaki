@@ -55,10 +55,11 @@ make
 If you are building on a higher version, nothing extra is needed to be done.
 Read the above instructions.
 
-Install the dependencies as listed above. They are all available on Debian 9 except for one: libsdl2 2.0.**6**.  This particular version can be located at https://www.libsdl.org/release/SDL2-2.0.6.tar.gz . The source code has been verified to build on Debian 9 and even includes a debian/ directory to build a package if you desire.
+Debian 9 supports up to libsdl2 version 2.0.5. Chiaki requires 2.0.6. I have
+bundled a built 2.0.6 deb file in `third_party/sdl2-debian`. You will need to
+install both of them. Alternatively you can build these yourself!
 
-After building and installing the correct libsdl2 version, running the above
-instructions will work as usual!
+Then continue with the process above.
 
 ## Usage
 
