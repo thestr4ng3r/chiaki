@@ -50,6 +50,16 @@ cmake ..
 make
 ```
 
+#### Building on Debian 9
+
+If you are building on a higher version, nothing extra is needed to be done.
+Read the above instructions.
+
+Install the dependencies as listed above. They are all available on Debian 9 except for one: libsdl2 2.0.**6**.  This particular version can be located at https://www.libsdl.org/release/SDL2-2.0.6.tar.gz . The source code has been verified to build on Debian 9 and even includes a debian/ directory to build a package if you desire.
+
+After building and installing the correct libsdl2 version, running the above
+instructions will work as usual!
+
 ## Usage
 
 If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
