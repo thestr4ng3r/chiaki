@@ -40,6 +40,7 @@
     <string name="regist_psn_account_id_invalid">Please enter a valid 8-byte Account ID in Base64</string>
     <string name="regist_pin_invalid">Please enter a valid %d-digit PIN</string>
     <string name="action_share_log">Share Log</string>
+    <string name="action_export_settings">Export Settings</string>
     <string name="regist_info_success">Regist successful.</string>
     <string name="regist_info_failed">Regist failed.</string>
     <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
@@ -51,9 +52,14 @@
     <string name="add_manual_regist_on_connect">Register on first Connection</string>
     <string name="preferences_category_title_general">General</string>
     <string name="preferences_category_title_stream">Stream</string>
+    <string name="preferences_category_title_export">Export</string>
     <string name="preferences_registered_hosts_title">Registered Consoles</string>
     <string name="preferences_logs_title">Session Logs</string>
     <string name="preferences_logs_summary">Collected log files from previous sessions for debugging</string>
+    <string name="preferences_export_settings_title">Export Settings</string>
+    <string name="preferences_export_settings_summary">Warning: These resulting file can contain your secret Remote Play keys! Do not share them.</string>
+    <string name="preferences_import_settings_title">Import Settings</string>
+    <string name="preferences_import_settings_summary">Import Settings from JSON</string>
     <string name="preferences_registered_hosts_summary">Currently registered: %d</string>
     <string name="preferences_resolution_title">Resolution</string>
     <string name="preferences_fps_title">FPS</string>
@@ -83,6 +89,8 @@
     <string name="preferences_discovery_enabled_key">discovery_enabled</string>
     <string name="preferences_on_screen_controls_enabled_key">on_screen_controls_enabled</string>
     <string name="preferences_log_verbose_key">log_verbose</string>
+    <string name="preferences_import_settings_key">import_settings</string>
+    <string name="preferences_export_settings_key">export_settings</string>
     <string name="preferences_swap_cross_moon_key">swap_cross_moon</string>
     <string name="preferences_resolution_key">stream_resolution</string>
     <string name="preferences_fps_key">stream_fps</string>

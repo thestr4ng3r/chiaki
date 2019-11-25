@@ -17,17 +17,24 @@
 
 package com.metallic.chiaki.settings
 
+import android.content.ClipData
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.text.InputType
+import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.preference.*
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.*
 import com.metallic.chiaki.common.ext.toLiveData
 import com.metallic.chiaki.common.ext.viewModelFactory
-import com.metallic.chiaki.common.getDatabase
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
+import java.io.File
 
 class DataStore(val preferences: Preferences): PreferenceDataStore()
 {
@@ -76,11 +83,15 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 
 class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 {
+	private lateinit var viewModel: SettingsViewModel
+
+	private var disposable = CompositeDisposable()
+
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
 		val context = context ?: return
 
-		val viewModel = ViewModelProviders
+		viewModel = ViewModelProviders
 			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
 			.get(SettingsViewModel::class.java)
 
@@ -118,7 +129,28 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		viewModel.registeredHostsCount.observe(this, Observer {
 			registeredHostsPreference?.summary = getString(R.string.preferences_registered_hosts_summary, it)
 		})
+
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_export_settings_key))?.setOnPreferenceClickListener { exportSettings(); true }
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_import_settings_key))?.setOnPreferenceClickListener { importSettings(); true }
+	}
+
+	override fun onDestroy()
+	{
+		super.onDestroy()
+		disposable.dispose()
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.title_settings)
+
+	private fun exportSettings()
+	{
+		val activity = activity ?: return
+		disposable.clear()
+		exportAndShareAllSettings(viewModel.database, activity).addTo(disposable)
+	}
+
+	private fun importSettings()
+	{
+
+	}
 }

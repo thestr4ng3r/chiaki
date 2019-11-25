@@ -53,4 +53,20 @@
             app:title="@string/preferences_bitrate_title"
             app:icon="@drawable/ic_bitrate"/>
     </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="category_export"
+        app:title="@string/preferences_category_title_export">
+        <Preference
+            app:key="@string/preferences_export_settings_key"
+            app:summary="@string/preferences_export_settings_summary"
+            app:title="@string/preferences_export_settings_title"
+            app:icon="@drawable/ic_export"/>
+
+        <Preference
+            app:key="@string/preferences_import_settings_key"
+            app:summary="@string/preferences_import_settings_summary"
+            app:title="@string/preferences_import_settings_title"
+            app:icon="@drawable/ic_import"/>
+    </PreferenceCategory>
 </PreferenceScreen>
