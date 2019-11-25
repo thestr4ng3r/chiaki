@@ -20,7 +20,9 @@ package com.metallic.chiaki.common
 import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import androidx.core.content.FileProvider
 import com.metallic.chiaki.R
 import com.squareup.moshi.*
@@ -29,7 +31,9 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.Singles
 import io.reactivex.schedulers.Schedulers
 import okio.Buffer
+import okio.Okio
 import java.io.File
+import java.io.IOException
 
 @JsonClass(generateAdapter = true)
 class SerializedRegisteredHost(
@@ -100,10 +104,14 @@ private fun moshi() =
 	.add(ByteArrayJsonAdapter())
 	.build()
 
+private fun Moshi.serializedSettingsAdapter() =
+	adapter(SerializedSettings::class.java)
+	.serializeNulls()
+
 private const val KEY_FORMAT = "format"
 private const val FORMAT = "chiaki-settings"
 private const val KEY_VERSION = "version"
-private const val VERSION = "1"
+private const val VERSION = 1
 private const val KEY_SETTINGS = "settings"
 
 fun exportAllSettings(db: AppDatabase) = SerializedSettings.fromDatabase(db)
@@ -111,9 +119,7 @@ fun exportAllSettings(db: AppDatabase) = SerializedSettings.fromDatabase(db)
 	.map {
 		val buffer = Buffer()
 		val writer = JsonWriter.of(buffer)
-		val adapter = moshi()
-			.adapter(SerializedSettings::class.java)
-			.serializeNulls()
+		val adapter = moshi().serializedSettingsAdapter()
 		writer.indent = "  "
 		writer.
 			beginObject()
@@ -125,8 +131,9 @@ fun exportAllSettings(db: AppDatabase) = SerializedSettings.fromDatabase(db)
 		buffer.readUtf8()
 	}
 
-fun exportAndShareAllSettings(db: AppDatabase, activity: Activity): Disposable
+fun exportAndShareAllSettings(activity: Activity): Disposable
 {
+	val db = getDatabase(activity)
 	val dir = File(activity.cacheDir, "export_settings")
 	dir.mkdirs()
 	val file = File(dir, "chiaki-settings.json")
@@ -146,4 +153,53 @@ fun exportAndShareAllSettings(db: AppDatabase, activity: Activity): Disposable
 				activity.startActivity(Intent.createChooser(it, activity.getString(R.string.action_share_log)))
 			}
 		}
+}
+
+fun importSettingsFromUri(activity: Activity, uri: Uri)
+{
+	try
+	{
+		val inputStream = activity.contentResolver.openInputStream(uri) ?: throw IOException()
+		val buffer = Okio.buffer(Okio.source(inputStream))
+		val reader = JsonReader.of(buffer)
+		val adapter = moshi().serializedSettingsAdapter()
+
+		var format: String? = null
+		var version: Int? = null
+		var settingsValue: Any? = null
+
+		reader.beginObject()
+		while(reader.hasNext())
+		{
+			when(reader.nextName())
+			{
+				KEY_FORMAT -> format = reader.nextString()
+				KEY_VERSION -> version = reader.nextInt()
+				KEY_SETTINGS -> settingsValue = reader.readJsonValue()
+			}
+		}
+		reader.endObject()
+
+		if(format == null || version == null || settingsValue == null)
+			throw IOException("Missing format, version or settings from JSON")
+		if(format != FORMAT)
+			throw IOException("Value of format is invalid")
+		if(version != VERSION) // Add migrations here when necessary
+			throw IOException("Value of version is invalid")
+
+		val settings = adapter.fromJsonValue(settingsValue)
+		Log.i("SerializedSettings", "would import: $settings")
+		// TODO: show dialog and import
+	}
+	catch(e: IOException)
+	{
+		// TODO
+		e.printStackTrace()
+	}
+	catch(e: JsonDataException)
+	{
+		// TODO
+		e.printStackTrace()
+	}
+
 }

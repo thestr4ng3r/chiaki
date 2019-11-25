@@ -17,6 +17,7 @@
 
 package com.metallic.chiaki.settings
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.content.res.Resources
@@ -83,7 +84,10 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 
 class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 {
-	private lateinit var viewModel: SettingsViewModel
+	companion object
+	{
+		private const val PICK_SETTINGS_JSON_REQUEST = 1
+	}
 
 	private var disposable = CompositeDisposable()
 
@@ -91,7 +95,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	{
 		val context = context ?: return
 
-		viewModel = ViewModelProviders
+		val viewModel = ViewModelProviders
 			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
 			.get(SettingsViewModel::class.java)
 
@@ -146,11 +150,26 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	{
 		val activity = activity ?: return
 		disposable.clear()
-		exportAndShareAllSettings(viewModel.database, activity).addTo(disposable)
+		exportAndShareAllSettings(activity).addTo(disposable)
 	}
 
 	private fun importSettings()
 	{
+		val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+			addCategory(Intent.CATEGORY_OPENABLE)
+			type = "application/json"
+		}
+		startActivityForResult(intent, PICK_SETTINGS_JSON_REQUEST)
+	}
 
+	override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
+	{
+		if(requestCode == PICK_SETTINGS_JSON_REQUEST && resultCode == Activity.RESULT_OK)
+		{
+			val activity = activity ?: return
+			data?.data?.also {
+				importSettingsFromUri(activity, it)
+			}
+		}
 	}
 }

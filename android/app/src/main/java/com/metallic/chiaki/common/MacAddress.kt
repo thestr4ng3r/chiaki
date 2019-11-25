@@ -42,11 +42,11 @@ class MacAddress(v: Long)
 			})
 
 	constructor(string: String) : this(
-		(Regex("([0-9A-Fa-f]{2})[:-]{5}([0-9A-Fa-f]{2})").matchEntire(string)
+		(Regex("([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})").matchEntire(string)
 			?: throw IllegalArgumentException("Invalid MAC Address String"))
 			.groupValues
 			.subList(1, 7)
-			.map { it.toByte() }
+			.map { it.toUByte(16).toByte() }
 			.toByteArray())
 
 	val value: Long = v and 0xffffffffffff
