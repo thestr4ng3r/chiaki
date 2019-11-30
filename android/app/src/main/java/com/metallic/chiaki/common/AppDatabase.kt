@@ -28,6 +28,7 @@ abstract class AppDatabase: RoomDatabase()
 {
 	abstract fun registeredHostDao(): RegisteredHostDao
 	abstract fun manualHostDao(): ManualHostDao
+	abstract fun importDao(): ImportDao
 }
 
 private var database: AppDatabase? = null

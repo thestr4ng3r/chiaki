@@ -24,11 +24,18 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.room.*
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.squareup.moshi.*
+import io.reactivex.Completable
+import io.reactivex.Flowable
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.Singles
+import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import okio.Buffer
 import okio.Okio
@@ -155,8 +162,17 @@ fun exportAndShareAllSettings(activity: Activity): Disposable
 		}
 }
 
-fun importSettingsFromUri(activity: Activity, uri: Uri)
+fun importSettingsFromUri(activity: Activity, uri: Uri, disposable: CompositeDisposable)
 {
+	fun loadFail(msg: String)
+	{
+		MaterialAlertDialogBuilder(activity)
+			.setMessage(activity.getString(R.string.alert_message_import_failed, msg))
+			.setPositiveButton(R.string.action_import_failed_ack) { _, _ -> }
+			.create()
+			.show()
+	}
+
 	try
 	{
 		val inputStream = activity.contentResolver.openInputStream(uri) ?: throw IOException()
@@ -187,19 +203,96 @@ fun importSettingsFromUri(activity: Activity, uri: Uri)
 		if(version != VERSION) // Add migrations here when necessary
 			throw IOException("Value of version is invalid")
 
-		val settings = adapter.fromJsonValue(settingsValue)
+		val settings = adapter.fromJsonValue(settingsValue) ?: throw JsonDataException("Failed to parse Settings JSON")
 		Log.i("SerializedSettings", "would import: $settings")
-		// TODO: show dialog and import
+
+		MaterialAlertDialogBuilder(activity)
+			.setMessage(activity.getString(R.string.alert_message_import,
+				settings.registeredHosts.let {
+					if(it.isEmpty())
+						"-"
+					else
+						it.joinToString(separator = "") { host -> "\n - ${host.ps4Nickname ?: "?"} / ${host.ps4Mac}" }
+				},
+				settings.manualHosts.let {
+					if(it.isEmpty())
+						"-"
+					else
+						it.joinToString(separator = "") { host -> "\n - ${host.host} / ${host.ps4Mac ?: "unregistered"}" }
+				}
+			))
+			.setTitle(R.string.alert_title_import)
+			.setNegativeButton(R.string.action_import_cancel) { _, _ ->  }
+			.setPositiveButton(R.string.action_import_import) { _, _ ->
+				getDatabase(activity).importDao()
+					.importCompletable(settings)
+					.subscribeOn(Schedulers.io())
+					.observeOn(AndroidSchedulers.mainThread())
+					.subscribe()
+					.addTo(disposable)
+			}
+			.create()
+			.show()
 	}
 	catch(e: IOException)
 	{
-		// TODO
 		e.printStackTrace()
+		loadFail(e.message ?: "")
 	}
 	catch(e: JsonDataException)
 	{
-		// TODO
 		e.printStackTrace()
+		loadFail(e.message ?: "")
 	}
-
 }
+
+@Dao
+abstract class ImportDao
+{
+	@Insert
+	abstract fun insertRegisteredHosts(hosts: List<RegisteredHost>)
+
+	@Insert
+	abstract fun insertManualHosts(hosts: List<ManualHost>)
+
+	class IdWithMac(val id: Long, val mac: MacAddress)
+
+	@Query("SELECT id, ps4_mac AS mac FROM registered_host WHERE ps4_mac IN (:macs)")
+	abstract fun registeredHostsByMac(macs: List<MacAddress>): List<IdWithMac>
+
+	@Transaction
+	fun import(settings: SerializedSettings)
+	{
+		insertRegisteredHosts(
+			settings.registeredHosts.map {
+				RegisteredHost(
+					apSsid = it.apSsid,
+					apBssid = it.apBssid,
+					apKey = it.apKey,
+					apName = it.apName,
+					ps4Mac = it.ps4Mac,
+					ps4Nickname = it.ps4Nickname,
+					rpRegistKey = it.rpRegistKey,
+					rpKeyType = it.rpKeyType,
+					rpKey = it.rpKey
+				)
+		})
+
+		val macs = settings.manualHosts.mapNotNull { it.ps4Mac }
+		val idMacs =
+			if(macs.isNotEmpty())
+				registeredHostsByMac(macs)
+			else
+				listOf()
+
+		insertManualHosts(
+			settings.manualHosts.map {
+				ManualHost(
+					host = it.host,
+					registeredHost = idMacs.firstOrNull { regHost -> regHost.mac == it.ps4Mac }?.id
+				)
+		})
+	}
+}
+
+private fun ImportDao.importCompletable(settings: SerializedSettings) = Completable.fromCallable { import(settings) }

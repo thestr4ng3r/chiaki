@@ -90,6 +90,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	}
 
 	private var disposable = CompositeDisposable()
+	private var exportDisposable = CompositeDisposable().also { it.addTo(disposable) }
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
@@ -149,8 +150,8 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	private fun exportSettings()
 	{
 		val activity = activity ?: return
-		disposable.clear()
-		exportAndShareAllSettings(activity).addTo(disposable)
+		exportDisposable.clear()
+		exportAndShareAllSettings(activity).addTo(exportDisposable)
 	}
 
 	private fun importSettings()
@@ -168,7 +169,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		{
 			val activity = activity ?: return
 			data?.data?.also {
-				importSettingsFromUri(activity, it)
+				importSettingsFromUri(activity, it, disposable)
 			}
 		}
 	}

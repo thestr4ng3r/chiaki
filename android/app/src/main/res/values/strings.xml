@@ -46,6 +46,12 @@
     <string name="alert_regist_duplicate">The console with MAC %s has already been registered. Should the previous record be overwritten?</string>
     <string name="action_regist_overwrite">Overwrite</string>
     <string name="action_regist_discard">Cancel</string>
+    <string name="action_import_import">Import</string>
+    <string name="action_import_cancel">Cancel</string>
+    <string name="alert_title_import">Import</string>
+    <string name="alert_message_import">Registered Hosts: %s\n\nManual Hosts: %s</string>
+    <string name="alert_message_import_failed">Failed to import settings from file:\n%s</string>
+    <string name="action_import_failed_ack">Dismiss</string>
     <string name="title_edit_manual">Manual Console Entry</string>
     <string name="action_add_manual_save">Save</string>
     <string name="hint_add_manual_regist_host">Registered Console</string>
