@@ -22,10 +22,11 @@ The following features however are yet to be implemented:
 * Touchpad support (Triggering the Touchpad Button is currently possible by pressing `T` on the keyboard)
 * Rumble
 * Configurable Keybindings. Though, for the moment you can use the following:
-  * `\` -> Square
-  * `]` -> Triangle
-  * `⏎` -> X
-  * `⌫` -> Circle
+  * `⏎` -> Cross
+  * `⌫` -> Moon
+  * `\` or `X` -> Box
+  * `]` or `C` -> Pyramid
+  * `F` or `[` -> Share
   * `⇦⇧⇩⇨` -> D-Pad
   * `Esc` -> PS
 
