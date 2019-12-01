@@ -164,6 +164,18 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 		case Qt::Key::Key_Backspace:
 			button_mask = CHIAKI_CONTROLLER_BUTTON_MOON;
 			break;
+		case Qt::Key::Key_Backslash:
+		case Qt::Key::Key_X:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_BOX;
+			break;
+		case Qt::Key::Key_C:
+		case Qt::Key::Key_BracketRight:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+			break;
+		case Qt::Key::Key_F:
+		case Qt::Key::Key_BracketLeft:
+			button_mask = CHIAKI_CONTROLLER_BUTTON_SHARE;
+			break;
 		case Qt::Key::Key_Escape:
 			button_mask = CHIAKI_CONTROLLER_BUTTON_PS;
 			break;
