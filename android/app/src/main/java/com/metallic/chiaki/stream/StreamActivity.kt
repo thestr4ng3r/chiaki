@@ -39,6 +39,7 @@ import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.session.*
+import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
 
@@ -79,9 +80,22 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		viewModel.onScreenControlsEnabled.observe(this, Observer {
 			if(onScreenControlsSwitch.isChecked != it)
 				onScreenControlsSwitch.isChecked = it
+			if(onScreenControlsSwitch.isChecked)
+				touchpadOnlySwitch.isChecked = false
 		})
 		onScreenControlsSwitch.setOnCheckedChangeListener { _, isChecked ->
 			viewModel.setOnScreenControlsEnabled(isChecked)
+			showOverlay()
+		}
+
+		viewModel.touchpadOnlyEnabled.observe(this, Observer {
+			if(touchpadOnlySwitch.isChecked != it)
+				touchpadOnlySwitch.isChecked = it
+			if(touchpadOnlySwitch.isChecked)
+				onScreenControlsSwitch.isChecked = false
+		})
+		touchpadOnlySwitch.setOnCheckedChangeListener { _, isChecked ->
+			viewModel.setTouchpadOnlyEnabled(isChecked)
 			showOverlay()
 		}
 
@@ -99,6 +113,11 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		{
 			fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
 			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
+		}
+		if(fragment is TouchpadOnlyFragment)
+		{
+			fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
+			fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
 		}
 	}
 
