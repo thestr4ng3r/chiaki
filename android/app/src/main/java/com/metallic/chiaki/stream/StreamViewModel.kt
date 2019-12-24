@@ -35,6 +35,9 @@ class StreamViewModel(val preferences: Preferences, val logManager: LogManager, 
 	private var _onScreenControlsEnabled = MutableLiveData<Boolean>(preferences.onScreenControlsEnabled)
 	val onScreenControlsEnabled: LiveData<Boolean> get() = _onScreenControlsEnabled
 
+	private var _touchpadOnlyEnabled = MutableLiveData<Boolean>(preferences.touchpadOnlyEnabled)
+	val touchpadOnlyEnabled: LiveData<Boolean> get() = _touchpadOnlyEnabled
+
 	override fun onCleared()
 	{
 		super.onCleared()
@@ -45,5 +48,11 @@ class StreamViewModel(val preferences: Preferences, val logManager: LogManager, 
 	{
 		preferences.onScreenControlsEnabled = enabled
 		_onScreenControlsEnabled.value = enabled
+	}
+
+	fun setTouchpadOnlyEnabled(enabled: Boolean)
+	{
+		preferences.touchpadOnlyEnabled = enabled
+		_touchpadOnlyEnabled.value = enabled
 	}
 }
