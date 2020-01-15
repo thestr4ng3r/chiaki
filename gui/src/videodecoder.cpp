@@ -23,9 +23,13 @@
 
 VideoDecoder::VideoDecoder(ChiakiLog *log) : log(log)
 {
+	#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 10, 100)
+		avcodec_register_all();
+	#endif
 	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-	if(!codec)
+	if(!codec) {
 		throw VideoDecoderException("H264 Codec not available");
+	}
 
 	codec_context = avcodec_alloc_context3(codec);
 	if(!codec_context)
