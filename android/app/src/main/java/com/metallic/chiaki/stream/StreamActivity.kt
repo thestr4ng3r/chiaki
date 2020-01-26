@@ -25,6 +25,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.TextureView
 import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
@@ -38,6 +39,7 @@ import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
+import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
@@ -96,6 +98,17 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		})
 		touchpadOnlySwitch.setOnCheckedChangeListener { _, isChecked ->
 			viewModel.setTouchpadOnlyEnabled(isChecked)
+			showOverlay()
+		}
+
+		displayModeToggle.addOnButtonCheckedListener {group, checkedId, _ ->
+			// following 'if' is a workaround until selectionRequired for MaterialButtonToggleGroup
+			// comes out of alpha.
+			// See https://stackoverflow.com/questions/56164004/required-single-selection-on-materialbuttontogglegroup
+			if (displayModeToggle.checkedButtonId == -1)
+				displayModeToggle.check(checkedId)
+
+			adjustTextureViewAspect()
 			showOverlay()
 		}
 
@@ -294,33 +307,73 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private fun adjustTextureViewAspect()
 	{
-		val contentWidth = viewModel.session.connectInfo.videoProfile.width.toFloat()
-		val contentHeight = viewModel.session.connectInfo.videoProfile.height.toFloat()
-		val viewWidth = textureView.width.toFloat()
-		val viewHeight = textureView.height.toFloat()
-		val contentAspect = contentHeight / contentWidth
-
-		val width: Float
-		val height: Float
-		if(viewHeight > viewWidth * contentAspect)
-		{
-			width = viewWidth
-			height = viewWidth * contentAspect
-		}
-		else
-		{
-			width = viewHeight / contentAspect
-			height = viewHeight
-		}
+		val displayInfo = DisplayInfo(viewModel.session.connectInfo.videoProfile, textureView)
+		val resolution = displayInfo.computeResolutionFor(displayModeToggle.checkedButtonId)
 
 		Matrix().also {
 			textureView.getTransform(it)
-			it.setScale(width / viewWidth, height / viewHeight)
-			it.postTranslate((viewWidth - width) * 0.5f, (viewHeight - height) * 0.5f)
+			it.setScale(resolution.width / displayInfo.viewWidth, resolution.height / displayInfo.viewHeight)
+			it.postTranslate((displayInfo.viewWidth - resolution.width) * 0.5f, (displayInfo.viewHeight - resolution.height) * 0.5f)
 			textureView.setTransform(it)
 		}
 	}
 
 	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
+
 }
+
+
+class DisplayInfo constructor(val videoProfile: ConnectVideoProfile, val textureView: TextureView)
+{
+	val contentWidth : Float get() = videoProfile.width.toFloat()
+	val contentHeight : Float get() = videoProfile.height.toFloat()
+	val viewWidth : Float get() = textureView.width.toFloat()
+	val viewHeight : Float get() = textureView.height.toFloat()
+	val contentAspect : Float get() =  contentHeight / contentWidth
+
+	fun computeResolutionFor(displayModeButtonId: Int) : Resolution
+	{
+		when (displayModeButtonId)
+		{
+			R.id.display_mode_stretch_button -> return computeStrechedResolution()
+			R.id.display_mode_zoom_button -> return computeZoomedResolution()
+			else -> return computeNormalResolution()
+		}
+	}
+
+	private fun computeStrechedResolution(): Resolution
+	{
+		return Resolution(viewWidth, viewHeight)
+	}
+
+	private fun computeZoomedResolution(): Resolution
+	{
+		if (viewHeight > viewWidth * contentAspect)
+		{
+			val zoomFactor = viewHeight / contentHeight
+			return Resolution(contentWidth * zoomFactor, viewHeight)
+		}
+		else
+		{
+			val zoomFactor = viewWidth / contentWidth
+			return Resolution(viewWidth, contentHeight * zoomFactor)
+		}
+	}
+
+	private fun computeNormalResolution(): Resolution
+	{
+		if (viewHeight > viewWidth * contentAspect)
+		{
+			return Resolution(viewWidth, viewWidth * contentAspect)
+		}
+		else
+		{
+			return Resolution(viewHeight / contentAspect, viewHeight)
+		}
+	}
+
+}
+
+
+data class Resolution(val width: Float, val height: Float)

@@ -34,8 +34,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
-        tools:paddingRight="12dp"
-        tools:paddingTop="25dp"
         android:fitsSystemWindows="true">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -69,8 +67,45 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:switchPadding="8dp" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/displayModeToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:singleSelection="true"
+                app:checkedButton="@id/display_mode_normal_button">
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_normal_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_normal"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_zoom_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_zoom"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_stretch_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_stretch"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>
