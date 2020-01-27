@@ -24,7 +24,7 @@ android {
         applicationId "com.metallic.chiaki"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 3
+        versionCode 4
         versionName chiakiVersion
         externalNativeBuild {
             cmake {
