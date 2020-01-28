@@ -145,7 +145,9 @@ before_install:
   - if [ ! -z "$encrypted_31d5e6477a29_iv" ]; then openssl aes-256-cbc -K $encrypted_31d5e6477a29_key -iv $encrypted_31d5e6477a29_iv -in secret.tar.enc -out secret.tar -d && tar -xf secret.tar; fi
 
 after_success:
-  - if [ ! -z "$DEPLOY_FILE" ]; then curl -m 30 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- SHA256 for $DEPLOY_FILE"; openssl dgst -sha256 "$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- transfer.sh"; curl -m 30 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- oshi.at"; curl -m 30 --upload-file "$DEPLOY_FILE" "https://oshi.at/$DEPLOY_FILE/129600"; echo; fi
 
 deploy:
   skip_cleanup: true
