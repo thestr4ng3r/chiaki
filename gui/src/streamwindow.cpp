@@ -86,6 +86,18 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 		session->HandleKeyboardEvent(event);
 }
 
+void StreamWindow::mousePressEvent(QMouseEvent *event)
+{
+	if(session)
+		session->HandleMouseEvent(event);
+}
+
+void StreamWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+	if(session)
+		session->HandleMouseEvent(event);
+}
+
 void StreamWindow::closeEvent(QCloseEvent *)
 {
 	if(session)
