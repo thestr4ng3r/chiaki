@@ -44,6 +44,8 @@ class StreamWindow: public QMainWindow
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
 		void closeEvent(QCloseEvent *event) override;
+		void mousePressEvent(QMouseEvent *event) override;
+		void mouseReleaseEvent(QMouseEvent *event) override;
 
 	private slots:
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);

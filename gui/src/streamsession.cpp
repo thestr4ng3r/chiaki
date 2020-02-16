@@ -141,6 +141,15 @@ void StreamSession::SetLoginPIN(const QString &pin)
 	chiaki_session_set_login_pin(&session, (const uint8_t *)data.constData(), data.size());
 }
 
+void StreamSession::HandleMouseEvent(QMouseEvent *event)
+{
+	if(event->type() == QEvent::MouseButtonPress)
+		keyboard_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	else
+		keyboard_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	SendFeedbackState();
+}
+
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
 	uint64_t button_mask;

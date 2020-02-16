@@ -28,6 +28,7 @@
 
 #include <QObject>
 #include <QImage>
+#include <QMouseEvent>
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 class QGamepad;
@@ -105,6 +106,7 @@ class StreamSession : public QObject
 		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
 
 		void HandleKeyboardEvent(QKeyEvent *event);
+		void HandleMouseEvent(QMouseEvent *event);
 
 	signals:
 		void CurrentImageUpdated();
