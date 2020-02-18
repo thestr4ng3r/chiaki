@@ -1,4 +1,3 @@
-
 // ugly workaround because Windows does weird things and ENOTIME
 int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
@@ -40,7 +39,8 @@ struct CLICommand
 };
 
 static const QMap<QString, CLICommand> cli_commands = {
-	{ "discover", { chiaki_cli_cmd_discover } }
+	{ "discover", { chiaki_cli_cmd_discover } },
+	{ "wakeup", { chiaki_cli_cmd_wakeup } }
 };
 #endif
 
