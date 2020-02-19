@@ -20,6 +20,7 @@
 #include <chiaki/discovery.h>
 
 #include <argp.h>
+#include <string.h>
 
 static char doc[] = "Send a PS4 wakeup packet.";
 
@@ -79,14 +80,13 @@ CHIAKI_EXPORT int chiaki_cli_cmd_wakeup(ChiakiLog *log, int argc, char *argv[])
 		fprintf(stderr, "No registration key specified, see --help.\n");
 		return 1;
 	}
-	if(sizeof(arguments.registkey) > 8)
+	if(strlen(arguments.registkey) > 8)
 	{
 		fprintf(stderr, "Given registkey is too long.\n");
 		return 1;
 	}
 
-	uint64_t credential;
-	sscanf(arguments.registkey, "%lx", &credential);
+	uint64_t credential = (uint64_t)strtoull(arguments.registkey, NULL, 16);
 
 	return chiaki_discovery_wakeup(log, NULL, arguments.host, credential);
 }
