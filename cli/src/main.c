@@ -27,7 +27,8 @@ static const char doc[] =
 	"CLI for Chiaki (PS4 Remote Play Client)"
 	"\v"
 	"Supported commands are:\n"
-	"  discover    Discover Consoles.\n";
+	"  discover    Discover Consoles.\n"
+	"  wakeup      Send Wakeup Packet.\n";
 
 #define ARG_KEY_VERBOSE 'v'
 
@@ -73,6 +74,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		case ARGP_KEY_ARG:
 			if(strcmp(arg, "discover") == 0)
 				exit(call_subcmd(state, "discover", chiaki_cli_cmd_discover));
+			else if(strcmp(arg, "wakeup") == 0)
+				exit(call_subcmd(state, "wakeup", chiaki_cli_cmd_wakeup));
 			// fallthrough
 		case ARGP_KEY_END:
 			argp_usage(state);
