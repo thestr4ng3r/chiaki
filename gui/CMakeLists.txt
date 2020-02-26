@@ -60,6 +60,8 @@ add_executable(chiaki WIN32
 		src/registdialog.cpp
 		include/host.h
 		src/host.cpp
+		include/settingskeycapturedialog.h
+		src/settingskeycapturedialog.cpp
 		include/settingsdialog.h
 		src/settingsdialog.cpp
 		include/manualhostdialog.h

@@ -29,6 +29,7 @@
 #include <QObject>
 #include <QImage>
 #include <QMouseEvent>
+#include <QTimer>
 
 #if CHIAKI_GUI_ENABLE_QT_GAMEPAD
 class QGamepad;
@@ -47,6 +48,7 @@ class ChiakiException: public Exception
 
 struct StreamSessionConnectInfo
 {
+	QMap<Qt::Key, int> key_map;
 	uint32_t log_level_mask;
 	QString log_file;
 	QString host;
@@ -55,7 +57,6 @@ struct StreamSessionConnectInfo
 	ChiakiConnectVideoProfile video_profile;
 	unsigned int audio_buffer_size;
 
-	StreamSessionConnectInfo();
 	StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning);
 };
 
@@ -82,6 +83,8 @@ class StreamSession : public QObject
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
 		QIODevice *audio_io;
+
+		QMap<Qt::Key, int> key_map;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushVideoSample(uint8_t *buf, size_t buf_size);
