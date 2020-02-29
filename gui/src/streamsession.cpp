@@ -32,15 +32,9 @@
 #include <cstring>
 #include <chiaki/session.h>
 
-StreamSessionConnectInfo::StreamSessionConnectInfo()
-{
-	log_level_mask = CHIAKI_LOG_ALL;
-	std::memset(&video_profile, 0, sizeof(video_profile));
-	audio_buffer_size = 9600;
-}
-
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
 {
+	key_map = settings->GetControllerMappingForDecoding();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
 	video_profile = settings->GetVideoProfile();
@@ -104,6 +98,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
 #endif
 
+	key_map = connect_info.key_map;
 	UpdateGamepads();
 }
 
@@ -152,54 +147,54 @@ void StreamSession::HandleMouseEvent(QMouseEvent *event)
 
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
-	uint64_t button_mask;
-	switch(event->key())
+	if(key_map.contains(Qt::Key(event->key())) == false)
+		return;
+
+	if(event->isAutoRepeat())
+		return;
+
+	int button = key_map[Qt::Key(event->key())];
+	bool press_event = event->type() == QEvent::Type::KeyPress;
+
+	switch(button)
 	{
-		case Qt::Key::Key_Left:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+		case CHIAKI_CONTROLLER_ANALOG_BUTTON_L2:
+			keyboard_state.l2_state = press_event ? 0xff : 0;
 			break;
-		case Qt::Key::Key_Right:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+		case CHIAKI_CONTROLLER_ANALOG_BUTTON_R2:
+			keyboard_state.r2_state = press_event ? 0xff : 0;
 			break;
-		case Qt::Key::Key_Up:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP):
+			keyboard_state.right_y = press_event ? -0x3fff : 0;
 			break;
-		case Qt::Key::Key_Down:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN):
+			keyboard_state.right_y = press_event ? 0x3fff : 0;
 			break;
-		case Qt::Key::Key_Return:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_CROSS;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP):
+			keyboard_state.right_x = press_event ? 0x3fff : 0;
 			break;
-		case Qt::Key::Key_Backspace:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_MOON;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN):
+			keyboard_state.right_x = press_event ? -0x3fff : 0;
 			break;
-		case Qt::Key::Key_Backslash:
-		case Qt::Key::Key_X:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_BOX;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_UP):
+			keyboard_state.left_y = press_event ? -0x3fff : 0;
 			break;
-		case Qt::Key::Key_C:
-		case Qt::Key::Key_BracketRight:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN):
+			keyboard_state.left_y = press_event ? 0x3fff : 0;
 			break;
-		case Qt::Key::Key_F:
-		case Qt::Key::Key_BracketLeft:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_SHARE;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_UP):
+			keyboard_state.left_x = press_event ? 0x3fff : 0;
 			break;
-		case Qt::Key::Key_Escape:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_PS;
-			break;
-		case Qt::Key::Key_T:
-			button_mask = CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_DOWN):
+			keyboard_state.left_x = press_event ? -0x3fff : 0;
 			break;
 		default:
-			// not interested
-			return;
+			if(press_event)
+				keyboard_state.buttons |= button;
+			else
+				keyboard_state.buttons &= ~button;
+			break;
 	}
-
-	if(event->type() == QEvent::KeyPress)
-		keyboard_state.buttons |= button_mask;
-	else
-		keyboard_state.buttons &= ~button_mask;
 
 	SendFeedbackState();
 }

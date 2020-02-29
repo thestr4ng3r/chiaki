@@ -17,9 +17,11 @@
 
 #include <settingsdialog.h>
 #include <settings.h>
+#include <settingskeycapturedialog.h>
 #include <registdialog.h>
 #include <sessionlog.h>
 
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QListWidget>
@@ -31,7 +33,6 @@
 #include <QMap>
 #include <QCheckBox>
 #include <QLineEdit>
-
 
 const char * const about_string =
 	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
@@ -46,21 +47,28 @@ const char * const about_string =
 	"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
 	"GNU General Public License for more details.</p>";
 
-
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
 	this->settings = settings;
 
 	setWindowTitle(tr("Settings"));
 
-	auto layout = new QVBoxLayout(this);
-	setLayout(layout);
+	auto root_layout = new QVBoxLayout(this);
+	setLayout(root_layout);
 
+	auto horizontal_layout = new QHBoxLayout();
+	root_layout->addLayout(horizontal_layout);
+
+	auto left_layout = new QVBoxLayout();
+	horizontal_layout->addLayout(left_layout);
+
+	auto right_layout = new QVBoxLayout();
+	horizontal_layout->addLayout(right_layout);
 
 	// General
 
 	auto general_group_box = new QGroupBox(tr("General"));
-	layout->addWidget(general_group_box);
+	left_layout->addWidget(general_group_box);
 
 	auto general_layout = new QFormLayout();
 	general_group_box->setLayout(general_layout);
@@ -85,7 +93,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Stream Settings
 
 	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
-	layout->addWidget(stream_settings_group_box);
+	left_layout->addWidget(stream_settings_group_box);
 
 	auto stream_settings_layout = new QFormLayout();
 	stream_settings_group_box->setLayout(stream_settings_layout);
@@ -141,7 +149,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Registered Consoles
 
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
-	layout->addWidget(registered_hosts_group_box);
+	left_layout->addWidget(registered_hosts_group_box);
 
 	auto registered_hosts_layout = new QHBoxLayout();
 	registered_hosts_group_box->setLayout(registered_hosts_layout);
@@ -162,8 +170,43 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	registered_hosts_buttons_layout->addStretch();
 
+	// Key Settings
+	auto key_settings_group_box = new QGroupBox(tr("Key Settings"));
+	right_layout->addWidget(key_settings_group_box);
+	auto key_horizontal = new QHBoxLayout();
+	key_settings_group_box->setLayout(key_horizontal);
+	key_horizontal->setSpacing(10);
+
+	auto key_left_form = new QFormLayout();
+	auto key_right_form = new QFormLayout();
+	key_horizontal->addLayout(key_left_form);
+	key_horizontal->addLayout(key_right_form);
+
+	QMap<int, Qt::Key> key_map = this->settings->GetControllerMapping();
+
+	int i = 0;
+	for(auto it = key_map.begin(); it != key_map.end(); ++it, ++i)
+	{
+		int chiaki_button = it.key();
+		auto button = new QPushButton(QKeySequence(it.value()).toString(), this);
+		button->setAutoDefault(false);
+		auto form = i % 2 ? key_left_form : key_right_form;
+		form->addRow(Settings::GetChiakiControllerButtonName(chiaki_button), button);
+		// Launch key capture dialog on clicked event
+		connect(button, &QPushButton::clicked, this, [this, chiaki_button, button](){
+			auto dialog = new SettingsKeyCaptureDialog(this);
+			// Store captured key to settings and change button label on KeyCaptured event
+			connect(dialog, &SettingsKeyCaptureDialog::KeyCaptured, button, [this, button, chiaki_button](Qt::Key key){
+						button->setText(QKeySequence(key).toString());
+						this->settings->SetControllerButtonMapping(chiaki_button, key);
+					});
+			dialog->exec();
+		});
+	}
+
+	// Close Button
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
-	layout->addWidget(button_box);
+	root_layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
