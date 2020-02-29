@@ -24,10 +24,8 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QAction>
-#include <QKeyEvent>
 
-StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info,
-                           QWidget *parent)
+StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent)
 {
 	setAttribute(Qt::WA_DeleteOnClose);

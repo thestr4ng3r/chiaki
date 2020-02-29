@@ -24,7 +24,7 @@
 
 #include <QSettings>
 
-enum ControllerButtonExt
+enum class ControllerButtonExt
 {
 	// must not overlap with ChiakiControllerButton and ChiakiControllerAnalogButton
 	ANALOG_STICK_LEFT_X_UP = (1 << 18),

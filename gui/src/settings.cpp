@@ -231,14 +231,14 @@ QString Settings::GetChiakiControllerButtonName(int button)
 		case CHIAKI_CONTROLLER_BUTTON_PS         : return tr("PS");
 		case CHIAKI_CONTROLLER_ANALOG_BUTTON_L2  : return tr("L2");
 		case CHIAKI_CONTROLLER_ANALOG_BUTTON_R2  : return tr("R2");
-		case ANALOG_STICK_LEFT_X_UP              : return tr("Left Stick Right");
-		case ANALOG_STICK_LEFT_Y_UP              : return tr("Left Stick Up");
-		case ANALOG_STICK_RIGHT_X_UP             : return tr("Right Stick Right");
-		case ANALOG_STICK_RIGHT_Y_UP             : return tr("Right Stick Up");
-		case ANALOG_STICK_LEFT_X_DOWN            : return tr("Left Stick Left");
-		case ANALOG_STICK_LEFT_Y_DOWN            : return tr("Left Stick Down");
-		case ANALOG_STICK_RIGHT_X_DOWN           : return tr("Right Stick Left");
-		case ANALOG_STICK_RIGHT_Y_DOWN           : return tr("Right Stick Down");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_UP)    : return tr("Left Stick Right");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_UP)    : return tr("Left Stick Up");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP)   : return tr("Right Stick Right");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP)   : return tr("Right Stick Up");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_DOWN)  : return tr("Left Stick Left");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN)  : return tr("Left Stick Down");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN) : return tr("Right Stick Left");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN) : return tr("Right Stick Down");
 		default: return "Unknown";
 	}
 }
@@ -272,14 +272,14 @@ QMap<int, Qt::Key> Settings::GetControllerMapping()
 		{CHIAKI_CONTROLLER_BUTTON_PS        , Qt::Key::Key_Escape},
 		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , Qt::Key::Key_1},
 		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , Qt::Key::Key_4},
-		{ANALOG_STICK_LEFT_X_UP             , Qt::Key::Key_BracketRight},
-		{ANALOG_STICK_LEFT_X_DOWN           , Qt::Key::Key_BracketLeft},
-		{ANALOG_STICK_LEFT_Y_UP             , Qt::Key::Key_Insert},
-		{ANALOG_STICK_LEFT_Y_DOWN           , Qt::Key::Key_Delete},
-		{ANALOG_STICK_RIGHT_X_UP            , Qt::Key::Key_Equal},
-		{ANALOG_STICK_RIGHT_X_DOWN          , Qt::Key::Key_Minus},
-		{ANALOG_STICK_RIGHT_Y_UP            , Qt::Key::Key_PageUp},
-		{ANALOG_STICK_RIGHT_Y_DOWN          , Qt::Key::Key_PageDown}
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_UP)   , Qt::Key::Key_BracketRight},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_DOWN) , Qt::Key::Key_BracketLeft},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_UP)   , Qt::Key::Key_Insert},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN) , Qt::Key::Key_Delete},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP)  , Qt::Key::Key_Equal},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN), Qt::Key::Key_Minus},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP)  , Qt::Key::Key_PageUp},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN), Qt::Key::Key_PageDown}
 	};
 
 	// Then fill in from settings

@@ -21,7 +21,6 @@
 #include <QMainWindow>
 
 #include "streamsession.h"
-#include "settings.h"
 
 class QLabel;
 class AVOpenGLWidget;
@@ -36,6 +35,7 @@ class StreamWindow: public QMainWindow
 
 	private:
 		StreamSession *session;
+
 		AVOpenGLWidget *av_widget;
 
 		void Init(const StreamSessionConnectInfo &connect_info);
