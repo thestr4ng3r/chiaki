@@ -24,6 +24,7 @@
 #include <streamsession.h>
 #include <streamwindow.h>
 #include <manualhostdialog.h>
+#include <CKeyMouse.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -147,6 +148,14 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 #else
 	tool_bar->addWidget(tool_bar_spacer);
 #endif
+
+	auto keyboard_mouse_config_action = new QAction(tr("C-Aim (Keyboard/Mouse)"), this);
+ 	keyboard_mouse_config_action->setIcon(LoadIcon(":/icons/Keyboard-Mouse-Config.svg"));
+ 	AddToolBarAction(keyboard_mouse_config_action);
+  	connect(keyboard_mouse_config_action, &QAction::triggered, this, [this]() {
+ 		CKeyMouse dialog(this->settings, -1, this);
+ 		dialog.exec();
+ 	});
 
 	auto add_manual_action = new QAction(tr("Add Console manually"), this);
 	add_manual_action->setIcon(LoadIcon(":/icons/add-24px.svg"));

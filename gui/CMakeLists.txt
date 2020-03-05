@@ -60,6 +60,8 @@ add_executable(chiaki WIN32
 		src/registdialog.cpp
 		include/host.h
 		src/host.cpp
+		include/settingskeycapturedialog.h
+		src/settingskeycapturedialog.cpp
 		include/settingsdialog.h
 		src/settingsdialog.cpp
 		include/manualhostdialog.h
@@ -68,7 +70,9 @@ add_executable(chiaki WIN32
 		include/controllermanager.h
 		src/controllermanager.cpp
 		include/loginpindialog.h
-		src/loginpindialog.cpp)
+		src/loginpindialog.cpp
+ 		include/CKeyMouse.h
+  		src/CKeyMouse.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)

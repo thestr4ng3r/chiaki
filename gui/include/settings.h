@@ -24,6 +24,19 @@
 
 #include <QSettings>
 
+enum class ControllerButtonExt
+{
+	// must not overlap with ChiakiControllerButton and ChiakiControllerAnalogButton
+	ANALOG_STICK_LEFT_X_UP = (1 << 18),
+	ANALOG_STICK_LEFT_X_DOWN = (1 << 19),
+	ANALOG_STICK_LEFT_Y_UP = (1 << 20),
+	ANALOG_STICK_LEFT_Y_DOWN = (1 << 21),
+	ANALOG_STICK_RIGHT_X_UP = (1 << 22),
+	ANALOG_STICK_RIGHT_X_DOWN = (1 << 23),
+	ANALOG_STICK_RIGHT_Y_UP = (1 << 24),
+	ANALOG_STICK_RIGHT_Y_DOWN = (1 << 25),
+};
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -89,6 +102,11 @@ class Settings : public QObject
 		void RemoveManualHost(int id);
 		bool GetManualHostExists(int id)							{ return manual_hosts.contains(id); }
 		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
+
+		static QString GetChiakiControllerButtonName(int);
+		void SetControllerButtonMapping(int, Qt::Key);
+		QMap<int, Qt::Key> GetControllerMapping();
+		QMap<Qt::Key, int> GetControllerMappingForDecoding();
 
 	signals:
 		void RegisteredHostsUpdated();
