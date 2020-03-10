@@ -165,28 +165,28 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 			keyboard_state.r2_state = press_event ? 0xff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP):
-			keyboard_state.right_y = press_event ? -0x3fff : 0;
+			keyboard_state.right_y = press_event ? -0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN):
-			keyboard_state.right_y = press_event ? 0x3fff : 0;
+			keyboard_state.right_y = press_event ? 0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP):
-			keyboard_state.right_x = press_event ? 0x3fff : 0;
+			keyboard_state.right_x = press_event ? 0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN):
-			keyboard_state.right_x = press_event ? -0x3fff : 0;
+			keyboard_state.right_x = press_event ? -0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_UP):
-			keyboard_state.left_y = press_event ? -0x3fff : 0;
+			keyboard_state.left_y = press_event ? -0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN):
-			keyboard_state.left_y = press_event ? 0x3fff : 0;
+			keyboard_state.left_y = press_event ? 0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_UP):
-			keyboard_state.left_x = press_event ? 0x3fff : 0;
+			keyboard_state.left_x = press_event ? 0x7fff : 0;
 			break;
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_DOWN):
-			keyboard_state.left_x = press_event ? -0x3fff : 0;
+			keyboard_state.left_x = press_event ? -0x7fff : 0;
 			break;
 		default:
 			if(press_event)
