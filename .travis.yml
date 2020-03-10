@@ -77,6 +77,7 @@ matrix:
       osx_image: xcode11
       addons:
         homebrew:
+          update: true # tmp
           packages:
             - qt
             - opus
@@ -88,6 +89,8 @@ matrix:
         - CMAKE_EXTRA_ARGS=""
         - DEPLOY=1
       install:
+        - brew unlink python@2 # tmp
+        - brew link python # tmp
         - scripts/build-ffmpeg.sh
       script:
         - scripts/travis-build.sh
