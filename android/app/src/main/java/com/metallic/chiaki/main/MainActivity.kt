@@ -25,7 +25,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
@@ -67,8 +67,7 @@ class MainActivity : AppCompatActivity()
 		registerButton.setOnClickListener { showRegistration() }
 		registerLabelButton.setOnClickListener { showRegistration() }
 
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { MainViewModel(getDatabase(this), Preferences(this)) })
+		viewModel = ViewModelProvider(this, viewModelFactory { MainViewModel(getDatabase(this), Preferences(this)) })
 			.get(MainViewModel::class.java)
 
 		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered, this::wakeupHost, this::editHost, this::deleteHost)

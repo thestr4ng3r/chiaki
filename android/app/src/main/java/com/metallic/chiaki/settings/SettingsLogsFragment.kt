@@ -27,7 +27,7 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -49,15 +49,14 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 	{
 		val context = context!!
 
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsLogsViewModel(LogManager(context)) })
+		viewModel = ViewModelProvider(this, viewModelFactory { SettingsLogsViewModel(LogManager(context)) })
 			.get(SettingsLogsViewModel::class.java)
 
 		val adapter = SettingsLogsAdapter()
 		logsRecyclerView.layoutManager = LinearLayoutManager(context)
 		logsRecyclerView.adapter = adapter
 		adapter.shareCallback = this::shareLogFile
-		viewModel.sessionLogs.observe(this, Observer {
+		viewModel.sessionLogs.observe(viewLifecycleOwner, Observer {
 			adapter.logFiles = it
 			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
 		})

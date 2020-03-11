@@ -26,7 +26,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -47,8 +47,7 @@ class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
 	{
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context!!)) })
+		viewModel = ViewModelProvider(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context!!)) })
 			.get(SettingsRegisteredHostsViewModel::class.java)
 
 		val adapter = SettingsRegisteredHostsAdapter()

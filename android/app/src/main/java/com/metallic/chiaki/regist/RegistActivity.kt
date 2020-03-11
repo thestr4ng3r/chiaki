@@ -24,7 +24,7 @@ import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.lib.RegistInfo
@@ -56,7 +56,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		setContentView(R.layout.activity_regist)
 		handleReveal()
 
-		viewModel = ViewModelProviders.of(this).get(RegistViewModel::class.java)
+		viewModel = ViewModelProvider(this).get(RegistViewModel::class.java)
 
 		hostEditText.setText(intent.getStringExtra(EXTRA_HOST) ?: "255.255.255.255")
 		broadcastCheckBox.isChecked = intent.getBooleanExtra(EXTRA_BROADCAST, true)

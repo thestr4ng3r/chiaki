@@ -18,24 +18,21 @@
 package com.metallic.chiaki.settings
 
 import android.app.Activity
-import android.content.ClipData
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.text.InputType
-import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.*
-import com.metallic.chiaki.common.ext.toLiveData
+import com.metallic.chiaki.common.Preferences
+import com.metallic.chiaki.common.exportAndShareAllSettings
 import com.metallic.chiaki.common.ext.viewModelFactory
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.common.importSettingsFromUri
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
-import io.reactivex.schedulers.Schedulers
-import java.io.File
 
 class DataStore(val preferences: Preferences): PreferenceDataStore()
 {
@@ -96,8 +93,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	{
 		val context = context ?: return
 
-		val viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
+		val viewModel = ViewModelProvider(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
 			.get(SettingsViewModel::class.java)
 
 		val preferences = viewModel.preferences

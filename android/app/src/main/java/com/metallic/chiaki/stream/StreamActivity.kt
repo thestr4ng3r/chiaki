@@ -72,7 +72,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			return
 		}
 
-		viewModel = ViewModelProviders.of(this, viewModelFactory {
+		viewModel = ViewModelProvider(this, viewModelFactory {
 			StreamViewModel(Preferences(this), LogManager(this), connectInfo)
 		})[StreamViewModel::class.java]
 
@@ -101,7 +101,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			showOverlay()
 		}
 
-		displayModeToggle.addOnButtonCheckedListener {group, checkedId, _ ->
+		displayModeToggle.addOnButtonCheckedListener { _, checkedId, _ ->
 			// following 'if' is a workaround until selectionRequired for MaterialButtonToggleGroup
 			// comes out of alpha.
 			// See https://stackoverflow.com/questions/56164004/required-single-selection-on-materialbuttontogglegroup

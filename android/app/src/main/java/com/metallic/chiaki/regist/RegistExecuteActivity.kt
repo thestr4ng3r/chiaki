@@ -25,7 +25,7 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.MacAddress
@@ -52,8 +52,7 @@ class RegistExecuteActivity: AppCompatActivity()
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist_execute)
 
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
+		viewModel = ViewModelProvider(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
 			.get(RegistExecuteViewModel::class.java)
 
 		logTextView.setHorizontallyScrolling(true)

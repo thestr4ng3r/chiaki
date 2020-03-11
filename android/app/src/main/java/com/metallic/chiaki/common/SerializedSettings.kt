@@ -150,7 +150,7 @@ fun exportAndShareAllSettings(activity: Activity): Disposable
 			file
 		}
 		.observeOn(AndroidSchedulers.mainThread())
-		.subscribe { it: File ->
+		.subscribe { _ ->
 			val uri = FileProvider.getUriForFile(activity, fileProviderAuthority, file)
 			Intent(Intent.ACTION_SEND).also {
 				it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

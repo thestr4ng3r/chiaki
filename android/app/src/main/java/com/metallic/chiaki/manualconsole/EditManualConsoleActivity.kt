@@ -25,7 +25,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.RegisteredHost
 import com.metallic.chiaki.common.ext.RevealActivity
@@ -57,8 +57,7 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 		setContentView(R.layout.activity_edit_manual)
 		handleReveal()
 
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory {
+		viewModel = ViewModelProvider(this, viewModelFactory {
 				EditManualConsoleViewModel(getDatabase(this),
 					if(intent.hasExtra(EXTRA_MANUAL_HOST_ID))
 						intent.getLongExtra(EXTRA_MANUAL_HOST_ID, 0)
