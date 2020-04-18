@@ -76,6 +76,9 @@ class Settings : public QObject
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
 
+		bool GetHardwareDecode() const		{ return settings.value("settings/hw_decode", false).toBool(); }
+		void SetHardwareDecode(bool enabled)	{ settings.setValue("settings/hw_decode", enabled); }
+
 		unsigned int GetAudioBufferSizeDefault() const;
 
 		/**

@@ -28,6 +28,7 @@
 extern "C"
 {
 #include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
 }
 
 #include <cstdint>
@@ -43,11 +44,12 @@ class VideoDecoder: public QObject
 	Q_OBJECT
 
 	public:
-		VideoDecoder(ChiakiLog *log);
+		VideoDecoder(bool hw_decode, ChiakiLog *log);
 		~VideoDecoder();
 
 		void PushFrame(uint8_t *buf, size_t buf_size);
 		AVFrame *PullFrame();
+		AVFrame *GetFromHardware(AVFrame *hw_frame);
 
 		ChiakiLog *GetChiakiLog()	{ return log; }
 
@@ -55,11 +57,18 @@ class VideoDecoder: public QObject
 		void FramesAvailable();
 
 	private:
+		bool hw_decode;
+
 		ChiakiLog *log;
 		QMutex mutex;
 
 		AVCodec *codec;
 		AVCodecContext *codec_context;
+
+		enum AVPixelFormat hw_pix_fmt;
+		AVBufferRef *hw_device_ctx;
+
+		SwsContext* cc;
 };
 
 #endif // CHIAKI_VIDEODECODER_H

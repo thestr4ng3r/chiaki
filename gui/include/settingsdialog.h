@@ -34,6 +34,7 @@ class SettingsDialog : public QDialog
 		Settings *settings;
 
 		QCheckBox *log_verbose_check_box;
+		QCheckBox *hardware_decode_check_box;
 
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
@@ -47,6 +48,7 @@ class SettingsDialog : public QDialog
 
 	private slots:
 		void LogVerboseChanged();
+		void HardwareDecodeChanged();
 
 		void ResolutionSelected();
 		void FPSSelected();

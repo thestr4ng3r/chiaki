@@ -146,6 +146,21 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
+	// Decode Settings
+
+	auto decode_settings = new QGroupBox(tr("Decode Settings"));
+	left_layout->addWidget(decode_settings);
+
+	auto decode_settings_layout = new QFormLayout();
+	decode_settings->setLayout(decode_settings_layout);
+	if(decode_settings_layout->spacing() < 16)
+		decode_settings_layout->setSpacing(16);
+
+	hardware_decode_check_box = new QCheckBox(this);
+	decode_settings_layout->addRow(tr("Enable VAAPI decode"), hardware_decode_check_box);
+	hardware_decode_check_box->setChecked(settings->GetHardwareDecode());
+	connect(hardware_decode_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::HardwareDecodeChanged);
+
 	// Registered Consoles
 
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
@@ -241,6 +256,11 @@ void SettingsDialog::BitrateEdited()
 void SettingsDialog::AudioBufferSizeEdited()
 {
 	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
+}
+
+void SettingsDialog::HardwareDecodeChanged()
+{
+	settings->SetHardwareDecode(hardware_decode_check_box->isChecked());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()
