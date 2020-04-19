@@ -20,6 +20,7 @@
 #include <settingskeycapturedialog.h>
 #include <registdialog.h>
 #include <sessionlog.h>
+#include <videodecoder.h>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -153,13 +154,22 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	auto decode_settings_layout = new QFormLayout();
 	decode_settings->setLayout(decode_settings_layout);
-	if(decode_settings_layout->spacing() < 16)
-		decode_settings_layout->setSpacing(16);
 
-	hardware_decode_check_box = new QCheckBox(this);
-	decode_settings_layout->addRow(tr("Enable VAAPI decode"), hardware_decode_check_box);
-	hardware_decode_check_box->setChecked(settings->GetHardwareDecode());
-	connect(hardware_decode_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::HardwareDecodeChanged);
+	hardware_decode_combo_box = new QComboBox(this);
+	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
+		{ HW_DECODE_NONE, "none"},
+		{ HW_DECODE_VAAPI, "vaapi"},
+		{ HW_DECODE_VDPAU, "vdpau"},
+	};
+	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
+	for(const auto &p : hardware_decode_engines)
+	{
+		hardware_decode_combo_box->addItem(p.second, (int)p.first);
+		if(current_hardware_decode_engine == p.first)
+			hardware_decode_combo_box->setCurrentIndex(hardware_decode_combo_box->count() - 1);
+	}
+	connect(hardware_decode_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
+	decode_settings_layout->addRow(tr("Hardware decode method:"), hardware_decode_combo_box);
 
 	// Registered Consoles
 
@@ -258,9 +268,9 @@ void SettingsDialog::AudioBufferSizeEdited()
 	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
 }
 
-void SettingsDialog::HardwareDecodeChanged()
+void SettingsDialog::HardwareDecodeEngineSelected()
 {
-	settings->SetHardwareDecode(hardware_decode_check_box->isChecked());
+	settings->SetHardwareDecodeEngine((HardwareDecodeEngine)hardware_decode_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

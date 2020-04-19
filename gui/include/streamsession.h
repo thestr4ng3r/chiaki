@@ -49,7 +49,7 @@ class ChiakiException: public Exception
 struct StreamSessionConnectInfo
 {
 	QMap<Qt::Key, int> key_map;
-	bool hw_decode;
+	HardwareDecodeEngine hw_decode_engine;
 	uint32_t log_level_mask;
 	QString log_file;
 	QString host;

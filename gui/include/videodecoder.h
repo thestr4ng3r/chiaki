@@ -22,6 +22,7 @@
 
 #include "exception.h"
 
+#include <QMap>
 #include <QMutex>
 #include <QObject>
 
@@ -32,6 +33,20 @@ extern "C"
 }
 
 #include <cstdint>
+
+
+typedef enum {
+	HW_DECODE_NONE = 0,
+	HW_DECODE_VAAPI = 1,
+	HW_DECODE_VDPAU = 2,
+} HardwareDecodeEngine;
+
+
+static const QMap<HardwareDecodeEngine, const char *> hardware_decode_engine_names = {
+	{ HW_DECODE_NONE, "none"},
+	{ HW_DECODE_VAAPI, "vaapi"},
+	{ HW_DECODE_VDPAU, "vdpau"},
+};
 
 class VideoDecoderException: public Exception
 {
@@ -44,7 +59,7 @@ class VideoDecoder: public QObject
 	Q_OBJECT
 
 	public:
-		VideoDecoder(bool hw_decode, ChiakiLog *log);
+		VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log);
 		~VideoDecoder();
 
 		void PushFrame(uint8_t *buf, size_t buf_size);
@@ -57,7 +72,7 @@ class VideoDecoder: public QObject
 		void FramesAvailable();
 
 	private:
-		bool hw_decode;
+		HardwareDecodeEngine hw_decode_engine;
 
 		ChiakiLog *log;
 		QMutex mutex;

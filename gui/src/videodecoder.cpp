@@ -22,9 +22,7 @@
 
 #include <QImage>
 
-#define HWDEVICE_NAME "vaapi"
-
-VideoDecoder::VideoDecoder(bool hw_decode, ChiakiLog *log) : hw_decode(hw_decode), log(log)
+VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log) : hw_decode_engine(hw_decode_engine), log(log)
 {
 	enum AVHWDeviceType type;
 	hw_device_ctx = nullptr;
@@ -41,9 +39,14 @@ VideoDecoder::VideoDecoder(bool hw_decode, ChiakiLog *log) : hw_decode(hw_decode
 	if(!codec_context)
 		throw VideoDecoderException("Failed to alloc codec context");
 
-	if(hw_decode)
+	if(hw_decode_engine)
 	{
-		type = av_hwdevice_find_type_by_name(HWDEVICE_NAME);
+		if(!hardware_decode_engine_names.contains(hw_decode_engine))
+			throw VideoDecoderException("Unknown hardware decode engine!");
+
+		const char *hw_dec_eng = hardware_decode_engine_names[hw_decode_engine];
+		CHIAKI_LOGI(log, "Using hardware decode %s", hw_dec_eng);
+		type = av_hwdevice_find_type_by_name(hw_dec_eng);
 		if (type == AV_HWDEVICE_TYPE_NONE) {
 			throw VideoDecoderException("Can't initialize vaapi");
 		}
@@ -154,7 +157,7 @@ AVFrame *VideoDecoder::PullFrame()
 		int r = avcodec_receive_frame(codec_context, frame);
 		if(r == 0)
 		{
-			frame = hw_decode ? GetFromHardware(frame) : frame;
+			frame = hw_decode_engine ? GetFromHardware(frame) : frame;
 		}
 		else
 		{
@@ -200,7 +203,7 @@ AVFrame *VideoDecoder::GetFromHardware(AVFrame *hw_frame)
 
 	if(cc == nullptr)
 	{
-		cc = sws_getContext(sw_frame->width, sw_frame->height, AV_PIX_FMT_NV12, sw_frame->width, sw_frame->height, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+		cc = sws_getContext(sw_frame->width, sw_frame->height, (AVPixelFormat)sw_frame->format, sw_frame->width, sw_frame->height, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
 	}
 
 	sws_scale(cc, sw_frame->data, sw_frame->linesize, 0, sw_frame->height, frame->data, frame->linesize);
