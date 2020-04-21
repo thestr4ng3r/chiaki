@@ -29,7 +29,6 @@
 extern "C"
 {
 #include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
 }
 
 #include <cstdint>
@@ -68,6 +67,8 @@ class VideoDecoder: public QObject
 
 		ChiakiLog *GetChiakiLog()	{ return log; }
 
+		enum AVPixelFormat PixelFormat() { return hw_decode_engine?AV_PIX_FMT_NV12:AV_PIX_FMT_YUV420P; }
+
 	signals:
 		void FramesAvailable();
 
@@ -82,8 +83,6 @@ class VideoDecoder: public QObject
 
 		enum AVPixelFormat hw_pix_fmt;
 		AVBufferRef *hw_device_ctx;
-
-		SwsContext* cc;
 };
 
 #endif // CHIAKI_VIDEODECODER_H

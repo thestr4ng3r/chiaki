@@ -18,7 +18,6 @@
 #include <videodecoder.h>
 
 #include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
 
 #include <QImage>
 
@@ -26,7 +25,6 @@ VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log
 {
 	enum AVHWDeviceType type;
 	hw_device_ctx = nullptr;
-	cc = nullptr;
 
 	#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 10, 100)
 	avcodec_register_all();
@@ -47,17 +45,16 @@ VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log
 		const char *hw_dec_eng = hardware_decode_engine_names[hw_decode_engine];
 		CHIAKI_LOGI(log, "Using hardware decode %s", hw_dec_eng);
 		type = av_hwdevice_find_type_by_name(hw_dec_eng);
-		if (type == AV_HWDEVICE_TYPE_NONE) {
+		if (type == AV_HWDEVICE_TYPE_NONE)
 			throw VideoDecoderException("Can't initialize vaapi");
-		}
 
 		for(int i = 0;; i++) {
 			const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
-			if(!config) {
+			if(!config)
 				throw VideoDecoderException("avcodec_get_hw_config failed");
-			}
 			if(config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
-				config->device_type == type) {
+				config->device_type == type)
+			{
 				hw_pix_fmt = config->pix_fmt;
 				break;
 			}
@@ -171,10 +168,6 @@ AVFrame *VideoDecoder::PullFrame()
 
 AVFrame *VideoDecoder::GetFromHardware(AVFrame *hw_frame)
 {
-	/*
-	(1) gets frame from hardware buffer
-	(2) converts frame from NV12 color space to YUV420P
-	*/
 	AVFrame *frame;
 	AVFrame *sw_frame;
 
@@ -195,19 +188,5 @@ AVFrame *VideoDecoder::GetFromHardware(AVFrame *hw_frame)
 		return nullptr;
 	}
 
-	frame = av_frame_alloc();
-	frame->format = AV_PIX_FMT_YUV420P;
-	frame->width = sw_frame->width;
-	frame->height = sw_frame->height;
-	av_frame_get_buffer(frame, 32);
-
-	if(cc == nullptr)
-	{
-		cc = sws_getContext(sw_frame->width, sw_frame->height, (AVPixelFormat)sw_frame->format, sw_frame->width, sw_frame->height, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
-	}
-
-	sws_scale(cc, sw_frame->data, sw_frame->linesize, 0, sw_frame->height, frame->data, frame->linesize);
-
-	av_frame_unref(sw_frame);
-	return frame;
+	return sw_frame;
 }
