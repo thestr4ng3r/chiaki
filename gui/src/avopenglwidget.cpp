@@ -43,12 +43,35 @@ void main()
 }
 )glsl";
 
-static const char *shader_frag_glsl = R"glsl(
+static const char *yuv420p_shader_frag_glsl = R"glsl(
 #version 150 core
 
-uniform sampler2D tex_y;
-uniform sampler2D tex_u;
-uniform sampler2D tex_v;
+uniform sampler2D plane1; // Y
+uniform sampler2D plane2; // U
+uniform sampler2D plane3; // V
+
+in vec2 uv_var;
+out vec4 out_color;
+
+void main()
+{
+	vec3 yuv = vec3(
+		(texture(plane1, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture(plane2, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture(plane3, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
+	vec3 rgb = mat3(
+		1.0,		1.0,		1.0,
+		0.0,		-0.21482,	2.12798,
+		1.28033,	-0.38059,	0.0) * yuv;
+	out_color = vec4(rgb, 1.0);
+}
+)glsl";
+
+static const char *nv12_shader_frag_glsl = R"glsl(
+#version 150 core
+
+uniform sampler2D plane1; // Y
+uniform sampler2D plane2; // interlaced UV
 
 in vec2 uv_var;
 
@@ -57,9 +80,10 @@ out vec4 out_color;
 void main()
 {
 	vec3 yuv = vec3(
-		(texture(tex_y, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
-		(texture(tex_u, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
-		(texture(tex_v, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
+		(texture(plane1, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture(plane2, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture(plane2, uv_var).g - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5
+	);
 	vec3 rgb = mat3(
 		1.0,		1.0,		1.0,
 		0.0,		-0.21482,	2.12798,
@@ -67,6 +91,30 @@ void main()
 	out_color = vec4(rgb, 1.0);
 }
 )glsl";
+
+ConversionConfig conversion_configs[] = {
+	{
+		AV_PIX_FMT_YUV420P,
+		shader_vert_glsl,
+		yuv420p_shader_frag_glsl,
+		3,
+		{
+			{ 1, 1, 1, GL_R8, GL_RED },
+			{ 2, 2, 1, GL_R8, GL_RED },
+			{ 2, 2, 1, GL_R8, GL_RED }
+		}
+	},
+	{
+		AV_PIX_FMT_NV12,
+		shader_vert_glsl,
+		nv12_shader_frag_glsl,
+		2,
+		{
+			{ 1, 1, 1, GL_R8, GL_RED },
+			{ 2, 2, 2, GL_RG8, GL_RG }
+		}
+	}
+};
 
 static const float vert_pos[] = {
 	0.0f, 0.0f,
@@ -93,6 +141,19 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	: QOpenGLWidget(parent),
 	decoder(decoder)
 {
+	conversion_config = nullptr;
+	for(auto &cc: conversion_configs)
+	{
+		if(decoder->PixelFormat() == cc.pixel_format)
+		{
+			conversion_config = &cc;
+			break;
+		}
+	}
+
+	if(!conversion_config)
+		throw Exception("No matching video conversion config can be found");
+
 	setFormat(CreateSurfaceFormat());
 
 	frame_uploader_context = nullptr;
@@ -146,7 +207,7 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 {
 	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
-	if(frame->format != AV_PIX_FMT_YUV420P)
+	if(frame->format != conversion_config->pixel_format)
 	{
 		CHIAKI_LOGE(log, "AVOpenGLFrame got AVFrame with invalid format");
 		return false;
@@ -155,20 +216,16 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 	width = frame->width;
 	height = frame->height;
 
-	for(int i=0; i<3; i++)
+	for(int i=0; i<conversion_config->planes; i++)
 	{
-		int width = frame->width;
-		int height = frame->height;
-		if(i > 0)
-		{
-			width /= 2;
-			height /= 2;
-		}
+		int width = frame->width / conversion_config->plane_configs[i].width_divider;
+		int height = frame->height / conversion_config->plane_configs[i].height_divider;
+		int size = width * height * conversion_config->plane_configs[i].data_per_pixel;
 
 		f->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo[i]);
-		f->glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height, nullptr, GL_STREAM_DRAW);
+		f->glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW);
 
-		auto buf = reinterpret_cast<uint8_t *>(f->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, width * height, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+		auto buf = reinterpret_cast<uint8_t *>(f->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 		if(!buf)
 		{
 			CHIAKI_LOGE(log, "AVOpenGLFrame failed to map PBO");
@@ -176,17 +233,17 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 		}
 
 		if(frame->linesize[i] == width)
-			memcpy(buf, frame->data[i], width * height);
+			memcpy(buf, frame->data[i], size);
 		else
 		{
 			for(int l=0; l<height; l++)
-				memcpy(buf + width * l, frame->data[i] + frame->linesize[i] * l, width);
+				memcpy(buf + width * l * conversion_config->plane_configs[i].data_per_pixel, frame->data[i] + frame->linesize[i] * l, width * conversion_config->plane_configs[i].data_per_pixel);
 		}
 
 		f->glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
 		f->glBindTexture(GL_TEXTURE_2D, tex[i]);
-		f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+		f->glTexImage2D(GL_TEXTURE_2D, 0, conversion_config->plane_configs[i].internal_format, width, height, 0, conversion_config->plane_configs[i].format, GL_UNSIGNED_BYTE, nullptr);
 	}
 
 	f->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
@@ -226,12 +283,12 @@ void AVOpenGLWidget::initializeGL()
 	};
 
 	GLuint shader_vert = f->glCreateShader(GL_VERTEX_SHADER);
-	f->glShaderSource(shader_vert, 1, &shader_vert_glsl, nullptr);
+	f->glShaderSource(shader_vert, 1, &conversion_config->shader_vert_glsl, nullptr);
 	f->glCompileShader(shader_vert);
 	CheckShaderCompiled(shader_vert);
 
 	GLuint shader_frag = f->glCreateShader(GL_FRAGMENT_SHADER);
-	f->glShaderSource(shader_frag, 1, &shader_frag_glsl, nullptr);
+	f->glShaderSource(shader_frag, 1, &conversion_config->shader_frag_glsl, nullptr);
 	f->glCompileShader(shader_frag);
 	CheckShaderCompiled(shader_frag);
 
@@ -256,26 +313,31 @@ void AVOpenGLWidget::initializeGL()
 
 	for(int i=0; i<2; i++)
 	{
-		f->glGenTextures(3, frames[i].tex);
-		f->glGenBuffers(3, frames[i].pbo);
-		uint8_t uv_default = 127;
-		for(int j=0; j<3; j++)
+		frames[i].conversion_config = conversion_config;
+		f->glGenTextures(conversion_config->planes, frames[i].tex);
+		f->glGenBuffers(conversion_config->planes, frames[i].pbo);
+		uint8_t uv_default[] = {0x7f, 0x7f};
+		for(int j=0; j<conversion_config->planes; j++)
 		{
 			f->glBindTexture(GL_TEXTURE_2D, frames[i].tex[j]);
 			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			f->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, j > 0 ? &uv_default : nullptr);
+			f->glTexImage2D(GL_TEXTURE_2D, 0, conversion_config->plane_configs[j].internal_format, 1, 1, 0, conversion_config->plane_configs[j].format, GL_UNSIGNED_BYTE, j > 0 ? uv_default : nullptr);
 		}
 		frames[i].width = 0;
 		frames[i].height = 0;
 	}
 
 	f->glUseProgram(program);
-	f->glUniform1i(f->glGetUniformLocation(program, "tex_y"), 0);
-	f->glUniform1i(f->glGetUniformLocation(program, "tex_u"), 1);
-	f->glUniform1i(f->glGetUniformLocation(program, "tex_v"), 2);
+
+	// bind only as many planes as we need
+	const char *plane_names[] = {"plane1", "plane2", "plane3"};
+	for(int i=0; i<sizeof(plane_names)/sizeof(char *); i++)
+	{
+		f->glUniform1i(f->glGetUniformLocation(program, plane_names[i]), i);
+	}
 
 	f->glGenVertexArrays(1, &vao);
 	f->glBindVertexArray(vao);

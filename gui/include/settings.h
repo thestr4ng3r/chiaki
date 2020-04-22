@@ -21,6 +21,7 @@
 #include <chiaki/session.h>
 
 #include "host.h"
+#include "videodecoder.h"
 
 #include <QSettings>
 
@@ -75,6 +76,9 @@ class Settings : public QObject
 
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
+
+		HardwareDecodeEngine GetHardwareDecodeEngine() const;
+		void SetHardwareDecodeEngine(HardwareDecodeEngine enabled);
 
 		unsigned int GetAudioBufferSizeDefault() const;
 

@@ -35,6 +35,7 @@
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
 {
 	key_map = settings->GetControllerMappingForDecoding();
+	hw_decode_engine = settings->GetHardwareDecodeEngine();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
 	video_profile = settings->GetVideoProfile();
@@ -56,7 +57,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	gamepad(nullptr),
 #endif
 	controller(nullptr),
-	video_decoder(log.GetChiakiLog()),
+	video_decoder(connect_info.hw_decode_engine, log.GetChiakiLog()),
 	audio_output(nullptr),
 	audio_io(nullptr)
 {

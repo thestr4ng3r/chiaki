@@ -39,6 +39,7 @@ class SettingsDialog : public QDialog
 		QComboBox *fps_combo_box;
 		QLineEdit *bitrate_edit;
 		QLineEdit *audio_buffer_size_edit;
+		QComboBox *hardware_decode_combo_box;
 
 		QListWidget *registered_hosts_list_widget;
 		QPushButton *delete_registered_host_button;
@@ -52,6 +53,7 @@ class SettingsDialog : public QDialog
 		void FPSSelected();
 		void BitrateEdited();
 		void AudioBufferSizeEdited();
+		void HardwareDecodeEngineSelected();
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();

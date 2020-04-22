@@ -20,6 +20,7 @@
 #include <settingskeycapturedialog.h>
 #include <registdialog.h>
 #include <sessionlog.h>
+#include <videodecoder.h>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -146,6 +147,29 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
+	// Decode Settings
+
+	auto decode_settings = new QGroupBox(tr("Decode Settings"));
+	left_layout->addWidget(decode_settings);
+
+	auto decode_settings_layout = new QFormLayout();
+	decode_settings->setLayout(decode_settings_layout);
+
+	hardware_decode_combo_box = new QComboBox(this);
+	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
+		{ HW_DECODE_NONE, "none"},
+		{ HW_DECODE_VAAPI, "vaapi"}
+	};
+	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
+	for(const auto &p : hardware_decode_engines)
+	{
+		hardware_decode_combo_box->addItem(p.second, (int)p.first);
+		if(current_hardware_decode_engine == p.first)
+			hardware_decode_combo_box->setCurrentIndex(hardware_decode_combo_box->count() - 1);
+	}
+	connect(hardware_decode_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
+	decode_settings_layout->addRow(tr("Hardware decode method:"), hardware_decode_combo_box);
+
 	// Registered Consoles
 
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
@@ -241,6 +265,11 @@ void SettingsDialog::BitrateEdited()
 void SettingsDialog::AudioBufferSizeEdited()
 {
 	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
+}
+
+void SettingsDialog::HardwareDecodeEngineSelected()
+{
+	settings->SetHardwareDecodeEngine((HardwareDecodeEngine)hardware_decode_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

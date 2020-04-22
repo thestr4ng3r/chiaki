@@ -94,6 +94,25 @@ unsigned int Settings::GetAudioBufferSizeRaw() const
 	return settings.value("settings/audio_buffer_size", 0).toUInt();
 }
 
+static const QMap<HardwareDecodeEngine, QString> hw_decode_engine_values = {
+	{ HW_DECODE_NONE, "none" },
+	{ HW_DECODE_VAAPI, "vaapi" },
+	{ HW_DECODE_VDPAU, "vdpau" }
+};
+
+static const HardwareDecodeEngine hw_decode_engine_default = HW_DECODE_NONE;
+
+HardwareDecodeEngine Settings::GetHardwareDecodeEngine() const
+{
+	auto v = settings.value("settings/hw_decode_engine", hw_decode_engine_values[hw_decode_engine_default]).toString();
+	return hw_decode_engine_values.key(v, hw_decode_engine_default);
+}
+
+void Settings::SetHardwareDecodeEngine(HardwareDecodeEngine engine)
+{
+	settings.setValue("settings/hw_decode_engine", hw_decode_engine_values[engine]);
+}
+
 unsigned int Settings::GetAudioBufferSize() const
 {
 	unsigned int v = GetAudioBufferSizeRaw();

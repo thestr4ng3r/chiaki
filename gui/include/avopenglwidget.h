@@ -28,15 +28,36 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
+#define MAX_PANES 3
+
 class VideoDecoder;
 class AVOpenGLFrameUploader;
 
+struct PlaneConfig
+{
+	unsigned int width_divider;
+	unsigned int height_divider;
+	unsigned int data_per_pixel;
+	GLint internal_format;
+	GLenum format;
+};
+
+struct ConversionConfig
+{
+	enum AVPixelFormat pixel_format;
+	const char *shader_vert_glsl;
+	const char *shader_frag_glsl;
+	unsigned int planes;
+	struct PlaneConfig plane_configs[MAX_PANES];
+};
+
 struct AVOpenGLFrame
 {
-	GLuint pbo[3];
-	GLuint tex[3];
+	GLuint pbo[MAX_PANES];
+	GLuint tex[MAX_PANES];
 	unsigned int width;
 	unsigned int height;
+	ConversionConfig *conversion_config;
 
 	bool Update(AVFrame *frame, ChiakiLog *log);
 };
@@ -60,6 +81,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 		QThread *frame_uploader_thread;
 
 		QTimer *mouse_timer;
+
+		ConversionConfig *conversion_config;
 
 	public:
 		static QSurfaceFormat CreateSurfaceFormat();
