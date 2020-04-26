@@ -126,10 +126,10 @@ matrix:
       script:
         - cd android
         - ./gradlew assembleRelease bundleRelease
-        - export DEPLOY_FILE_BASE="Chiaki-$CHIAKI_VERSION-Android"
-        - export DEPLOY_FILE="$DEPLOY_FILE_BASE.a[pa][kb]"
-        - cp app/build/outputs/apk/release/app-release.apk "../$DEPLOY_FILE_BASE.apk"
-        - cp app/build/outputs/bundle/release/app-release.aab "../$DEPLOY_FILE_BASE.aab"
+        - if [ "$TRAVIS_PULL_REQUEST" = "false"]; then export DEPLOY_FILE_BASE="Chiaki-$CHIAKI_VERSION-Android"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false"]; then export DEPLOY_FILE="$DEPLOY_FILE_BASE.a[pa][kb]"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false"]; then cp app/build/outputs/apk/release/app-release.apk "../$DEPLOY_FILE_BASE.apk"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false"]; then cp app/build/outputs/bundle/release/app-release.aab "../$DEPLOY_FILE_BASE.aab"; fi
         - cd ..
 
     - name: "Source Package"
