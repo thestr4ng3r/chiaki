@@ -1,0 +1,25 @@
+
+image: openbsd/latest
+
+sources:
+  - https://github.com/thestr4ng3r/chiaki
+
+packages:
+  - cmake
+  - protobuf
+  - py3-protobuf
+  - opus
+  - qtbase
+  - qtsvg
+  - qtmultimedia
+  - ffmpeg
+  - sdl2
+
+tasks:
+  - build: |
+      cd chiaki
+      mkdir build && cd build
+      cmake -DCMAKE_PREFIX_PATH="/usr/local/lib;/usr/local/lib/qt5/cmake" ..
+      make -j4
+      test/chiaki-unit
+
