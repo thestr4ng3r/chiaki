@@ -23,6 +23,7 @@
 #include <openssl/ec.h>
 #include <openssl/hmac.h>
 #include <openssl/bn.h>
+#include <openssl/ecdh.h>
 
 #include <string.h>
 
