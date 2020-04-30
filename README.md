@@ -49,7 +49,7 @@ cmake ..
 make
 ```
 
-### Creating Packages/Installers using CMake/CPack
+### Creating Packages/Installers using CMake/CPack (Experimental)
 
 Packages for certain Linux distributions can be automatically created using `cpack`. After compilation run:
 ```
