@@ -1,0 +1,6 @@
+[dkp-libs]
+Server = http://downloads.devkitpro.org/packages
+
+[dkp-linux]
+Server = http://downloads.devkitpro.org/packages/linux
+

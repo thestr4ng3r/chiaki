@@ -34,11 +34,36 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
 	stop_pipe->event = WSACreateEvent();
 	if(stop_pipe->event == WSA_INVALID_EVENT)
 		return CHIAKI_ERR_UNKNOWN;
+#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	// currently pipe or socketpare are not available on switch
+	// use a custom udp socket as pipe
+
+	// struct sockaddr_in addr;
+	int addr_size = sizeof(stop_pipe->addr);
+
+	stop_pipe->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if(stop_pipe->fd < 0){
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	stop_pipe->addr.sin_family = AF_INET;
+	// bind to localhost
+	stop_pipe->addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	// use a random port (dedicate one socket per object)
+	stop_pipe->addr.sin_port = htons(0);
+	// bind on localhost
+	bind(stop_pipe->fd, (struct sockaddr *) &stop_pipe->addr, addr_size);
+	// listen
+	getsockname(stop_pipe->fd, (struct sockaddr *) &stop_pipe->addr, &addr_size);
+	int r = fcntl(stop_pipe->fd, F_SETFL, O_NONBLOCK);
+	if(r == -1)
+	{
+		close(stop_pipe->fd);
+		return CHIAKI_ERR_UNKNOWN;
+	}
 #else
 	int r = pipe(stop_pipe->fds);
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;
-
 	r = fcntl(stop_pipe->fds[0], F_SETFL, O_NONBLOCK);
 	if(r == -1)
 	{
@@ -47,7 +72,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
 		return CHIAKI_ERR_UNKNOWN;
 	}
 #endif
-
 	return CHIAKI_ERR_SUCCESS;
 }
 
@@ -55,6 +79,8 @@ CHIAKI_EXPORT void chiaki_stop_pipe_fini(ChiakiStopPipe *stop_pipe)
 {
 #ifdef _WIN32
 	WSACloseEvent(stop_pipe->event);
+#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	close(stop_pipe->fd);
 #else
 	close(stop_pipe->fds[0]);
 	close(stop_pipe->fds[1]);
@@ -65,6 +91,10 @@ CHIAKI_EXPORT void chiaki_stop_pipe_stop(ChiakiStopPipe *stop_pipe)
 {
 #ifdef _WIN32
 	WSASetEvent(stop_pipe->event);
+#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	// send to local socket (FIXME MSG_CONFIRM)
+	sendto(stop_pipe->fd, "\x00", 1, 0,
+		(struct sockaddr*)&stop_pipe->addr, sizeof(struct sockaddr_in));
 #else
 	write(stop_pipe->fds[1], "\x00", 1);
 #endif
@@ -105,12 +135,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 #else
 	fd_set rfds;
 	FD_ZERO(&rfds);
-	FD_SET(stop_pipe->fds[0], &rfds);
+#if defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	// push udp local socket as fd
+	int stop_fd = stop_pipe->fd;
+#else
+	int stop_fd = stop_pipe->fds[0];
+#endif
+	FD_SET(stop_fd, &rfds);
+	int nfds = stop_fd;
 
 	fd_set wfds;
 	FD_ZERO(&wfds);
-
-	int nfds = stop_pipe->fds[0];
 	if(!CHIAKI_SOCKET_IS_INVALID(fd))
 	{
 		FD_SET(fd, write ? &wfds : &rfds);
@@ -129,10 +164,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 	}
 
 	int r = select(nfds, &rfds, write ? &wfds : NULL, NULL, timeout);
+
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;
 
-	if(FD_ISSET(stop_pipe->fds[0], &rfds))
+	if(FD_ISSET(stop_fd, &rfds))
 		return CHIAKI_ERR_CANCELED;
 
 	if(!CHIAKI_SOCKET_IS_INVALID(fd) && FD_ISSET(fd, write ? &wfds : &rfds))
@@ -223,6 +259,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_reset(ChiakiStopPipe *stop_pipe)
 #ifdef _WIN32
 	BOOL r = WSAResetEvent(stop_pipe->event);
 	return r ? CHIAKI_ERR_SUCCESS : CHIAKI_ERR_UNKNOWN;
+#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	//FIXME
+	uint8_t v;
+	int r;
+	while((r = read(stop_pipe->fd, &v, sizeof(v))) > 0);
+	return r < 0 ? CHIAKI_ERR_UNKNOWN : CHIAKI_ERR_SUCCESS;
 #else
 	uint8_t v;
 	int r;

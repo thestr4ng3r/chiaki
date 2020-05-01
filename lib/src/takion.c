@@ -28,6 +28,11 @@
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
+#elif defined(__SWITCH__)
+#include <unistd.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -252,7 +257,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 #if defined(_WIN32)
 		const DWORD dontfragment_val = 1;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__SWITCH__)
 		const int dontfrag_val = 1;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const void *)&dontfrag_val, sizeof(dontfrag_val));
 #elif defined(IP_PMTUDISC_DO)

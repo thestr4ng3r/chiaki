@@ -127,7 +127,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 
 	discovery->log = log;
 
-	discovery->socket = socket(AF_INET, SOCK_DGRAM, 0);
+	discovery->socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if(CHIAKI_SOCKET_IS_INVALID(discovery->socket))
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to create socket");
@@ -138,9 +138,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	discovery->local_addr.sa_family = family;
 	if(family == AF_INET6)
 	{
+#ifndef __SWITCH__
 		struct in6_addr anyaddr = IN6ADDR_ANY_INIT;
+#endif
 		struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&discovery->local_addr;
+#ifndef __SWITCH__
 		addr->sin6_addr = anyaddr;
+#endif
 		addr->sin6_port = htons(0);
 	}
 	else // AF_INET

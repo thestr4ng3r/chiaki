@@ -27,12 +27,28 @@
 extern "C" {
 #endif
 
+#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#include "mbedtls/ecdh.h"
+#include "mbedtls/ctr_drbg.h"
+#endif
+
+
 #define CHIAKI_ECDH_SECRET_SIZE 32
 
 typedef struct chiaki_ecdh_t
 {
+// the following lines may lead to memory corruption
+// __SWITCH__ or CHIAKI_LIB_ENABLE_MBEDTLS must be defined
+// globally (whole project)
+#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+	// mbedtls ecdh context
+	mbedtls_ecdh_context ctx;
+	// deterministic random bit generator
+	mbedtls_ctr_drbg_context drbg;
+#else
 	struct ec_group_st *group;
 	struct ec_key_st *key_local;
+#endif
 } ChiakiECDH;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh);

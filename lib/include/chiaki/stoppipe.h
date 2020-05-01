@@ -26,6 +26,8 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#else
+#include <arpa/inet.h>
 #endif
 
 #ifdef __cplusplus
@@ -36,6 +38,15 @@ typedef struct chiaki_stop_pipe_t
 {
 #ifdef _WIN32
 	WSAEVENT event;
+#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+	// due to a lack pipe/event/socketpair
+	// on switch env, we use a physical socket
+	// to send/trigger the cancel signal
+	struct sockaddr_in addr;
+	// local stop socket file descriptor
+	// this fd is audited by 'select' as
+	// fd_set *readfds
+	int fd;
 #else
 	int fds[2];
 #endif

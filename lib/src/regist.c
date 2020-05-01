@@ -404,7 +404,7 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 
 		set_port(send_addr, htons(REGIST_PORT));
 
-		sock = socket(ai->ai_family, SOCK_DGRAM, 0);
+		sock = socket(ai->ai_family, SOCK_DGRAM, IPPROTO_UDP);
 		if(CHIAKI_SOCKET_IS_INVALID(sock))
 		{
 			CHIAKI_LOGE(regist->log, "Regist failed to create socket for search");
