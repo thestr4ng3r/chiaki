@@ -49,15 +49,6 @@ cmake ..
 make
 ```
 
-### Creating Packages/Installers using CMake/CPack (Experimental)
-
-Packages for certain Linux distributions can be automatically created using `cpack`. After compilation run:
-```
-cd build
-cpack -G <generator> -D CPACK_PACKAGE_CONTACT="<your contact>"
-```
-For more information see the [CPack documentation](https://cmake.org/cmake/help/latest/manual/cpack.1.html).
-
 ## Usage
 
 If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
