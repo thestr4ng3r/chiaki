@@ -1,3 +1,12 @@
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <!-- IF YOU DO NOT USE THE TEMPLATE BELOW, YOUR ISSUE WILL BE CLOSED! THIS APPLIES FOR BUG REPORTS AND FEATURE REQUESTS, NO EXCEPTIONS!
 
 The template below shows what you need to include in a good bug report, and you must use it.
