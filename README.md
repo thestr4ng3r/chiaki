@@ -40,8 +40,21 @@ You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 ### Building from Source
 
-Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1,
+Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1, SDL 2,
 protoc and the protobuf Python library (only used during compilation for Nanopb).
+
+On Fedora, above dependencies can be installed via:
+
+```
+sudo dnf install cmake make qt5-qtmultimedia-devel qt5-qtsvg-devel qt5-qtbase-gui ffmpeg-devel opus-devel openssl-devel python3-protobuf protobuf-c protobuf-devel qt5-rpm-macros SDL2-devel
+```
+
+In order to utilize hardware decoding, necessary VA-API component needs to be installed separately depending on your GPU. For example on Fedora:
+
+* **Intel**: `libva-intel-driver`(majority laptop and desktop) OR `libva-intel-hybrid-driver`(most netbook with Atom processor)
+* **AMD**: Already part of default installation
+* **Nvidia**: `libva-vdpau-driver`
+
 Then, Chiaki builds just like any other CMake project:
 ```
 git submodule update --init
