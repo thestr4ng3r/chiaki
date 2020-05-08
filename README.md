@@ -50,6 +50,8 @@ cmake ..
 make
 ```
 
+For more detailed platform-specific instructions, see [doc/platform-build.md](doc/platform-build.md).
+
 ## Usage
 
 If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
