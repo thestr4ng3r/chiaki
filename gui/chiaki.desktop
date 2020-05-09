@@ -2,6 +2,6 @@
 Type=Application
 Name=Chiaki
 Comment=PlayStation 4 Remote Play Client
-Exec=env QT_QPA_PLATFORM=xcb chiaki
+Exec=chiaki
 Icon=chiaki
 Categories=Game;
