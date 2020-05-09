@@ -19,6 +19,7 @@
 #include <videodecoder.h>
 #include <avopenglframeuploader.h>
 
+#include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLDebugLogger>
@@ -177,6 +178,7 @@ AVOpenGLWidget::~AVOpenGLWidget()
 	}
 	delete frame_uploader;
 	delete frame_uploader_context;
+	delete frame_uploader_surface;
 }
 
 void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
@@ -363,7 +365,10 @@ void AVOpenGLWidget::initializeGL()
 		return;
 	}
 
-	frame_uploader = new AVOpenGLFrameUploader(decoder, this, frame_uploader_context, context()->surface());
+	frame_uploader_surface = new QOffscreenSurface();
+	frame_uploader_surface->setFormat(context()->format());
+	frame_uploader_surface->create();
+	frame_uploader = new AVOpenGLFrameUploader(decoder, this, frame_uploader_context, frame_uploader_surface);
 	frame_fg = 0;
 
 	frame_uploader_thread = new QThread(this);

@@ -32,6 +32,7 @@ extern "C"
 
 class VideoDecoder;
 class AVOpenGLFrameUploader;
+class QOffscreenSurface;
 
 struct PlaneConfig
 {
@@ -76,6 +77,7 @@ class AVOpenGLWidget: public QOpenGLWidget
 		AVOpenGLFrame frames[2];
 		int frame_fg;
 		QMutex frames_mutex;
+		QOffscreenSurface *frame_uploader_surface;
 		QOpenGLContext *frame_uploader_context;
 		AVOpenGLFrameUploader *frame_uploader;
 		QThread *frame_uploader_thread;
