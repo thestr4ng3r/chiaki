@@ -40,9 +40,8 @@ You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 ### Building from Source
 
-Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1,
-protoc and the protobuf Python library (only used during compilation for Nanopb).
-Then, Chiaki builds just like any other CMake project:
+Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1, SDL 2,
+protoc and the protobuf Python library (only used during compilation for Nanopb). Then, Chiaki builds just like any other CMake project:
 ```
 git submodule update --init
 mkdir build && cd build
