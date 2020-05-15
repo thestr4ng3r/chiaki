@@ -3,6 +3,8 @@
 .idea
 build
 cmake-build-*
+/build_*
+/build-*
 .DS_store
 *.AppImage
 appdir

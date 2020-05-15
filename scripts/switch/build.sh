@@ -32,8 +32,8 @@ build_chiaki (){
       -DCHIAKI_ENABLE_SWITCH_LINUX="${CHIAKI_ENABLE_SWITCH_LINUX}" \
       -DCHIAKI_LIB_ENABLE_MBEDTLS=ON
 
-    pushd "${BASEDIR}/${build}/switch/"
-      make
+    pushd "${BASEDIR}/${build}"
+      make -j8
     popd
   popd
 }
