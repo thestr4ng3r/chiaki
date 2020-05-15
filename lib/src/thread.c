@@ -24,12 +24,28 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifdef __SWITCH__
+#include <switch.h>
+#endif
+
 #if _WIN32
 static DWORD WINAPI win32_thread_func(LPVOID param)
 {
 	ChiakiThread *thread = (ChiakiThread *)param;
 	thread->ret = thread->func(thread->arg);
 	return 0;
+}
+#endif
+
+#ifdef __SWITCH__
+int64_t get_thread_limit(){
+	uint64_t resource_limit_handle_value = INVALID_HANDLE;
+	svcGetInfo(&resource_limit_handle_value, InfoType_ResourceLimit, INVALID_HANDLE, 0);
+	int64_t thread_cur_value = 0, thread_lim_value = 0;
+	svcGetResourceLimitCurrentValue(&thread_cur_value, resource_limit_handle_value, LimitableResource_Threads);
+	svcGetResourceLimitLimitValue(&thread_lim_value, resource_limit_handle_value, LimitableResource_Threads);
+	//printf("thread_cur_value: %lu, thread_lim_value: %lu\n", thread_cur_value, thread_lim_value);
+	return thread_lim_value - thread_cur_value;
 }
 #endif
 
@@ -43,6 +59,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiT
 	if(!thread->thread)
 		return CHIAKI_ERR_THREAD;
 #else
+#ifdef __SWITCH__
+	if(get_thread_limit() <= 1){
+		return CHIAKI_ERR_THREAD;
+	}
+#endif
 	int r = pthread_create(&thread->thread, NULL, func, arg);
 	if(r != 0)
 		return CHIAKI_ERR_THREAD;

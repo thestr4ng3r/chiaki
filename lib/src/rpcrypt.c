@@ -17,11 +17,17 @@
 
 #include <chiaki/rpcrypt.h>
 
+#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#include "mbedtls/aes.h"
+#include "mbedtls/md.h"
+#else
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+#endif
 
 #include <string.h>
 #include <stdbool.h>
+
 
 static const uint8_t echo_b[] = { 0xe1, 0xec, 0x9c, 0x3a, 0xdd, 0xbd, 0x08, 0x85, 0xfc, 0x0e, 0x1d, 0x78, 0x90, 0x32, 0xc0, 0x04 };
 
@@ -77,6 +83,7 @@ CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint
 	rpcrypt->bright[3] ^= (uint8_t)((pin >> 0x00) & 0xff);
 }
 
+#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter)
 {
 	uint8_t hmac_key[] = { 0xac, 0x07, 0x88, 0x83, 0xc8, 0x3a, 0x1f, 0xe8, 0x11, 0x46, 0x3a, 0xf3, 0x9e, 0xe3, 0xe3, 0x77 };
@@ -91,6 +98,93 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt,
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 5] = (uint8_t)((counter >> 0x10) & 0xff);
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 6] = (uint8_t)((counter >> 0x08) & 0xff);
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 7] = (uint8_t)((counter >> 0x00) & 0xff);
+
+	uint8_t hmac[CHIAKI_RPCRYPT_KEY_SIZE];
+	unsigned int hmac_len = 0;
+
+
+	mbedtls_md_context_t ctx;
+	mbedtls_md_type_t type = MBEDTLS_MD_SHA256;
+
+	mbedtls_md_init(&ctx);
+
+#define GOTO_ERROR(err) do { \
+	if((err) !=0){ \
+		goto error;} \
+	} while(0)
+	// https://tls.mbed.org/module-level-design-hashing
+	GOTO_ERROR(mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(type) , 1));
+	GOTO_ERROR(mbedtls_md_hmac_starts(&ctx, hmac_key, sizeof(hmac_key)));
+	GOTO_ERROR(mbedtls_md_hmac_update(&ctx, (const unsigned char *) buf, sizeof(buf)));
+	GOTO_ERROR(mbedtls_md_hmac_finish(&ctx, hmac));
+#undef GOTO_ERROR
+	memcpy(iv, hmac, CHIAKI_RPCRYPT_KEY_SIZE);
+	mbedtls_md_free(&ctx);
+	return CHIAKI_ERR_SUCCESS;
+error:
+	mbedtls_md_free(&ctx);
+	return CHIAKI_ERR_UNKNOWN;
+}
+
+
+static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, const uint8_t *in, uint8_t *out, size_t sz, bool encrypt)
+{
+
+#define GOTO_ERROR(err) do { \
+	if((err) !=0){ \
+		goto error;} \
+	} while(0)
+
+	// https://github.com/ARMmbed/mbedtls/blob/development/programs/aes/aescrypt2.c
+	// build aes context
+	mbedtls_aes_context ctx;
+	mbedtls_aes_init(&ctx);
+
+	// initialization vector
+	uint8_t iv[CHIAKI_RPCRYPT_KEY_SIZE];
+	ChiakiErrorCode err = chiaki_rpcrypt_generate_iv(rpcrypt, iv, counter);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	GOTO_ERROR(mbedtls_aes_setkey_enc(&ctx, rpcrypt->bright, 128));
+	size_t iv_off = 0;
+	if(encrypt)
+	{
+		GOTO_ERROR(mbedtls_aes_crypt_cfb128(&ctx, MBEDTLS_AES_ENCRYPT, sz, &iv_off, iv, in, out));
+	}
+	else
+	{
+		// the aes_crypt_cfb128 does not seems to use the setkey_dec
+		// GOTO_ERROR(mbedtls_aes_setkey_dec(&ctx, rpcrypt->bright, 128));
+		GOTO_ERROR(mbedtls_aes_crypt_cfb128(&ctx, MBEDTLS_AES_DECRYPT, sz, &iv_off, iv, in, out));
+	}
+
+#undef GOTO_ERROR
+	mbedtls_aes_free(&ctx);
+
+	return CHIAKI_ERR_SUCCESS;
+
+error:
+	mbedtls_aes_free(&ctx);
+	return CHIAKI_ERR_UNKNOWN;
+}
+
+#else
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter)
+{
+	uint8_t hmac_key[] = { 0xac, 0x07, 0x88, 0x83, 0xc8, 0x3a, 0x1f, 0xe8, 0x11, 0x46, 0x3a, 0xf3, 0x9e, 0xe3, 0xe3, 0x77 };
+
+	uint8_t buf[CHIAKI_RPCRYPT_KEY_SIZE + 8];
+	memcpy(buf, rpcrypt->ambassador, CHIAKI_RPCRYPT_KEY_SIZE);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 0] = (uint8_t)((counter >> 0x38) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 1] = (uint8_t)((counter >> 0x30) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 2] = (uint8_t)((counter >> 0x28) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 3] = (uint8_t)((counter >> 0x20) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 4] = (uint8_t)((counter >> 0x18) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 5] = (uint8_t)((counter >> 0x10) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 6] = (uint8_t)((counter >> 0x08) & 0xff);
+	buf[CHIAKI_RPCRYPT_KEY_SIZE + 7] = (uint8_t)((counter >> 0x00) & 0xff);
+
 
 	uint8_t hmac[32];
 	unsigned int hmac_len = 0;
@@ -150,6 +244,7 @@ static ChiakiErrorCode chiaki_rpcrypt_crypt(ChiakiRPCrypt *rpcrypt, uint64_t cou
 	EVP_CIPHER_CTX_free(ctx);
 	return CHIAKI_ERR_SUCCESS;
 }
+#endif
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_encrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, const uint8_t *in, uint8_t *out, size_t sz)
 {
