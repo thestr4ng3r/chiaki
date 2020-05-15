@@ -1,0 +1,18 @@
+name: Switch
+on: [push]
+
+jobs:
+  build:
+    name: Switch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: |
+            git submodule init
+            git submodule update
+      - name: Docker Build
+        run: scripts/switch/build-docker-image.sh
+      - name: Build Chiaki
+        run: scripts/switch/run-docker-build-chiaki.sh
+

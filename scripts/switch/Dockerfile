@@ -1,15 +1,14 @@
-FROM docker.io/archlinux/base
+FROM archlinux:latest
 
 ENV DEVKITPRO=/opt/devkitpro
 ENV DEVKITARM=/opt/devkitpro/devkitARM
 ENV DEVKITPPC=/opt/devkitpro/devkitPPC
 ENV PATH="${PATH}:${DEVKITARM}/bin/:${DEVKITPPC}/bin/"
 
-
 ENV WORKDIR="/build"
 WORKDIR "${WORKDIR}"
 
-# Upgarde image
+# Upgrade image
 RUN pacman --noconfirm -Syu
 
 # Install requirements for libtransistor 
@@ -33,7 +32,7 @@ RUN pacman-key --init
 # https://devkitpro.org/wiki/devkitPro_pacman
 
 # First import the key which is used to validate the packages 
-RUN pacman-key --recv F7FD5492264BB9D0
+RUN pacman-key --recv-keys F7FD5492264BB9D0
 RUN pacman-key --lsign F7FD5492264BB9D0
 
 # Add the devkitPro repositories
@@ -73,7 +72,7 @@ RUN pacman --noconfirm -S \
     switch-ffmpeg \
 	switch-mbedtls
 
-RUN pip3 install -U pip
+# RUN pip3 install -U pip
 
 VOLUME ${WORKDIR}
 # nxlink server port

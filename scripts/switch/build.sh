@@ -23,7 +23,6 @@ build_chiaki (){
     #rm -rf ./build
 
     cmake -B "${build}" -DCMAKE_TOOLCHAIN_FILE=${toolchain} \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DCHIAKI_ENABLE_TESTS=OFF \
       -DCHIAKI_ENABLE_CLI=OFF \
       -DCHIAKI_ENABLE_GUI=OFF \
@@ -32,8 +31,8 @@ build_chiaki (){
       -DCHIAKI_ENABLE_SWITCH_LINUX="${CHIAKI_ENABLE_SWITCH_LINUX}" \
       -DCHIAKI_LIB_ENABLE_MBEDTLS=ON
 
-    pushd "${BASEDIR}/${build}/switch/"
-      make
+    pushd "${BASEDIR}/${build}"
+      make -j8
     popd
   popd
 }
