@@ -23,7 +23,6 @@ build_chiaki (){
     #rm -rf ./build
 
     cmake -B "${build}" -DCMAKE_TOOLCHAIN_FILE=${toolchain} \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DCHIAKI_ENABLE_TESTS=OFF \
       -DCHIAKI_ENABLE_CLI=OFF \
       -DCHIAKI_ENABLE_GUI=OFF \
