@@ -17,7 +17,7 @@
 
 #include <chiaki/random.h>
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 //#include <mbedtls/havege.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
@@ -27,7 +27,7 @@
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes_crypt(uint8_t *buf, size_t buf_size)
 {
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	// mbedtls_havege_state hs;
 	// mbedtls_havege_init(&hs);
 	// int r = mbedtls_havege_random( &hs, buf, sizeof( buf ) );

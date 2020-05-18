@@ -19,7 +19,7 @@
 #include <chiaki/ecdh.h>
 #include <chiaki/base64.h>
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 #include "mbedtls/entropy.h"
 #include "mbedtls/md.h"
 #else
@@ -38,7 +38,7 @@
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh)
 {
 	memset(ecdh, 0, sizeof(ChiakiECDH));
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 #define CHECK(err) if((err) != 0) { \
 	chiaki_ecdh_fini(ecdh); \
 	return CHIAKI_ERR_UNKNOWN; }
@@ -85,7 +85,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_init(ChiakiECDH *ecdh)
 
 CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh)
 {
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	mbedtls_ecdh_free(&ecdh->ctx);
 	mbedtls_ctr_drbg_free(&ecdh->drbg);
 #else
@@ -97,7 +97,7 @@ CHIAKI_EXPORT void chiaki_ecdh_fini(ChiakiECDH *ecdh)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_set_local_key(ChiakiECDH *ecdh, const uint8_t *private_key, size_t private_key_size, const uint8_t *public_key, size_t public_key_size)
 {
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	//https://tls.mbed.org/discussions/generic/publickey-binary-data-in-der
 	// Load keys from buffers (i.e: config file)
 	// TODO test
@@ -166,7 +166,7 @@ error_priv:
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_get_local_pub_key(ChiakiECDH *ecdh, uint8_t *key_out, size_t *key_out_size, const uint8_t *handshake_key, uint8_t *sig_out, size_t *sig_out_size)
 {
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	mbedtls_md_context_t ctx;
 	mbedtls_md_init(&ctx);
 
@@ -213,7 +213,7 @@ error:
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ecdh_derive_secret(ChiakiECDH *ecdh, uint8_t *secret_out, const uint8_t *remote_key, size_t remote_key_size, const uint8_t *handshake_key, const uint8_t *remote_sig, size_t remote_sig_size)
 {
 	//compute DH shared key
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	// https://github.com/ARMmbed/mbedtls/blob/development/programs/pkey/ecdh_curve25519.c#L151
 #define GOTO_ERROR(err) do { \
 	if((err) !=0){ \

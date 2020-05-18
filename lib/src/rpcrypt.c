@@ -17,7 +17,7 @@
 
 #include <chiaki/rpcrypt.h>
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 #include "mbedtls/aes.h"
 #include "mbedtls/md.h"
 #else
@@ -83,7 +83,7 @@ CHIAKI_EXPORT void chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, const uint
 	rpcrypt->bright[3] ^= (uint8_t)((pin >> 0x00) & 0xff);
 }
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter)
 {
 	uint8_t hmac_key[] = { 0xac, 0x07, 0x88, 0x83, 0xc8, 0x3a, 0x1f, 0xe8, 0x11, 0x46, 0x3a, 0xf3, 0x9e, 0xe3, 0xe3, 0x77 };

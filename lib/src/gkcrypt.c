@@ -21,7 +21,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 #include "mbedtls/aes.h"
 #include "mbedtls/md.h"
 #include "mbedtls/gcm.h"
@@ -138,7 +138,7 @@ static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index,
 
 	uint8_t hmac[CHIAKI_GKCRYPT_BLOCK_SIZE*2];
 	size_t hmac_size = sizeof(hmac);
-	#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+	#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	mbedtls_md_context_t ctx;
 	mbedtls_md_init(&ctx);
 
@@ -198,7 +198,7 @@ CHIAKI_EXPORT void chiaki_gkcrypt_gen_gmac_key(uint64_t index, const uint8_t *ke
 	memcpy(data, key_base, 0x10);
 	counter_add(data + 0x10, iv, index * CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_IV_OFFSET);
 	uint8_t md[0x20];
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	// last param
 	// is224 Determines which function to use.
 	// This must be either 0 for SHA-256, or 1 for SHA-224.
@@ -230,7 +230,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 	assert(key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
 	assert(buf_size % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	// build mbedtls aes context
 	mbedtls_aes_context ctx;
 	mbedtls_aes_init(&ctx);
@@ -262,7 +262,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 	for(uint8_t *cur = buf, *end = buf + buf_size; cur < end; cur += CHIAKI_GKCRYPT_BLOCK_SIZE)
 		counter_add(cur, gkcrypt->iv, counter_offset++);
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	for(int i=0; i<buf_size; i=i+16){
 		// loop over all blocks of 16 bytes (128 bits)
 		if(mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, buf+i, buf+i) != 0){
@@ -374,7 +374,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t
 		gmac_key = gmac_key_tmp;
 	}
 
-#if defined(__SWITCH__) || defined(CHIAKI_LIB_ENABLE_MBEDTLS)
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	// build mbedtls gcm context AES_128_GCM
 	// Encryption
 	mbedtls_gcm_context actx;
