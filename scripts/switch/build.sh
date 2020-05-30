@@ -8,7 +8,7 @@ build="./build"
 if [ "$arg1" != "linux" ]; then
   CHIAKI_ENABLE_SWITCH_LINUX="OFF"
   source /opt/devkitpro/switchvars.sh
-  toolchain=/opt/devkitpro/switch.cmake
+  toolchain=../cmake/switch.cmake # TODO: devkitpro ships a toolchain in /opt/devkitpro/switch.cmake, but it's broken.
 
   export CC=${TOOL_PREFIX}gcc
   export CXX=${TOOL_PREFIX}g++

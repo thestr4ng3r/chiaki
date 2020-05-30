@@ -41,8 +41,6 @@ if(CHIAKI_ENABLE_SWITCH AND CHIAKI_ENABLE_SWITCH_LINUX)
 	set(CMAKE_BUILD_TYPE Debug)
 elseif(CHIAKI_ENABLE_SWITCH)
 	add_definitions(-D__SWITCH__)
-	# load switch.cmake toolchain form ./cmake folder
-	include(switch)
 	# TODO check if android ... or other versions are enabled
 	# force mbedtls as crypto lib
 	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)

@@ -45,6 +45,23 @@ switchvar(CMAKE_CPP_FLAGS CPPFLAGS "-D__SWITCH__ -I${PORTLIBS_PREFIX}/include -i
 switchvar(CMAKE_LD_FLAGS LDFLAGS "${ARCH} -L${PORTLIBS_PREFIX}/lib -L${DEVKITPRO}/libnx/lib")
 switchvar(LIBS LIBS "-lnx")
 
+
+
+# cache flags
+set( CMAKE_CXX_FLAGS           ""                        CACHE STRING "c++ flags" )
+set( CMAKE_C_FLAGS             ""                        CACHE STRING "c flags" )
+set( CMAKE_CXX_FLAGS_RELEASE   "-O3 -DNDEBUG"            CACHE STRING "c++ Release flags" )
+set( CMAKE_C_FLAGS_RELEASE     "-O3 -DNDEBUG"            CACHE STRING "c Release flags" )
+set( CMAKE_CXX_FLAGS_DEBUG     "-O0 -g -DDEBUG -D_DEBUG" CACHE STRING "c++ Debug flags" )
+set( CMAKE_C_FLAGS_DEBUG       "-O0 -g -DDEBUG -D_DEBUG" CACHE STRING "c Debug flags" )
+set( CMAKE_SHARED_LINKER_FLAGS ""                        CACHE STRING "shared linker flags" )
+set( CMAKE_MODULE_LINKER_FLAGS ""                        CACHE STRING "module linker flags" )
+set( CMAKE_EXE_LINKER_FLAGS    "-mtp=soft -fPIE -L${DEVKITPRO}/portlibs/switch/lib -L${DEVKITPRO}/libnx/lib -specs=${DEVKITPRO}/libnx/switch.specs -g"      CACHE STRING "executable linker flags" )
+
+# we require the relocation table
+set(CMAKE_C_FLAGS "-I/opt/devkitpro/libnx/include -D__SWITCH__ -march=armv8-a -mtune=cortex-a57 -mtp=soft -ffunction-sections -fdata-sections -fPIE")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti")
+
 # switchvar(CMAKE_CXX_FLAGS CXXFLAGS "${CMAKE_C_FLAGS} -fno-rtti")
 include_directories(${DEVKITPRO}/libnx/include ${PORTLIBS_PREFIX}/include)
 
