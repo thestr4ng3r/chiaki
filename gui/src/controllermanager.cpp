@@ -116,7 +116,7 @@ void ControllerManager::ControllerEvent(int device_id)
 QList<int> ControllerManager::GetAvailableControllers()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	return available_controllers.toList();
+	return available_controllers.values();
 #else
 	return {};
 #endif
