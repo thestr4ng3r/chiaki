@@ -18,6 +18,7 @@
 #include <servericonwidget.h>
 
 #include <QPainter>
+#include <QPainterPath>
 
 ServerIconWidget::ServerIconWidget(QWidget *parent) : QWidget(parent)
 {
