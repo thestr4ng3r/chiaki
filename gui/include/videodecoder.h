@@ -46,7 +46,7 @@ static const QMap<HardwareDecodeEngine, const char *> hardware_decode_engine_nam
 	{ HW_DECODE_NONE, "none"},
 	{ HW_DECODE_VAAPI, "vaapi"},
 	{ HW_DECODE_VDPAU, "vdpau"},
-    { HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
+	{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
 };
 
 class VideoDecoderException: public Exception
