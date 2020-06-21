@@ -1,11 +1,31 @@
+/*
+ * This file is part of Chiaki.
+ *
+ * Chiaki is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Chiaki is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <setsu.h>
 
 #include <libudev.h>
+#include <libevdev/libevdev.h>
 
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 
 #include <stdio.h>
@@ -15,6 +35,7 @@ typedef struct setsu_device_t
 	struct setsu_device_t *next;
 	char *path;
 	int fd;
+	struct libevdev *evdev;
 } SetsuDevice;
 
 struct setsu_ctx_t
@@ -140,19 +161,32 @@ static SetsuDevice *connect(SetsuCtx *ctx, const char *path)
 	SetsuDevice *dev = malloc(sizeof(SetsuDevice));
 	if(!dev)
 		return NULL;
+	memset(dev, 0, sizeof(*dev));
+	dev->fd = -1;
 	dev->path = strdup(path);
 	if(!dev->path)
-	{
-		free(dev);
-		return NULL;
-	}
+		goto error;
 
-	printf("connect %s\n", dev->path);
-	//dev->fd = open(dev->path, O_RDONLY | O_NONBLOCK);
+	dev->fd = open(dev->path, O_RDONLY | O_NONBLOCK);
+	if(dev->fd == -1)
+		goto error;
+
+	if(libevdev_new_from_fd(dev->fd, &dev->evdev) < 0)
+		goto error;
+
+	printf("connected to %s\n", libevdev_get_name(dev->evdev));
 
 	dev->next = ctx->dev;
 	ctx->dev = dev;
 	return dev;
+error:
+	if(dev->evdev)
+		libevdev_free(dev->evdev);
+	if(dev->fd != -1)
+		close(dev->fd);
+	free(dev->path);
+	free(dev);
+	return NULL;
 }
 
 static void disconnect(SetsuCtx *ctx, SetsuDevice *dev)
@@ -173,5 +207,24 @@ static void disconnect(SetsuCtx *ctx, SetsuDevice *dev)
 
 	free(dev->path);
 	free(dev);
+}
+
+void setsu_ctx_run(SetsuCtx *ctx)
+{
+	SetsuDevice *dev = ctx->dev;
+	if(!dev)
+		return;
+
+	int rc;
+	do
+	{
+		struct input_event ev;
+		rc = libevdev_next_event(dev->evdev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
+		if (rc == 0)
+			printf("Event: %s %s %d\n",
+				libevdev_event_type_get_name(ev.type),
+				libevdev_event_code_get_name(ev.type, ev.code),
+				ev.value);
+	} while (rc == 1 || rc == 0 || rc == -EAGAIN);
 }
 

@@ -13,8 +13,9 @@ add_library(setsu
 
 target_include_directories(setsu PUBLIC include)
 
-find_package(UDEV REQUIRED)
-target_link_libraries(setsu UDEV::libudev)
+find_package(Udev REQUIRED)
+find_package(Evdev REQUIRED)
+target_link_libraries(setsu Udev::libudev Evdev::libevdev)
 
 if(SETSU_BUILD_TEST)
 	add_executable(setsutest

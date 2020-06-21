@@ -22,5 +22,6 @@ typedef struct setsu_ctx_t SetsuCtx;
 
 SetsuCtx *setsu_ctx_new();
 void setsu_ctx_free(SetsuCtx *ctx);
+void setsu_ctx_run(SetsuCtx *ctx);
 
 #endif

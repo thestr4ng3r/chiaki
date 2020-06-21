@@ -1,6 +1,6 @@
-# Provides: UDEV::libudev
+# Provides: Udev::libudev
 
-set(_prefix UDEV)
+set(_prefix Udev)
 set(_target "${_prefix}::libudev")
 
 find_package(PkgConfig REQUIRED)
