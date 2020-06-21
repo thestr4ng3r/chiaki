@@ -65,6 +65,7 @@ if(CHIAKI_ENABLE_CLI)
 endif()
 
 if(CHIAKI_ENABLE_GUI)
+	add_subdirectory(setsu)
 	add_subdirectory(gui)
 endif()
 
