@@ -158,7 +158,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	hardware_decode_combo_box = new QComboBox(this);
 	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
 		{ HW_DECODE_NONE, "none"},
-		{ HW_DECODE_VAAPI, "vaapi"}
+		{ HW_DECODE_VAAPI, "vaapi"},
+		{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"}
 	};
 	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
 	for(const auto &p : hardware_decode_engines)
