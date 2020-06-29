@@ -33,6 +33,7 @@
 
 #define SETSU_LOG(...) fprintf(stderr, __VA_ARGS__)
 
+#define SLOTS_COUNT 16
 
 typedef struct setsu_device_t
 {
@@ -40,6 +41,12 @@ typedef struct setsu_device_t
 	char *path;
 	int fd;
 	struct libevdev *evdev;
+
+	struct {
+		bool down;
+		unsigned int tracking_id;
+	} slots[SLOTS_COUNT];
+	unsigned int slot_cur;
 } SetsuDevice;
 
 struct setsu_t
@@ -53,8 +60,8 @@ static void scan(Setsu *setsu);
 static void update_device(Setsu *setsu, struct udev_device *dev, bool added);
 static SetsuDevice *connect(Setsu *setsu, const char *path);
 static void disconnect(Setsu *setsu, SetsuDevice *dev);
-static void poll_device(Setsu *setsu, SetsuDevice *dev);
-static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev);
+static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb);
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb);
 
 Setsu *setsu_new()
 {
@@ -166,10 +173,9 @@ static void update_device(Setsu *setsu, struct udev_device *dev, bool added)
 
 static SetsuDevice *connect(Setsu *setsu, const char *path)
 {
-	SetsuDevice *dev = malloc(sizeof(SetsuDevice));
+	SetsuDevice *dev = calloc(1, sizeof(SetsuDevice));
 	if(!dev)
 		return NULL;
-	memset(dev, 0, sizeof(*dev));
 	dev->fd = -1;
 	dev->path = strdup(path);
 	if(!dev->path)
@@ -182,7 +188,12 @@ static SetsuDevice *connect(Setsu *setsu, const char *path)
 	if(libevdev_new_from_fd(dev->fd, &dev->evdev) < 0)
 		goto error;
 
-	SETSU_LOG("connected to %s\n", libevdev_get_name(dev->evdev));
+	// TODO: expose these values:
+	int min_x = libevdev_get_abs_minimum(dev->evdev, ABS_X);
+	int min_y = libevdev_get_abs_minimum(dev->evdev, ABS_Y);
+	int max_x = libevdev_get_abs_maximum(dev->evdev, ABS_X);
+	int max_y = libevdev_get_abs_maximum(dev->evdev, ABS_Y);
+	SETSU_LOG("connected to %s: %d %d -> %d %d\n", libevdev_get_name(dev->evdev), min_x, min_y, max_x, max_y);
 
 	dev->next = setsu->dev;
 	setsu->dev = dev;
@@ -217,13 +228,13 @@ static void disconnect(Setsu *setsu, SetsuDevice *dev)
 	free(dev);
 }
 
-void setsu_poll(Setsu *setsu)
+void setsu_poll(Setsu *setsu, SetsuEventCb cb)
 {
 	for(SetsuDevice *dev = setsu->dev; dev; dev = dev->next)
-		poll_device(setsu, dev);
+		poll_device(setsu, dev, cb);
 }
 
-static void poll_device(Setsu *setsu, SetsuDevice *dev)
+static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb)
 {
 	bool sync = false;
 	while(true)
@@ -240,7 +251,7 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev)
 			break;
 		}
 		if(r == LIBEVDEV_READ_STATUS_SUCCESS || (sync && r == LIBEVDEV_READ_STATUS_SYNC))
-			device_event(setsu, dev, &ev);
+			device_event(setsu, dev, &ev, cb);
 		else if(r == LIBEVDEV_READ_STATUS_SYNC)
 			sync = true;
 		else
@@ -251,11 +262,50 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev)
 	}
 }
 
-static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev)
+static void send_event(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, SetsuEventType type, unsigned int value)
 {
-	printf("Event: %s %s %d\n",
-		libevdev_event_type_get_name(ev->type),
-		libevdev_event_code_get_name(ev->type, ev->code),
-		ev->value);
+	SetsuEvent event;
+	event.dev = dev;
+	event.tracking_id = dev->slots[dev->slot_cur].tracking_id;
+	event.type = type;
+	event.value = value;
+	cb(&event, NULL);
+}
+
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb)
+{
+	if(ev->type == EV_ABS)
+	{
+		switch(ev->code)
+		{
+			case ABS_MT_SLOT:
+				if((unsigned int)ev->value >= SLOTS_COUNT)
+				{
+					SETSU_LOG("slot too high\n");
+					break;
+				}
+				dev->slot_cur = ev->value;
+				break;
+			case ABS_MT_TRACKING_ID:
+				if(ev->value == -1)
+				{
+					dev->slots[dev->slot_cur].down = false;
+					send_event(setsu, dev, cb, SETSU_EVENT_UP, 0);
+				}
+				else
+				{
+					dev->slots[dev->slot_cur].down = true;
+					dev->slots[dev->slot_cur].tracking_id = ev->value;
+					send_event(setsu, dev, cb, SETSU_EVENT_DOWN, 0);
+				}
+				break;
+			case ABS_MT_POSITION_X:
+				send_event(setsu, dev, cb, SETSU_EVENT_POSITION_X, ev->value);
+				break;
+			case ABS_MT_POSITION_Y:
+				send_event(setsu, dev, cb, SETSU_EVENT_POSITION_Y, ev->value);
+				break;
+		}
+	}
 }
 

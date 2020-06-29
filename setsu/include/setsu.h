@@ -19,9 +19,26 @@
 #define _SETSU_H
 
 typedef struct setsu_t Setsu;
+typedef struct setsu_device_t SetsuDevice;
+
+typedef enum {
+	SETSU_EVENT_DOWN,
+	SETSU_EVENT_UP,
+	SETSU_EVENT_POSITION_X,
+	SETSU_EVENT_POSITION_Y
+} SetsuEventType;
+
+typedef struct setsu_event_t {
+	SetsuDevice *dev;
+	unsigned int tracking_id;
+	SetsuEventType type;
+	unsigned int value;
+} SetsuEvent;
+
+typedef void (*SetsuEventCb)(SetsuEvent *event, void *user);
 
 Setsu *setsu_new();
 void setsu_free(Setsu *setsu);
-void setsu_poll(Setsu *setsu);
+void setsu_poll(Setsu *setsu, SetsuEventCb cb);
 
 #endif
