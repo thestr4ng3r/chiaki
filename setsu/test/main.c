@@ -20,22 +20,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-SetsuCtx *ctx;
+Setsu *setsu;
 
 void quit()
 {
-	setsu_ctx_free(ctx);
+	setsu_free(setsu);
 }
 
 int main()
 {
-	ctx = setsu_ctx_new();
-	if(!ctx)
+	setsu = setsu_new();
+	if(!setsu)
 	{
 		printf("Failed to init setsu\n");
 		return 1;
 	}
-	setsu_ctx_run(ctx);
+	while(1)
+		setsu_poll(setsu);
 	atexit(quit);
 	return 0;
 }

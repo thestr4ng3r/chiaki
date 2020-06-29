@@ -18,10 +18,10 @@
 #ifndef _SETSU_H
 #define _SETSU_H
 
-typedef struct setsu_ctx_t SetsuCtx;
+typedef struct setsu_t Setsu;
 
-SetsuCtx *setsu_ctx_new();
-void setsu_ctx_free(SetsuCtx *ctx);
-void setsu_ctx_run(SetsuCtx *ctx);
+Setsu *setsu_new();
+void setsu_free(Setsu *setsu);
+void setsu_poll(Setsu *setsu);
 
 #endif

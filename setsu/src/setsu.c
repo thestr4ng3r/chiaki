@@ -30,6 +30,10 @@
 
 #include <stdio.h>
 
+
+#define SETSU_LOG(...) fprintf(stderr, __VA_ARGS__)
+
+
 typedef struct setsu_device_t
 {
 	struct setsu_device_t *next;
@@ -38,51 +42,53 @@ typedef struct setsu_device_t
 	struct libevdev *evdev;
 } SetsuDevice;
 
-struct setsu_ctx_t
+struct setsu_t
 {
-	struct udev *udev_ctx;
+	struct udev *udev_setsu;
 	SetsuDevice *dev;
 };
 
 
-static void scan(SetsuCtx *ctx);
-static void update_device(SetsuCtx *ctx, struct udev_device *dev, bool added);
-static SetsuDevice *connect(SetsuCtx *ctx, const char *path);
-static void disconnect(SetsuCtx *ctx, SetsuDevice *dev);
+static void scan(Setsu *setsu);
+static void update_device(Setsu *setsu, struct udev_device *dev, bool added);
+static SetsuDevice *connect(Setsu *setsu, const char *path);
+static void disconnect(Setsu *setsu, SetsuDevice *dev);
+static void poll_device(Setsu *setsu, SetsuDevice *dev);
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev);
 
-SetsuCtx *setsu_ctx_new()
+Setsu *setsu_new()
 {
-	SetsuCtx *ctx = malloc(sizeof(SetsuCtx));
-	if(!ctx)
+	Setsu *setsu = malloc(sizeof(Setsu));
+	if(!setsu)
 		return NULL;
 
-	ctx->dev = NULL;
+	setsu->dev = NULL;
 
-	ctx->udev_ctx = udev_new();
-	if(!ctx->udev_ctx)
+	setsu->udev_setsu = udev_new();
+	if(!setsu->udev_setsu)
 	{
-		free(ctx);
+		free(setsu);
 		return NULL;
 	}
 
 	// TODO: monitor
 
-	scan(ctx);
+	scan(setsu);
 
-	return ctx;
+	return setsu;
 }
 
-void setsu_ctx_free(SetsuCtx *ctx)
+void setsu_free(Setsu *setsu)
 {
-	while(ctx->dev)
-		disconnect(ctx, ctx->dev);
-	udev_unref(ctx->udev_ctx);
-	free(ctx);
+	while(setsu->dev)
+		disconnect(setsu, setsu->dev);
+	udev_unref(setsu->udev_setsu);
+	free(setsu);
 }
 
-static void scan(SetsuCtx *ctx)
+static void scan(Setsu *setsu)
 {
-	struct udev_enumerate *udev_enum = udev_enumerate_new(ctx->udev_ctx);
+	struct udev_enumerate *udev_enum = udev_enumerate_new(setsu->udev_setsu);
 	if(!udev_enum)
 		return;
 
@@ -100,10 +106,11 @@ static void scan(SetsuCtx *ctx)
 		const char *path = udev_list_entry_get_name(entry);
 		if(!path)
 			continue;
-		struct udev_device *dev = udev_device_new_from_syspath(ctx->udev_ctx, path);
+		struct udev_device *dev = udev_device_new_from_syspath(setsu->udev_setsu, path);
 		if(!dev)
 			continue;
-		update_device(ctx, dev, true);
+		SETSU_LOG("enum device: %s\n", path);
+		update_device(setsu, dev, true);
 		udev_device_unref(dev);
 	}
 
@@ -115,7 +122,8 @@ static bool is_device_interesting(struct udev_device *dev)
 {
 	static const char *device_ids[] = {
 		// vendor id, model id
-		"054c",       "05c4", // DualShock 4 USB
+		"054c",       "05c4", // DualShock 4 Gen 1 USB
+		"054c",       "09cc", // DualShock 4 Gen 2 USB
 		NULL
 	};
 
@@ -136,7 +144,7 @@ static bool is_device_interesting(struct udev_device *dev)
 	return false;
 }
 
-static void update_device(SetsuCtx *ctx, struct udev_device *dev, bool added)
+static void update_device(Setsu *setsu, struct udev_device *dev, bool added)
 {
 	if(!is_device_interesting(dev))
 		return;
@@ -144,19 +152,19 @@ static void update_device(SetsuCtx *ctx, struct udev_device *dev, bool added)
 	if(!path)
 		return;
 	
-	for(SetsuDevice *dev = ctx->dev; dev; dev=dev->next)
+	for(SetsuDevice *dev = setsu->dev; dev; dev=dev->next)
 	{
 		if(!strcmp(dev->path, path))
 		{
 			if(added)
 				return; // already added, do nothing
-			disconnect(ctx, dev);
+			disconnect(setsu, dev);
 		}
 	}
-	connect(ctx, path);
+	connect(setsu, path);
 }
 
-static SetsuDevice *connect(SetsuCtx *ctx, const char *path)
+static SetsuDevice *connect(Setsu *setsu, const char *path)
 {
 	SetsuDevice *dev = malloc(sizeof(SetsuDevice));
 	if(!dev)
@@ -174,10 +182,10 @@ static SetsuDevice *connect(SetsuCtx *ctx, const char *path)
 	if(libevdev_new_from_fd(dev->fd, &dev->evdev) < 0)
 		goto error;
 
-	printf("connected to %s\n", libevdev_get_name(dev->evdev));
+	SETSU_LOG("connected to %s\n", libevdev_get_name(dev->evdev));
 
-	dev->next = ctx->dev;
-	ctx->dev = dev;
+	dev->next = setsu->dev;
+	setsu->dev = dev;
 	return dev;
 error:
 	if(dev->evdev)
@@ -189,13 +197,13 @@ error:
 	return NULL;
 }
 
-static void disconnect(SetsuCtx *ctx, SetsuDevice *dev)
+static void disconnect(Setsu *setsu, SetsuDevice *dev)
 {
-	if(ctx->dev == dev)
-		ctx->dev = dev->next;
+	if(setsu->dev == dev)
+		setsu->dev = dev->next;
 	else
 	{
-		for(SetsuDevice *pdev = ctx->dev; pdev; pdev=pdev->next)
+		for(SetsuDevice *pdev = setsu->dev; pdev; pdev=pdev->next)
 		{
 			if(pdev->next == dev)
 			{
@@ -209,22 +217,45 @@ static void disconnect(SetsuCtx *ctx, SetsuDevice *dev)
 	free(dev);
 }
 
-void setsu_ctx_run(SetsuCtx *ctx)
+void setsu_poll(Setsu *setsu)
 {
-	SetsuDevice *dev = ctx->dev;
-	if(!dev)
-		return;
+	for(SetsuDevice *dev = setsu->dev; dev; dev = dev->next)
+		poll_device(setsu, dev);
+}
 
-	int rc;
-	do
+static void poll_device(Setsu *setsu, SetsuDevice *dev)
+{
+	bool sync = false;
+	while(true)
 	{
 		struct input_event ev;
-		rc = libevdev_next_event(dev->evdev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-		if (rc == 0)
-			printf("Event: %s %s %d\n",
-				libevdev_event_type_get_name(ev.type),
-				libevdev_event_code_get_name(ev.type, ev.code),
-				ev.value);
-	} while (rc == 1 || rc == 0 || rc == -EAGAIN);
+		int r = libevdev_next_event(dev->evdev, sync ? LIBEVDEV_READ_FLAG_SYNC : LIBEVDEV_READ_FLAG_NORMAL, &ev);
+		if(r == -EAGAIN)
+		{
+			if(sync)
+			{
+				sync = false;
+				continue;
+			}
+			break;
+		}
+		if(r == LIBEVDEV_READ_STATUS_SUCCESS || (sync && r == LIBEVDEV_READ_STATUS_SYNC))
+			device_event(setsu, dev, &ev);
+		else if(r == LIBEVDEV_READ_STATUS_SYNC)
+			sync = true;
+		else
+		{
+			SETSU_LOG("evdev poll failed\n");
+			break;
+		}
+	}
+}
+
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev)
+{
+	printf("Event: %s %s %d\n",
+		libevdev_event_type_get_name(ev->type),
+		libevdev_event_code_get_name(ev->type, ev->code),
+		ev->value);
 }
 
