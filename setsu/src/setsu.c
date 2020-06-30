@@ -43,8 +43,17 @@ typedef struct setsu_device_t
 	struct libevdev *evdev;
 
 	struct {
-		bool down;
-		unsigned int tracking_id;
+		/* Saves the old tracking id that was just up-ed.
+		 * also for handling "atomic" up->down
+		 * i.e. when there is an up, then down with a different tracking id
+		 * in a single frame (before SYN_REPORT), this saves the old
+		 * tracking id that must be reported as up. */
+		int tracking_id_prev;
+
+		int tracking_id;
+		int x, y;
+		bool downed;
+		bool pos_dirty;
 	} slots[SLOTS_COUNT];
 	unsigned int slot_cur;
 } SetsuDevice;
@@ -60,8 +69,9 @@ static void scan(Setsu *setsu);
 static void update_device(Setsu *setsu, struct udev_device *dev, bool added);
 static SetsuDevice *connect(Setsu *setsu, const char *path);
 static void disconnect(Setsu *setsu, SetsuDevice *dev);
-static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb);
-static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb);
+static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user);
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb, void *user);
+static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user);
 
 Setsu *setsu_new()
 {
@@ -228,13 +238,13 @@ static void disconnect(Setsu *setsu, SetsuDevice *dev)
 	free(dev);
 }
 
-void setsu_poll(Setsu *setsu, SetsuEventCb cb)
+void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user)
 {
 	for(SetsuDevice *dev = setsu->dev; dev; dev = dev->next)
-		poll_device(setsu, dev, cb);
+		poll_device(setsu, dev, cb, user);
 }
 
-static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb)
+static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user)
 {
 	bool sync = false;
 	while(true)
@@ -251,7 +261,7 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb)
 			break;
 		}
 		if(r == LIBEVDEV_READ_STATUS_SUCCESS || (sync && r == LIBEVDEV_READ_STATUS_SYNC))
-			device_event(setsu, dev, &ev, cb);
+			device_event(setsu, dev, &ev, cb, user);
 		else if(r == LIBEVDEV_READ_STATUS_SYNC)
 			sync = true;
 		else
@@ -262,18 +272,15 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb)
 	}
 }
 
-static void send_event(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, SetsuEventType type, unsigned int value)
+static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb, void *user)
 {
-	SetsuEvent event;
-	event.dev = dev;
-	event.tracking_id = dev->slots[dev->slot_cur].tracking_id;
-	event.type = type;
-	event.value = value;
-	cb(&event, NULL);
-}
-
-static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb)
-{
+#if 0
+	SETSU_LOG("Event: %s %s %d\n",
+		libevdev_event_type_get_name(ev->type),
+		libevdev_event_code_get_name(ev->type, ev->code),
+		ev->value);
+#endif
+#define S dev->slots[dev->slot_cur]
 	if(ev->type == EV_ABS)
 	{
 		switch(ev->code)
@@ -287,25 +294,63 @@ static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev,
 				dev->slot_cur = ev->value;
 				break;
 			case ABS_MT_TRACKING_ID:
-				if(ev->value == -1)
+				if(S.tracking_id != -1 && S.tracking_id_prev == -1)
 				{
-					dev->slots[dev->slot_cur].down = false;
-					send_event(setsu, dev, cb, SETSU_EVENT_UP, 0);
+					// up the tracking id
+					S.tracking_id_prev = S.tracking_id;
+					// reset the rest
+					S.x = S.y = 0;
+					S.pos_dirty = false;
 				}
-				else
-				{
-					dev->slots[dev->slot_cur].down = true;
-					dev->slots[dev->slot_cur].tracking_id = ev->value;
-					send_event(setsu, dev, cb, SETSU_EVENT_DOWN, 0);
-				}
+				S.tracking_id = ev->value;
+				S.downed = true;
 				break;
 			case ABS_MT_POSITION_X:
-				send_event(setsu, dev, cb, SETSU_EVENT_POSITION_X, ev->value);
+				S.x = ev->value;
+				S.pos_dirty = true;
 				break;
 			case ABS_MT_POSITION_Y:
-				send_event(setsu, dev, cb, SETSU_EVENT_POSITION_Y, ev->value);
+				S.y = ev->value;
+				S.pos_dirty = true;
 				break;
 		}
 	}
+	else if(ev->type == EV_SYN && ev->code == SYN_REPORT)
+		device_drain(setsu, dev, cb, user);
+}
+
+static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user)
+{
+	SetsuEvent event;
+#define BEGIN_EVENT(tp) do { memset(&event, 0, sizeof(event)); event.dev = dev; event.type = tp; } while(0)
+#define SEND_EVENT() do { cb(&event, user); } while (0)
+	for(size_t i=0; i<SLOTS_COUNT; i++)
+	{
+		if(dev->slots[i].tracking_id_prev != -1)
+		{
+			BEGIN_EVENT(SETSU_EVENT_UP);
+			event.tracking_id = dev->slots[i].tracking_id_prev;
+			SEND_EVENT();
+			dev->slots[i].tracking_id_prev = -1;
+		}
+		if(dev->slots[i].downed)
+		{
+			BEGIN_EVENT(SETSU_EVENT_DOWN);
+			event.tracking_id = dev->slots[i].tracking_id;
+			SEND_EVENT();
+			dev->slots[i].downed = false;
+		}
+		if(dev->slots[i].pos_dirty)
+		{
+			BEGIN_EVENT(SETSU_EVENT_POSITION);
+			event.tracking_id = dev->slots[i].tracking_id;
+			event.x = dev->slots[i].x;
+			event.y = dev->slots[i].y;
+			SEND_EVENT();
+			dev->slots[i].pos_dirty = false;
+		}
+	}
+#undef BEGIN_EVENT
+#undef SEND_EVENT
 }
 

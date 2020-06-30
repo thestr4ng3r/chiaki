@@ -97,8 +97,7 @@ void event(SetsuEvent *event, void *user)
 				}
 			}
 			break;
-		case SETSU_EVENT_POSITION_X:
-		case SETSU_EVENT_POSITION_Y:
+		case SETSU_EVENT_POSITION:
 		case SETSU_EVENT_UP:
 			for(size_t i=0; i<TOUCHES_MAX; i++)
 			{
@@ -106,11 +105,9 @@ void event(SetsuEvent *event, void *user)
 				{
 					switch(event->type)
 					{
-						case SETSU_EVENT_POSITION_X:
-							touches[i].x = event->value;
-							break;
-						case SETSU_EVENT_POSITION_Y:
-							touches[i].y = event->value;
+						case SETSU_EVENT_POSITION:
+							touches[i].x = event->x;
+							touches[i].y = event->y;
 							break;
 						case SETSU_EVENT_UP:
 							touches[i].down = false;
@@ -139,7 +136,7 @@ int main()
 		if(dirty)
 			print_state();
 		dirty = false;
-		setsu_poll(setsu, event);
+		setsu_poll(setsu, event, NULL);
 	}
 	atexit(quit);
 	return 0;

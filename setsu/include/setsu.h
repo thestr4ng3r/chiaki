@@ -18,27 +18,29 @@
 #ifndef _SETSU_H
 #define _SETSU_H
 
+#include <stdint.h>
+
 typedef struct setsu_t Setsu;
 typedef struct setsu_device_t SetsuDevice;
+typedef int SetsuTrackingId;
 
 typedef enum {
 	SETSU_EVENT_DOWN,
 	SETSU_EVENT_UP,
-	SETSU_EVENT_POSITION_X,
-	SETSU_EVENT_POSITION_Y
+	SETSU_EVENT_POSITION
 } SetsuEventType;
 
 typedef struct setsu_event_t {
 	SetsuDevice *dev;
-	unsigned int tracking_id;
+	SetsuTrackingId tracking_id;
 	SetsuEventType type;
-	unsigned int value;
+	uint32_t x, y;
 } SetsuEvent;
 
 typedef void (*SetsuEventCb)(SetsuEvent *event, void *user);
 
 Setsu *setsu_new();
 void setsu_free(Setsu *setsu);
-void setsu_poll(Setsu *setsu, SetsuEventCb cb);
+void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user);
 
 #endif
