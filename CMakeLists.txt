@@ -3,11 +3,18 @@ cmake_minimum_required(VERSION 3.2)
 
 project(chiaki)
 
+# Like option(), but the value can also be AUTO
+macro(tri_option name desc default)
+    set("${name}" "${default}" CACHE STRING "${desc}")
+    set_property(CACHE "${name}" PROPERTY STRINGS AUTO ON OFF)
+endmacro()
+
 option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" OFF)
 option(CHIAKI_ENABLE_GUI "Enable Qt GUI" ON)
 option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Project)" OFF)
 option(CHIAKI_ENABLE_SWITCH "Enable Nintendo Switch (Requires devKitPro libnx)" OFF)
+tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
 option(CHIAKI_LIB_ENABLE_MBEDTLS "Use mbedtls instead of OpenSSL as part of Chiaki Lib" OFF)
 option(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT "Use OpenSSL as CMake external project" OFF)
@@ -30,7 +37,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 include(CPack)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_CURRENT_SOURCE_DIR}/setsu/cmake")
 
 # configure nintendo switch toolchain
 if(CHIAKI_ENABLE_SWITCH AND CHIAKI_ENABLE_SWITCH_LINUX)
@@ -62,6 +69,30 @@ add_subdirectory(lib)
 
 if(CHIAKI_ENABLE_CLI)
 	add_subdirectory(cli)
+endif()
+
+if(CHIAKI_ENABLE_SETSU)
+	find_package(Udev)
+	find_package(Evdev)
+	if(Udev_FOUND AND Evdev_FOUND)
+		set(CHIAKI_ENABLE_SETSU ON)
+	else()
+		if(NOT CHIAKI_ENABLE_SETSU STREQUAL AUTO)
+			message(FATAL_ERROR "
+CHIAKI_ENABLE_SETSU is set to ON, but its dependencies (udev and evdev) could not be resolved.
+Keep in mind that setsu is only supported on Linux!")
+		endif()
+		set(CHIAKI_ENABLE_SETSU OFF)
+	endif()
+	if(CHIAKI_ENABLE_SETSU)
+		add_subdirectory(setsu)
+	endif()
+endif()
+
+if(CHIAKI_ENABLE_SETSU)
+	message(STATUS "Setsu enabled")
+else()
+	message(STATUS "Setsu disabled")
 endif()
 
 if(CHIAKI_ENABLE_GUI)
