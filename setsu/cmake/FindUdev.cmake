@@ -3,8 +3,7 @@
 set(_prefix Udev)
 set(_target "${_prefix}::libudev")
 
-find_package(PkgConfig REQUIRED)
-
+find_package(PkgConfig)
 if(PkgConfig_FOUND)
 	pkg_check_modules("${_prefix}" libudev)
 	if(${_prefix}_FOUND AND NOT TARGET "${_target}")
