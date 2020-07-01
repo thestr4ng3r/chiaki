@@ -11,7 +11,7 @@ function(resolve_location)
 
 endfunction()
 
-if(${_prefix}_FOUND)
+if(${_prefix}_FOUND AND NOT TARGET "${_target}")
 	add_library("${_target}" INTERFACE IMPORTED)
 	target_link_libraries("${_target}" INTERFACE ${${_prefix}_LIBRARIES})
 	target_include_directories("${_target}" INTERFACE ${${_prefix}_INCLUDE_DIRS})
