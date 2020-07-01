@@ -28,6 +28,7 @@ Setsu *setsu;
 #define WIDTH 1920
 #define HEIGHT 942
 #define TOUCHES_MAX 8
+#define SCALE 16
 
 struct {
 	bool down;
@@ -47,15 +48,6 @@ void quit()
 
 void print_state()
 {
-	for(size_t i=0; i<TOUCHES_MAX; i++)
-	{
-		if(touches[i].down)
-		{
-//			printf("%8u, %8u\n", touches[i].x, touches[i].y);
-		}
-	}
-
-#define SCALE 16
 	char buf[(1 + WIDTH/SCALE)*(HEIGHT/SCALE) + 1];
 	size_t i = 0;
 	for(size_t y=0; y<HEIGHT/SCALE; y++)
@@ -77,7 +69,6 @@ beach:
 		buf[i++] = '\n';
 	}
 	buf[i++] = '\0';
-//	printf("%zu, %zu\n", i, sizeof(buf));
 	assert(i == sizeof(buf));
 	printf("\033[2J%s", buf);
 

@@ -308,6 +308,16 @@ const char *setsu_device_get_path(SetsuDevice *dev)
 	return dev->path;
 }
 
+uint32_t setsu_device_get_width(SetsuDevice *dev)
+{
+	return dev->max_x - dev->min_x;
+}
+
+uint32_t setsu_device_get_height(SetsuDevice *dev)
+{
+	return dev->max_y - dev->min_y;
+}
+
 void kill_avail_device(Setsu *setsu, SetsuAvailDevice *adev)
 {
 	for(SetsuDevice *dev = setsu->dev; dev;)
@@ -477,8 +487,8 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 		{
 			BEGIN_EVENT(SETSU_EVENT_POSITION);
 			event.tracking_id = dev->slots[i].tracking_id;
-			event.x = dev->slots[i].x;
-			event.y = dev->slots[i].y;
+			event.x = (uint32_t)(dev->slots[i].x - dev->min_x);
+			event.y = (uint32_t)(dev->slots[i].y - dev->min_y);
 			SEND_EVENT();
 			dev->slots[i].pos_dirty = false;
 		}

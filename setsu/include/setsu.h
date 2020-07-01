@@ -72,5 +72,7 @@ void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user);
 SetsuDevice *setsu_connect(Setsu *setsu, const char *path);
 void setsu_disconnect(Setsu *setsu, SetsuDevice *dev);
 const char *setsu_device_get_path(SetsuDevice *dev);
+uint32_t setsu_device_get_width(SetsuDevice *dev);
+uint32_t setsu_device_get_height(SetsuDevice *dev);
 
 #endif
