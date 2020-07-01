@@ -29,7 +29,13 @@
 
 #include <stdio.h>
 
+#define ENABLE_LOG
+
+#ifdef ENABLE_LOG
 #define SETSU_LOG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define SETSU_LOG(...) do {} while(0)
+#endif
 
 typedef struct setsu_avail_device_t
 {
@@ -68,12 +74,13 @@ typedef struct setsu_device_t
 struct setsu_t
 {
 	struct udev *udev;
+	struct udev_monitor *udev_mon;
 	SetsuAvailDevice *avail_dev;
 	SetsuDevice *dev;
 };
 
 static void scan_udev(Setsu *setsu);
-static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added);
+static void update_udev_device(Setsu *setsu, struct udev_device *dev);
 static SetsuDevice *connect(Setsu *setsu, const char *path);
 static void disconnect(Setsu *setsu, SetsuDevice *dev);
 static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user);
@@ -93,7 +100,14 @@ Setsu *setsu_new()
 		return NULL;
 	}
 
-	// TODO: monitor
+	setsu->udev_mon = udev_monitor_new_from_netlink(setsu->udev, "udev");
+	if(setsu->udev_mon)
+	{
+		udev_monitor_filter_add_match_subsystem_devtype(setsu->udev_mon, "input", NULL);
+		udev_monitor_enable_receiving(setsu->udev_mon);
+	}
+	else
+		SETSU_LOG("Failed to create udev monitor\n");
 
 	scan_udev(setsu);
 
@@ -104,6 +118,8 @@ void setsu_free(Setsu *setsu)
 {
 	while(setsu->dev)
 		setsu_disconnect(setsu, setsu->dev);
+	if(setsu->udev_mon)
+		udev_monitor_unref(setsu->udev_mon);
 	udev_unref(setsu->udev);
 	free(setsu);
 }
@@ -131,8 +147,7 @@ static void scan_udev(Setsu *setsu)
 		struct udev_device *dev = udev_device_new_from_syspath(setsu->udev, path);
 		if(!dev)
 			continue;
-		SETSU_LOG("enum device: %s\n", path);
-		update_udev_device(setsu, dev, true);
+		update_udev_device(setsu, dev);
 		udev_device_unref(dev);
 	}
 
@@ -166,14 +181,23 @@ static bool is_device_interesting(struct udev_device *dev)
 	return false;
 }
 
-static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added)
+static void update_udev_device(Setsu *setsu, struct udev_device *dev)
 {
 	if(!is_device_interesting(dev))
 		return;
 	const char *path = udev_device_get_devnode(dev);
 	if(!path)
 		return;
-	
+
+	const char *action = udev_device_get_action(dev);
+	bool added;
+	if(!action || !strcmp(action, "add"))
+		added = true;
+	else if(!strcmp(action, "remove"))
+		added = false;
+	else
+		return;
+
 	for(SetsuAvailDevice *adev = setsu->avail_dev; adev; adev=adev->next)
 	{
 		if(!strcmp(adev->path, path))
@@ -182,6 +206,7 @@ static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added
 				return; // already added, do nothing
 			// disconnected
 			adev->disconnect_dirty = true;
+			return;
 		}
 	}
 	// not yet added
@@ -197,6 +222,20 @@ static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added
 	adev->next = setsu->avail_dev;
 	setsu->avail_dev = adev;
 	adev->connect_dirty = true;
+}
+
+static void poll_udev_monitor(Setsu *setsu)
+{
+	if(!setsu->udev_mon)
+		return;
+	while(1)
+	{
+		struct udev_device *dev = udev_monitor_receive_device(setsu->udev_mon);
+		if(!dev)
+			break;
+		update_udev_device(setsu, dev);
+		udev_device_unref(dev);
+	}
 }
 
 SetsuDevice *setsu_connect(Setsu *setsu, const char *path)
@@ -264,6 +303,11 @@ void setsu_disconnect(Setsu *setsu, SetsuDevice *dev)
 	free(dev);
 }
 
+const char *setsu_device_get_path(SetsuDevice *dev)
+{
+	return dev->path;
+}
+
 void kill_avail_device(Setsu *setsu, SetsuAvailDevice *adev)
 {
 	for(SetsuDevice *dev = setsu->dev; dev;)
@@ -273,6 +317,7 @@ void kill_avail_device(Setsu *setsu, SetsuAvailDevice *adev)
 			SetsuDevice *next = dev->next;
 			setsu_disconnect(setsu, dev);
 			dev = next;
+			continue;
 		}
 		dev = dev->next;
 	}
@@ -296,6 +341,8 @@ void kill_avail_device(Setsu *setsu, SetsuAvailDevice *adev)
 
 void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user)
 {
+	poll_udev_monitor(setsu);
+
 	for(SetsuAvailDevice *adev = setsu->avail_dev; adev;)
 	{
 		if(adev->connect_dirty)
@@ -345,9 +392,12 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *u
 			device_event(setsu, dev, &ev, cb, user);
 		else if(r == LIBEVDEV_READ_STATUS_SYNC)
 			sync = true;
+		else if(r == -ENODEV) { break; } // device probably disconnected, udev remove event should follow soon
 		else
 		{
-			SETSU_LOG("evdev poll failed\n");
+			char buf[256];
+			strerror_r(-r, buf, sizeof(buf));
+			SETSU_LOG("evdev poll failed: %s\n", buf);
 			break;
 		}
 	}

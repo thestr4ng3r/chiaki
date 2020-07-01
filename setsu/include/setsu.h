@@ -71,5 +71,6 @@ void setsu_free(Setsu *setsu);
 void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user);
 SetsuDevice *setsu_connect(Setsu *setsu, const char *path);
 void setsu_disconnect(Setsu *setsu, SetsuDevice *dev);
+const char *setsu_device_get_path(SetsuDevice *dev);
 
 #endif

@@ -36,6 +36,9 @@ struct {
 } touches[TOUCHES_MAX];
 
 bool dirty = false;
+bool log_mode;
+
+#define LOG(...) do { if(log_mode) fprintf(stderr, __VA_ARGS__); } while(0)
 
 void quit()
 {
@@ -86,12 +89,16 @@ void event(SetsuEvent *event, void *user)
 	dirty = true;
 	switch(event->type)
 	{
-		case SETSU_EVENT_DEVICE_ADDED:
-			setsu_connect(setsu, event->path);
+		case SETSU_EVENT_DEVICE_ADDED: {
+			SetsuDevice *dev = setsu_connect(setsu, event->path);
+			LOG("Device added: %s, connect %s\n", event->path, dev ? "succeeded" : "FAILED!");
 			break;
+		}
 		case SETSU_EVENT_DEVICE_REMOVED:
+			LOG("Device removed: %s\n", event->path);
 			break;
 		case SETSU_EVENT_DOWN:
+			LOG("Down for %s, tracking id %d\n", setsu_device_get_path(event->dev), event->tracking_id);
 			for(size_t i=0; i<TOUCHES_MAX; i++)
 			{
 				if(!touches[i].down)
@@ -104,6 +111,11 @@ void event(SetsuEvent *event, void *user)
 			break;
 		case SETSU_EVENT_POSITION:
 		case SETSU_EVENT_UP:
+			if(event->type == SETSU_EVENT_UP)
+				LOG("Up for %s, tracking id %d\n", setsu_device_get_path(event->dev), event->tracking_id);
+			else
+				LOG("Position for %s, tracking id %d: %u, %u\n", setsu_device_get_path(event->dev),
+						event->tracking_id, (unsigned int)event->x, (unsigned int)event->y);
 			for(size_t i=0; i<TOUCHES_MAX; i++)
 			{
 				if(touches[i].down && touches[i].tracking_id == event->tracking_id)
@@ -126,8 +138,25 @@ void event(SetsuEvent *event, void *user)
 	}
 }
 
-int main()
+void usage(const char *prog)
 {
+	printf("usage: %s [-l]\n  -l log mode\n", prog);
+	exit(1);
+}
+
+int main(int argc, const char *argv[])
+{
+	log_mode = false;
+	if(argc == 2)
+	{
+		if(!strcmp(argv[1], "-l"))
+			log_mode = true;
+		else
+			usage(argv[0]);
+	}
+	else if(argc != 1)
+		usage(argv[0]);
+
 	memset(touches, 0, sizeof(touches));
 	setsu = setsu_new();
 	if(!setsu)
@@ -138,7 +167,7 @@ int main()
 	dirty = true;
 	while(1)
 	{
-		if(dirty)
+		if(dirty && !log_mode)
 			print_state();
 		dirty = false;
 		setsu_poll(setsu, event, NULL);
