@@ -27,11 +27,17 @@
 #include <fcntl.h>
 #include <errno.h>
 
-
 #include <stdio.h>
 
-
 #define SETSU_LOG(...) fprintf(stderr, __VA_ARGS__)
+
+typedef struct setsu_avail_device_t
+{
+	struct setsu_avail_device_t *next;
+	char *path;
+	bool connect_dirty; // whether the connect has not been sent as an event yet
+	bool disconnect_dirty; // whether the disconnect has not been sent as an event yet
+} SetsuAvailDevice;
 
 #define SLOTS_COUNT 16
 
@@ -41,6 +47,7 @@ typedef struct setsu_device_t
 	char *path;
 	int fd;
 	struct libevdev *evdev;
+	int min_x, min_y, max_x, max_y;
 
 	struct {
 		/* Saves the old tracking id that was just up-ed.
@@ -60,13 +67,13 @@ typedef struct setsu_device_t
 
 struct setsu_t
 {
-	struct udev *udev_setsu;
+	struct udev *udev;
+	SetsuAvailDevice *avail_dev;
 	SetsuDevice *dev;
 };
 
-
-static void scan(Setsu *setsu);
-static void update_device(Setsu *setsu, struct udev_device *dev, bool added);
+static void scan_udev(Setsu *setsu);
+static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added);
 static SetsuDevice *connect(Setsu *setsu, const char *path);
 static void disconnect(Setsu *setsu, SetsuDevice *dev);
 static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user);
@@ -75,14 +82,12 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 
 Setsu *setsu_new()
 {
-	Setsu *setsu = malloc(sizeof(Setsu));
+	Setsu *setsu = calloc(1, sizeof(Setsu));
 	if(!setsu)
 		return NULL;
 
-	setsu->dev = NULL;
-
-	setsu->udev_setsu = udev_new();
-	if(!setsu->udev_setsu)
+	setsu->udev = udev_new();
+	if(!setsu->udev)
 	{
 		free(setsu);
 		return NULL;
@@ -90,7 +95,7 @@ Setsu *setsu_new()
 
 	// TODO: monitor
 
-	scan(setsu);
+	scan_udev(setsu);
 
 	return setsu;
 }
@@ -98,14 +103,14 @@ Setsu *setsu_new()
 void setsu_free(Setsu *setsu)
 {
 	while(setsu->dev)
-		disconnect(setsu, setsu->dev);
-	udev_unref(setsu->udev_setsu);
+		setsu_disconnect(setsu, setsu->dev);
+	udev_unref(setsu->udev);
 	free(setsu);
 }
 
-static void scan(Setsu *setsu)
+static void scan_udev(Setsu *setsu)
 {
-	struct udev_enumerate *udev_enum = udev_enumerate_new(setsu->udev_setsu);
+	struct udev_enumerate *udev_enum = udev_enumerate_new(setsu->udev);
 	if(!udev_enum)
 		return;
 
@@ -123,11 +128,11 @@ static void scan(Setsu *setsu)
 		const char *path = udev_list_entry_get_name(entry);
 		if(!path)
 			continue;
-		struct udev_device *dev = udev_device_new_from_syspath(setsu->udev_setsu, path);
+		struct udev_device *dev = udev_device_new_from_syspath(setsu->udev, path);
 		if(!dev)
 			continue;
 		SETSU_LOG("enum device: %s\n", path);
-		update_device(setsu, dev, true);
+		update_udev_device(setsu, dev, true);
 		udev_device_unref(dev);
 	}
 
@@ -161,7 +166,7 @@ static bool is_device_interesting(struct udev_device *dev)
 	return false;
 }
 
-static void update_device(Setsu *setsu, struct udev_device *dev, bool added)
+static void update_udev_device(Setsu *setsu, struct udev_device *dev, bool added)
 {
 	if(!is_device_interesting(dev))
 		return;
@@ -169,19 +174,32 @@ static void update_device(Setsu *setsu, struct udev_device *dev, bool added)
 	if(!path)
 		return;
 	
-	for(SetsuDevice *dev = setsu->dev; dev; dev=dev->next)
+	for(SetsuAvailDevice *adev = setsu->avail_dev; adev; adev=adev->next)
 	{
-		if(!strcmp(dev->path, path))
+		if(!strcmp(adev->path, path))
 		{
 			if(added)
 				return; // already added, do nothing
-			disconnect(setsu, dev);
+			// disconnected
+			adev->disconnect_dirty = true;
 		}
 	}
-	connect(setsu, path);
+	// not yet added
+	SetsuAvailDevice *adev = calloc(1, sizeof(SetsuAvailDevice));
+	if(!adev)
+		return;
+	adev->path = strdup(path);
+	if(!adev->path)
+	{
+		free(adev);
+		return;
+	}
+	adev->next = setsu->avail_dev;
+	setsu->avail_dev = adev;
+	adev->connect_dirty = true;
 }
 
-static SetsuDevice *connect(Setsu *setsu, const char *path)
+SetsuDevice *setsu_connect(Setsu *setsu, const char *path)
 {
 	SetsuDevice *dev = calloc(1, sizeof(SetsuDevice));
 	if(!dev)
@@ -196,14 +214,21 @@ static SetsuDevice *connect(Setsu *setsu, const char *path)
 		goto error;
 
 	if(libevdev_new_from_fd(dev->fd, &dev->evdev) < 0)
+	{
+		dev->evdev = NULL;
 		goto error;
+	}
 
-	// TODO: expose these values:
-	int min_x = libevdev_get_abs_minimum(dev->evdev, ABS_X);
-	int min_y = libevdev_get_abs_minimum(dev->evdev, ABS_Y);
-	int max_x = libevdev_get_abs_maximum(dev->evdev, ABS_X);
-	int max_y = libevdev_get_abs_maximum(dev->evdev, ABS_Y);
-	SETSU_LOG("connected to %s: %d %d -> %d %d\n", libevdev_get_name(dev->evdev), min_x, min_y, max_x, max_y);
+	dev->min_x = libevdev_get_abs_minimum(dev->evdev, ABS_X);
+	dev->min_y = libevdev_get_abs_minimum(dev->evdev, ABS_Y);
+	dev->max_x = libevdev_get_abs_maximum(dev->evdev, ABS_X);
+	dev->max_y = libevdev_get_abs_maximum(dev->evdev, ABS_Y);
+
+	for(size_t i=0; i<SLOTS_COUNT; i++)
+	{
+		dev->slots[i].tracking_id_prev = -1;
+		dev->slots[i].tracking_id = -1;
+	}
 
 	dev->next = setsu->dev;
 	setsu->dev = dev;
@@ -218,13 +243,13 @@ error:
 	return NULL;
 }
 
-static void disconnect(Setsu *setsu, SetsuDevice *dev)
+void setsu_disconnect(Setsu *setsu, SetsuDevice *dev)
 {
 	if(setsu->dev == dev)
 		setsu->dev = dev->next;
 	else
 	{
-		for(SetsuDevice *pdev = setsu->dev; pdev; pdev=pdev->next)
+		for(SetsuDevice *pdev = setsu->dev; pdev; pdev = pdev->next)
 		{
 			if(pdev->next == dev)
 			{
@@ -233,13 +258,69 @@ static void disconnect(Setsu *setsu, SetsuDevice *dev)
 			}
 		}
 	}
-
+	libevdev_free(dev->evdev);
+	close(dev->fd);
 	free(dev->path);
 	free(dev);
 }
 
+void kill_avail_device(Setsu *setsu, SetsuAvailDevice *adev)
+{
+	for(SetsuDevice *dev = setsu->dev; dev;)
+	{
+		if(!strcmp(dev->path, adev->path))
+		{
+			SetsuDevice *next = dev->next;
+			setsu_disconnect(setsu, dev);
+			dev = next;
+		}
+		dev = dev->next;
+	}
+
+	if(setsu->avail_dev == adev)
+		setsu->avail_dev = adev->next;
+	else
+	{
+		for(SetsuAvailDevice *padev = setsu->avail_dev; padev; padev = padev->next)
+		{
+			if(padev->next == adev)
+			{
+				padev->next = adev->next;
+				break;
+			}
+		}
+	}
+	free(adev->path);
+	free(adev);
+}
+
 void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user)
 {
+	for(SetsuAvailDevice *adev = setsu->avail_dev; adev;)
+	{
+		if(adev->connect_dirty)
+		{
+			SetsuEvent event = { 0 };
+			event.type = SETSU_EVENT_DEVICE_ADDED;
+			event.path = adev->path;
+			cb(&event, user);
+			adev->connect_dirty = false;
+		}
+		if(adev->disconnect_dirty)
+		{
+			SetsuEvent event = { 0 };
+			event.type = SETSU_EVENT_DEVICE_REMOVED;
+			event.path = adev->path;
+			cb(&event, user);
+			// kill the device only after sending the event
+			SetsuAvailDevice *next = adev->next;
+			kill_avail_device(setsu, adev);
+			adev = next;
+			continue;
+		}
+		adev = adev->next;
+	}
+
 	for(SetsuDevice *dev = setsu->dev; dev; dev = dev->next)
 		poll_device(setsu, dev, cb, user);
 }
@@ -303,7 +384,8 @@ static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev,
 					S.pos_dirty = false;
 				}
 				S.tracking_id = ev->value;
-				S.downed = true;
+				if(ev->value != -1)
+					S.downed = true;
 				break;
 			case ABS_MT_POSITION_X:
 				S.x = ev->value;
@@ -317,6 +399,7 @@ static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev,
 	}
 	else if(ev->type == EV_SYN && ev->code == SYN_REPORT)
 		device_drain(setsu, dev, cb, user);
+#undef S
 }
 
 static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *user)

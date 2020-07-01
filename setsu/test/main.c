@@ -86,6 +86,11 @@ void event(SetsuEvent *event, void *user)
 	dirty = true;
 	switch(event->type)
 	{
+		case SETSU_EVENT_DEVICE_ADDED:
+			setsu_connect(setsu, event->path);
+			break;
+		case SETSU_EVENT_DEVICE_REMOVED:
+			break;
 		case SETSU_EVENT_DOWN:
 			for(size_t i=0; i<TOUCHES_MAX; i++)
 			{
