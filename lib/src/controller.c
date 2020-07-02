@@ -17,6 +17,8 @@
 
 #include <chiaki/controller.h>
 
+#define TOUCH_ID_MASK 0x7f
+
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state)
 {
 	state->buttons = 0;
@@ -24,6 +26,48 @@ CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state
 	state->left_y = 0;
 	state->right_x = 0;
 	state->right_y = 0;
+}
+
+CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *state, uint16_t x, uint16_t y)
+{
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(state->touches[i].id < 0)
+		{
+			state->touches[i].id = state->touch_id_next;
+			state->touch_id_next = (state->touch_id_next + 1) & TOUCH_ID_MASK;
+			state->touches[i].x = x;
+			state->touches[i].y = y;
+			break;
+		}
+	}
+	return -1;
+}
+
+CHIAKI_EXPORT void chiaki_controller_state_stop_touch(ChiakiControllerState *state, uint8_t id)
+{
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(state->touches[i].id == id)
+		{
+			state->touches[i].id = -1;
+			break;
+		}
+	}
+}
+
+CHIAKI_EXPORT void chiaki_controller_state_set_touch_pos(ChiakiControllerState *state, uint8_t id, uint16_t x, uint16_t y)
+{
+	id &= TOUCH_ID_MASK;
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(state->touches[i].id == id)
+		{
+			state->touches[i].x = x;
+			state->touches[i].y = y;
+			break;
+		}
+	}
 }
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

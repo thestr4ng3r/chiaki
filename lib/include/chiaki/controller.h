@@ -85,6 +85,15 @@ typedef struct chiaki_controller_state_t
 
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state);
 
+/**
+ * @return A non-negative newly allocated touch id allocated or -1 if there are no slots left
+ */
+CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *state, uint16_t x, uint16_t y);
+
+CHIAKI_EXPORT void chiaki_controller_state_stop_touch(ChiakiControllerState *state, uint8_t id);
+
+CHIAKI_EXPORT void chiaki_controller_state_set_touch_pos(ChiakiControllerState *state, uint8_t id, uint16_t x, uint16_t y);
+
 static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b)
 {
 	if(!(a->buttons == b->buttons
