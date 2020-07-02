@@ -44,7 +44,7 @@ typedef struct chiaki_feedback_state_t
 CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state);
 
 
-#define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x3 // TODO: will be bigger later for touchpad at least
+#define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x5
 
 typedef struct chiaki_feedback_history_event_t
 {
@@ -57,6 +57,14 @@ typedef struct chiaki_feedback_history_event_t
  * @param state 0x0 for not pressed, 0xff for pressed, intermediate values for analog triggers
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state);
+
+/**
+ * @param pointer_id identifier for the touch from 0 to 127
+ * @param x from 0 to 1920
+ * @param y from 0 to 942
+ */
+CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHistoryEvent *event,
+		bool down, uint8_t pointer_id, uint16_t x, uint16_t y);
 
 /**
  * Ring buffer of ChiakiFeedbackHistoryEvent
