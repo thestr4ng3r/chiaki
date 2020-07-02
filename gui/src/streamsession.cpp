@@ -21,11 +21,6 @@
 
 #include <chiaki/base64.h>
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-#include <QGamepadManager>
-#include <QGamepad>
-#endif
-
 #include <QKeyEvent>
 #include <QAudioOutput>
 
@@ -53,9 +48,6 @@ static void EventCb(ChiakiEvent *event, void *user);
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
 	log(this, connect_info.log_level_mask, connect_info.log_file),
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	gamepad(nullptr),
-#endif
 	controller(nullptr),
 	video_decoder(connect_info.hw_decode_engine, log.GetChiakiLog()),
 	audio_output(nullptr),
@@ -92,9 +84,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
 	chiaki_session_set_event_cb(&session, EventCb, this);
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	connect(QGamepadManager::instance(), &QGamepadManager::connectedGamepadsChanged, this, &StreamSession::UpdateGamepads);
-#endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
 #endif
@@ -108,9 +97,6 @@ StreamSession::~StreamSession()
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	delete gamepad;
-#endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	delete controller;
 #endif
@@ -202,46 +188,6 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 
 void StreamSession::UpdateGamepads()
 {
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	if(!gamepad || !gamepad->isConnected())
-	{
-		if(gamepad)
-		{
-			CHIAKI_LOGI(log.GetChiakiLog(), "Gamepad %d disconnected", gamepad->deviceId());
-			delete gamepad;
-			gamepad = nullptr;
-		}
-		const auto connected_pads = QGamepadManager::instance()->connectedGamepads();
-		if(!connected_pads.isEmpty())
-		{
-			gamepad = new QGamepad(connected_pads[0], this);
-			CHIAKI_LOGI(log.GetChiakiLog(), "Gamepad %d connected: \"%s\"", connected_pads[0], gamepad->name().toLocal8Bit().constData());
-			connect(gamepad, &QGamepad::buttonAChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonBChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonXChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonYChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonLeftChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonRightChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonUpChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonDownChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonL1Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonR1Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonL1Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonL2Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonL3Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonR3Changed, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonStartChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonSelectChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::buttonGuideChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::axisLeftXChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::axisLeftYChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::axisRightXChanged, this, &StreamSession::SendFeedbackState);
-			connect(gamepad, &QGamepad::axisRightYChanged, this, &StreamSession::SendFeedbackState);
-		}
-	}
-
-	SendFeedbackState();
-#endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller || !controller->IsConnected())
 	{
@@ -272,33 +218,6 @@ void StreamSession::UpdateGamepads()
 void StreamSession::SendFeedbackState()
 {
 	ChiakiControllerState state = {};
-
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-	if(gamepad)
-	{
-		state.buttons |= gamepad->buttonA() ? CHIAKI_CONTROLLER_BUTTON_CROSS : 0;
-		state.buttons |= gamepad->buttonB() ? CHIAKI_CONTROLLER_BUTTON_MOON : 0;
-		state.buttons |= gamepad->buttonX() ? CHIAKI_CONTROLLER_BUTTON_BOX : 0;
-		state.buttons |= gamepad->buttonY() ? CHIAKI_CONTROLLER_BUTTON_PYRAMID : 0;
-		state.buttons |= gamepad->buttonLeft() ? CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT : 0;
-		state.buttons |= gamepad->buttonRight() ? CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT : 0;
-		state.buttons |= gamepad->buttonUp() ? CHIAKI_CONTROLLER_BUTTON_DPAD_UP : 0;
-		state.buttons |= gamepad->buttonDown() ? CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN : 0;
-		state.buttons |= gamepad->buttonL1() ? CHIAKI_CONTROLLER_BUTTON_L1 : 0;
-		state.buttons |= gamepad->buttonR1() ? CHIAKI_CONTROLLER_BUTTON_R1 : 0;
-		state.buttons |= gamepad->buttonL3() ? CHIAKI_CONTROLLER_BUTTON_L3 : 0;
-		state.buttons |= gamepad->buttonR3() ? CHIAKI_CONTROLLER_BUTTON_R3 : 0;
-		state.buttons |= gamepad->buttonStart() ? CHIAKI_CONTROLLER_BUTTON_OPTIONS : 0;
-		state.buttons |= gamepad->buttonSelect() ? CHIAKI_CONTROLLER_BUTTON_SHARE : 0;
-		state.buttons |= gamepad->buttonGuide() ? CHIAKI_CONTROLLER_BUTTON_PS : 0;
-		state.l2_state = (uint8_t)(gamepad->buttonL2() * 0xff);
-		state.r2_state = (uint8_t)(gamepad->buttonR2() * 0xff);
-		state.left_x = static_cast<int16_t>(gamepad->axisLeftX() * 0x7fff);
-		state.left_y = static_cast<int16_t>(gamepad->axisLeftY() * 0x7fff);
-		state.right_x = static_cast<int16_t>(gamepad->axisRightX() * 0x7fff);
-		state.right_y = static_cast<int16_t>(gamepad->axisRightY() * 0x7fff);
-	}
-#endif
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(controller)

@@ -31,10 +31,6 @@
 #include <QMouseEvent>
 #include <QTimer>
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-class QGamepad;
-#endif
-
 class QAudioOutput;
 class QIODevice;
 class QKeyEvent;
@@ -72,9 +68,6 @@ class StreamSession : public QObject
 		ChiakiSession session;
 		ChiakiOpusDecoder opus_decoder;
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-		QGamepad *gamepad;
-#endif
 		Controller *controller;
 
 		ChiakiControllerState keyboard_state;
@@ -103,9 +96,6 @@ class StreamSession : public QObject
 
 		void SetLoginPIN(const QString &pin);
 
-#if CHIAKI_GUI_ENABLE_QT_GAMEPAD
-		QGamepad *GetGamepad()	{ return gamepad; }
-#endif
 		Controller *GetController()	{ return controller; }
 		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
 
