@@ -1,5 +1,5 @@
 
-image: openbsd/latest
+image: openbsd/6.7
 
 sources:
   - https://github.com/thestr4ng3r/chiaki
