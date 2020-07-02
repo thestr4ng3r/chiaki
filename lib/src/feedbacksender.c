@@ -118,9 +118,19 @@ static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 
 static bool controller_state_equals_for_feedback_history(ChiakiControllerState *a, ChiakiControllerState *b)
 {
-	return a->buttons == b->buttons
+	if(!(a->buttons == b->buttons
 		&& a->l2_state == b->l2_state
-		&& a->r2_state == b->r2_state;
+		&& a->r2_state == b->r2_state))
+		return false;
+
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(a->touches[i].id != b->touches[i].id)
+			return false;
+		if(a->touches[i].id >= 0 && (a->touches[i].x != b->touches[i].x || a->touches[i].y != b->touches[i].y))
+			return false;
+	}
+	return true;
 }
 
 static void feedback_sender_send_history_packet(ChiakiFeedbackSender *feedback_sender)
@@ -188,6 +198,29 @@ static void feedback_sender_send_history(ChiakiFeedbackSender *feedback_sender)
 		}
 		else
 			CHIAKI_LOGE(feedback_sender->log, "Feedback Sender failed to format button history event for R2");
+	}
+
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(state_prev->touches[i].id != state_now->touches[i].id && state_prev->touches[i].id >= 0)
+		{
+			ChiakiFeedbackHistoryEvent event;
+			chiaki_feedback_history_event_set_touchpad(&event, false, (uint8_t)state_prev->touches[i].id,
+					state_prev->touches[i].x, state_prev->touches[i].y);
+			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
+			feedback_sender_send_history_packet(feedback_sender);
+		}
+		else if(state_now->touches[i].id >= 0
+				&& (state_prev->touches[i].id != state_now->touches[i].id
+					|| state_prev->touches[i].x != state_now->touches[i].x
+					|| state_prev->touches[i].y != state_now->touches[i].y))
+		{
+			ChiakiFeedbackHistoryEvent event;
+			chiaki_feedback_history_event_set_touchpad(&event, true, (uint8_t)state_now->touches[i].id,
+					state_now->touches[i].x, state_now->touches[i].y);
+			chiaki_feedback_history_buffer_push(&feedback_sender->history_buf, &event);
+			feedback_sender_send_history_packet(feedback_sender);
+		}
 	}
 }
 

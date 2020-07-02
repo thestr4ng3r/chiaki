@@ -63,7 +63,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFee
  * @param x from 0 to 1920
  * @param y from 0 to 942
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHistoryEvent *event,
+CHIAKI_EXPORT void chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHistoryEvent *event,
 		bool down, uint8_t pointer_id, uint16_t x, uint16_t y);
 
 /**
