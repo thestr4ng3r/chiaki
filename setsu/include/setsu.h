@@ -20,6 +20,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct setsu_t Setsu;
 typedef struct setsu_device_t SetsuDevice;
 typedef int SetsuTrackingId;
@@ -74,5 +78,9 @@ void setsu_disconnect(Setsu *setsu, SetsuDevice *dev);
 const char *setsu_device_get_path(SetsuDevice *dev);
 uint32_t setsu_device_get_width(SetsuDevice *dev);
 uint32_t setsu_device_get_height(SetsuDevice *dev);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#include <signal.h>
 
 Setsu *setsu;
 
@@ -38,12 +39,13 @@ struct {
 
 bool dirty = false;
 bool log_mode;
+volatile bool should_quit;
 
 #define LOG(...) do { if(log_mode) fprintf(stderr, __VA_ARGS__); } while(0)
 
-void quit()
+void sigint(int s)
 {
-	setsu_free(setsu);
+	should_quit = true;
 }
 
 void print_state()
@@ -155,15 +157,22 @@ int main(int argc, const char *argv[])
 		printf("Failed to init setsu\n");
 		return 1;
 	}
+
+	struct sigaction sa = {0};
+	sa.sa_handler = sigint;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGINT, &sa, NULL);
+
 	dirty = true;
-	while(1)
+	while(!should_quit)
 	{
 		if(dirty && !log_mode)
 			print_state();
 		dirty = false;
 		setsu_poll(setsu, event, NULL);
 	}
-	atexit(quit);
+	setsu_free(setsu);
+	printf("\nさよなら!\n");
 	return 0;
 }
 

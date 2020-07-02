@@ -116,11 +116,20 @@ Setsu *setsu_new()
 
 void setsu_free(Setsu *setsu)
 {
+	if(!setsu)
+		return;
 	while(setsu->dev)
 		setsu_disconnect(setsu, setsu->dev);
 	if(setsu->udev_mon)
 		udev_monitor_unref(setsu->udev_mon);
 	udev_unref(setsu->udev);
+	while(setsu->avail_dev)
+	{
+		SetsuAvailDevice *adev = setsu->avail_dev;
+		setsu->avail_dev = adev->next;
+		free(adev->path);
+		free(adev);
+	}
 	free(setsu);
 }
 
