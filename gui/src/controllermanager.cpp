@@ -199,7 +199,8 @@ QString Controller::GetName()
 
 ChiakiControllerState Controller::GetState()
 {
-	ChiakiControllerState state = {};
+	ChiakiControllerState state;
+	chiaki_controller_state_set_idle(&state);
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return state;

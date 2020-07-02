@@ -22,10 +22,19 @@
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state)
 {
 	state->buttons = 0;
+	state->l2_state = 0;
+	state->r2_state = 0;
 	state->left_x = 0;
 	state->left_y = 0;
 	state->right_x = 0;
 	state->right_y = 0;
+	state->touch_id_next = 0;
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		state->touches[i].id = -1;
+		state->touches[i].x = 0;
+		state->touches[i].y = 0;
+	}
 }
 
 CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *state, uint16_t x, uint16_t y)
@@ -38,7 +47,7 @@ CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *
 			state->touch_id_next = (state->touch_id_next + 1) & TOUCH_ID_MASK;
 			state->touches[i].x = x;
 			state->touches[i].y = y;
-			break;
+			return state->touches[i].id;
 		}
 	}
 	return -1;
@@ -87,13 +96,14 @@ CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, Chiaki
 	out->touch_id_next = 0;
 	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
-		ChiakiControllerTouch *touch = a->touches[i].id >= 0 ? &a->touches[i] : b->touches[i].id >= 0 ? &b->touches[i] : NULL;
+		ChiakiControllerTouch *touch = a->touches[i].id >= 0 ? &a->touches[i] : (b->touches[i].id >= 0 ? &b->touches[i] : NULL);
 		if(!touch)
 		{
 			out->touches[i].id = -1;
 			out->touches[i].x = out->touches[i].y = 0;
 			continue;
 		}
-		out->touches[i] = *touch;
+		if(touch != &out->touches[i])
+			out->touches[i] = *touch;
 	}
 }

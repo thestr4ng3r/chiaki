@@ -27,6 +27,8 @@
 #include <cstring>
 #include <chiaki/session.h>
 
+#define SETSU_UPDATE_INTERVAL_MS 4
+
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -44,6 +46,7 @@ static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static bool VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 static void EventCb(ChiakiEvent *event, void *user);
+static void SessionSetsuCb(SetsuEvent *event, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
@@ -70,7 +73,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		throw ChiakiException("Morning invalid");
 	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
 
-	memset(&keyboard_state, 0, sizeof(keyboard_state));
+	chiaki_controller_state_set_idle(&keyboard_state);
 
 	ChiakiErrorCode err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -88,6 +91,16 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
 #endif
 
+#if CHIAKI_GUI_ENABLE_SETSU
+	chiaki_controller_state_set_idle(&setsu_state);
+	setsu = setsu_new();
+	auto timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, this, [this]{
+		setsu_poll(setsu, SessionSetsuCb, this);
+	});
+	timer->start(SETSU_UPDATE_INTERVAL_MS);
+#endif
+
 	key_map = connect_info.key_map;
 	UpdateGamepads();
 }
@@ -99,6 +112,9 @@ StreamSession::~StreamSession()
 	chiaki_opus_decoder_fini(&opus_decoder);
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	delete controller;
+#endif
+#if CHIAKI_GUI_ENABLE_SETSU
+	setsu_free(setsu);
 #endif
 }
 
@@ -217,11 +233,16 @@ void StreamSession::UpdateGamepads()
 
 void StreamSession::SendFeedbackState()
 {
-	ChiakiControllerState state = {};
+	ChiakiControllerState state;
+	chiaki_controller_state_set_idle(&state);
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(controller)
 		state = controller->GetState();
+#endif
+
+#if CHIAKI_GUI_ENABLE_SETSU
+	chiaki_controller_state_or(&state, &state, &setsu_state);
 #endif
 
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
@@ -275,6 +296,8 @@ void StreamSession::Event(ChiakiEvent *event)
 {
 	switch(event->type)
 	{
+		case CHIAKI_EVENT_CONNECTED:
+			break;
 		case CHIAKI_EVENT_QUIT:
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
@@ -283,6 +306,63 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 	}
 }
+
+#if CHIAKI_GUI_ENABLE_SETSU
+void StreamSession::HandleSetsuEvent(SetsuEvent *event)
+{
+	if(!setsu)
+		return;
+	switch(event->type)
+	{
+		case SETSU_EVENT_DEVICE_ADDED:
+			setsu_connect(setsu, event->path);
+			break;
+		case SETSU_EVENT_DEVICE_REMOVED:
+			for(auto it=setsu_ids.begin(); it!=setsu_ids.end();)
+			{
+				if(it.key().first == event->path)
+				{
+					chiaki_controller_state_stop_touch(&setsu_state, it.value());
+					setsu_ids.erase(it++);
+				}
+				else
+					it++;
+			}
+			SendFeedbackState();
+			break;
+		case SETSU_EVENT_DOWN:
+			break;
+		case SETSU_EVENT_UP:
+			for(auto it=setsu_ids.begin(); it!=setsu_ids.end(); it++)
+			{
+				if(it.key().first == setsu_device_get_path(event->dev) && it.key().second == event->tracking_id)
+				{
+					chiaki_controller_state_stop_touch(&setsu_state, it.value());
+					setsu_ids.erase(it);
+					break;
+				}
+			}
+			SendFeedbackState();
+			break;
+		case SETSU_EVENT_POSITION: {
+			QPair<QString, SetsuTrackingId> k =  { setsu_device_get_path(event->dev), event->tracking_id };
+			auto it = setsu_ids.find(k);
+			if(it == setsu_ids.end())
+			{
+				int8_t cid = chiaki_controller_state_start_touch(&setsu_state, event->x, event->y);
+				if(cid >= 0)
+					setsu_ids[k] = (uint8_t)cid;
+				else
+					break;
+			}
+			else
+				chiaki_controller_state_set_touch_pos(&setsu_state, it.value(), event->x, event->y);
+			SendFeedbackState();
+			break;
+		}
+	}
+}
+#endif
 
 class StreamSessionPrivate
 {
@@ -295,6 +375,9 @@ class StreamSessionPrivate
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushVideoSample(StreamSession *session, uint8_t *buf, size_t buf_size)		{ session->PushVideoSample(buf, buf_size); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
+#if CHIAKI_GUI_ENABLE_SETSU
+		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
+#endif
 };
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user)
@@ -321,3 +404,11 @@ static void EventCb(ChiakiEvent *event, void *user)
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::Event(session, event);
 }
+
+#if CHIAKI_GUI_ENABLE_SETSU
+static void SessionSetsuCb(SetsuEvent *event, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::HandleSetsuEvent(session, event);
+}
+#endif

@@ -21,6 +21,10 @@
 #include <chiaki/session.h>
 #include <chiaki/opusdecoder.h>
 
+#if CHIAKI_GUI_ENABLE_SETSU
+#include <setsu.h>
+#endif
+
 #include "videodecoder.h"
 #include "exception.h"
 #include "sessionlog.h"
@@ -69,6 +73,11 @@ class StreamSession : public QObject
 		ChiakiOpusDecoder opus_decoder;
 
 		Controller *controller;
+#if CHIAKI_GUI_ENABLE_SETSU
+		Setsu *setsu;
+		QMap<QPair<QString, SetsuTrackingId>, uint8_t> setsu_ids;
+		ChiakiControllerState setsu_state;
+#endif
 
 		ChiakiControllerState keyboard_state;
 
@@ -83,6 +92,9 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushVideoSample(uint8_t *buf, size_t buf_size);
 		void Event(ChiakiEvent *event);
+#if CHIAKI_GUI_ENABLE_SETSU
+		void HandleSetsuEvent(SetsuEvent *event);
+#endif
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);

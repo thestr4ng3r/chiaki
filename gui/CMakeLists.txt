@@ -83,6 +83,10 @@ if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 	target_link_libraries(chiaki SDL2::SDL2)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 endif()
+if(CHIAKI_ENABLE_SETSU)
+	target_link_libraries(chiaki setsu)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SETSU)
+endif()
 
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
