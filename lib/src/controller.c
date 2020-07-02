@@ -39,4 +39,17 @@ CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, Chiaki
 	out->left_y = MAX_ABS(a->left_y, b->left_y);
 	out->right_x = MAX_ABS(a->right_x, b->right_x);
 	out->right_y = MAX_ABS(a->right_y, b->right_y);
+
+	out->touch_id_next = 0;
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		ChiakiControllerTouch *touch = a->touches[i].id >= 0 ? &a->touches[i] : b->touches[i].id >= 0 ? &b->touches[i] : NULL;
+		if(!touch)
+		{
+			out->touches[i].id = -1;
+			out->touches[i].x = out->touches[i].y = 0;
+			continue;
+		}
+		out->touches[i] = *touch;
+	}
 }

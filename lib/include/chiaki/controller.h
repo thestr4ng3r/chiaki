@@ -56,6 +56,14 @@ typedef enum chiaki_controller_analog_button_t
 	CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 = (1 << 17)
 } ChiakiControllerAnalogButton;
 
+typedef struct chiaki_controller_touch_t
+{
+	uint16_t x, y;
+	int8_t id; // -1 = up
+} ChiakiControllerTouch;
+
+#define CHIAKI_CONTROLLER_TOUCHES_MAX 2
+
 typedef struct chiaki_controller_state_t
 {
 	/**
@@ -70,19 +78,32 @@ typedef struct chiaki_controller_state_t
 	int16_t left_y;
 	int16_t right_x;
 	int16_t right_y;
+
+	uint8_t touch_id_next;
+	ChiakiControllerTouch touches[CHIAKI_CONTROLLER_TOUCHES_MAX];
 } ChiakiControllerState;
 
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state);
 
 static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b)
 {
-	return a->buttons == b->buttons
+	if(!(a->buttons == b->buttons
 		&& a->l2_state == b->l2_state
 		&& a->r2_state == b->r2_state
 		&& a->left_x == b->left_x
 		&& a->left_y == b->left_y
 		&& a->right_x == b->right_x
-		&& a->right_y == b->right_y;
+		&& a->right_y == b->right_y))
+		return false;
+
+	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(a->touches[i].id != b->touches[i].id)
+			return false;
+		if(a->touches[i].id >= 0 && (a->touches[i].x != b->touches[i].x || a->touches[i].y != b->touches[i].y))
+			return false;
+	}
+	return true;
 }
 
 CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, ChiakiControllerState *a, ChiakiControllerState *b);
