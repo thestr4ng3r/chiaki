@@ -206,8 +206,6 @@ static bool is_device_interesting(struct udev_device *dev)
 
 static void update_udev_device(Setsu *setsu, struct udev_device *dev)
 {
-	if(!is_device_interesting(dev))
-		return;
 	const char *path = udev_device_get_devnode(dev);
 	if(!path)
 		return;
@@ -232,7 +230,11 @@ static void update_udev_device(Setsu *setsu, struct udev_device *dev)
 			return;
 		}
 	}
+
 	// not yet added
+	if(!is_device_interesting(dev))
+		return;
+
 	SetsuAvailDevice *adev = calloc(1, sizeof(SetsuAvailDevice));
 	if(!adev)
 		return;
