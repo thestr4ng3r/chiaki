@@ -332,9 +332,9 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 			}
 			SendFeedbackState();
 			break;
-		case SETSU_EVENT_DOWN:
+		case SETSU_EVENT_TOUCH_DOWN:
 			break;
-		case SETSU_EVENT_UP:
+		case SETSU_EVENT_TOUCH_UP:
 			for(auto it=setsu_ids.begin(); it!=setsu_ids.end(); it++)
 			{
 				if(it.key().first == setsu_device_get_path(event->dev) && it.key().second == event->tracking_id)
@@ -346,7 +346,7 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 			}
 			SendFeedbackState();
 			break;
-		case SETSU_EVENT_POSITION: {
+		case SETSU_EVENT_TOUCH_POSITION: {
 			QPair<QString, SetsuTrackingId> k =  { setsu_device_get_path(event->dev), event->tracking_id };
 			auto it = setsu_ids.find(k);
 			if(it == setsu_ids.end())
@@ -362,6 +362,12 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 			SendFeedbackState();
 			break;
 		}
+		case SETSU_EVENT_BUTTON_DOWN:
+			setsu_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+			break;
+		case SETSU_EVENT_BUTTON_UP:
+			setsu_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+			break;
 	}
 }
 #endif
