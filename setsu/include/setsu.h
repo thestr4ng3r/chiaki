@@ -42,16 +42,26 @@ typedef enum {
 
 	/* Touch down.
 	 * Event will have dev and tracking_id set. */
-	SETSU_EVENT_DOWN,
+	SETSU_EVENT_TOUCH_DOWN,
 
 	/* Touch down.
 	 * Event will have dev and tracking_id set. */
-	SETSU_EVENT_UP,
+	SETSU_EVENT_TOUCH_UP,
 
 	/* Touch position update.
 	 * Event will have dev, tracking_id, x and y set. */
-	SETSU_EVENT_POSITION
+	SETSU_EVENT_TOUCH_POSITION,
+
+	/* Event will have dev and button set. */
+	SETSU_EVENT_BUTTON_DOWN,
+
+	/* Event will have dev and button set. */
+	SETSU_EVENT_BUTTON_UP
 } SetsuEventType;
+
+#define SETSU_BUTTON_0 (1u << 0)
+
+typedef uint64_t SetsuButton;
 
 typedef struct setsu_event_t
 {
@@ -62,8 +72,15 @@ typedef struct setsu_event_t
 		struct
 		{
 			SetsuDevice *dev;
-			SetsuTrackingId tracking_id;
-			uint32_t x, y;
+			union
+			{
+				struct
+				{
+					SetsuTrackingId tracking_id;
+					uint32_t x, y;
+				};
+				SetsuButton button;
+			};
 		};
 	};
 } SetsuEvent;

@@ -69,6 +69,9 @@ typedef struct setsu_device_t
 		bool pos_dirty;
 	} slots[SLOTS_COUNT];
 	unsigned int slot_cur;
+
+	uint64_t buttons_prev;
+	uint64_t buttons_cur;
 } SetsuDevice;
 
 struct setsu_t
@@ -458,6 +461,17 @@ static void poll_device(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *u
 	}
 }
 
+static uint64_t button_from_evdev(int key)
+{
+	switch(key)
+	{
+		case BTN_LEFT:
+			return SETSU_BUTTON_0;
+		default:
+			return 0;
+	}
+}
+
 static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev, SetsuEventCb cb, void *user)
 {
 #if 0
@@ -467,43 +481,57 @@ static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev,
 		ev->value);
 #endif
 #define S dev->slots[dev->slot_cur]
-	if(ev->type == EV_ABS)
+	switch(ev->type)
 	{
-		switch(ev->code)
-		{
-			case ABS_MT_SLOT:
-				if((unsigned int)ev->value >= SLOTS_COUNT)
-				{
-					SETSU_LOG("slot too high\n");
+		case EV_ABS:
+			switch(ev->code)
+			{
+				case ABS_MT_SLOT:
+					if((unsigned int)ev->value >= SLOTS_COUNT)
+					{
+						SETSU_LOG("slot too high\n");
+						break;
+					}
+					dev->slot_cur = ev->value;
 					break;
-				}
-				dev->slot_cur = ev->value;
+				case ABS_MT_TRACKING_ID:
+					if(S.tracking_id != -1 && S.tracking_id_prev == -1)
+					{
+						// up the tracking id
+						S.tracking_id_prev = S.tracking_id;
+						// reset the rest
+						S.x = S.y = 0;
+						S.pos_dirty = false;
+					}
+					S.tracking_id = ev->value;
+					if(ev->value != -1)
+						S.downed = true;
+					break;
+				case ABS_MT_POSITION_X:
+					S.x = ev->value;
+					S.pos_dirty = true;
+					break;
+				case ABS_MT_POSITION_Y:
+					S.y = ev->value;
+					S.pos_dirty = true;
+					break;
+			}
+			break;
+		case EV_KEY: {
+			uint64_t button = button_from_evdev(ev->code);
+			if(!button)
 				break;
-			case ABS_MT_TRACKING_ID:
-				if(S.tracking_id != -1 && S.tracking_id_prev == -1)
-				{
-					// up the tracking id
-					S.tracking_id_prev = S.tracking_id;
-					// reset the rest
-					S.x = S.y = 0;
-					S.pos_dirty = false;
-				}
-				S.tracking_id = ev->value;
-				if(ev->value != -1)
-					S.downed = true;
-				break;
-			case ABS_MT_POSITION_X:
-				S.x = ev->value;
-				S.pos_dirty = true;
-				break;
-			case ABS_MT_POSITION_Y:
-				S.y = ev->value;
-				S.pos_dirty = true;
-				break;
+			if(ev->value)
+				dev->buttons_cur |= button;
+			else
+				dev->buttons_cur &= ~button;
+			break;
 		}
+		case EV_SYN:
+			if(ev->code == SYN_REPORT)
+				device_drain(setsu, dev, cb, user);
+			break;
 	}
-	else if(ev->type == EV_SYN && ev->code == SYN_REPORT)
-		device_drain(setsu, dev, cb, user);
 #undef S
 }
 
@@ -516,21 +544,21 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 	{
 		if(dev->slots[i].tracking_id_prev != -1)
 		{
-			BEGIN_EVENT(SETSU_EVENT_UP);
+			BEGIN_EVENT(SETSU_EVENT_TOUCH_UP);
 			event.tracking_id = dev->slots[i].tracking_id_prev;
 			SEND_EVENT();
 			dev->slots[i].tracking_id_prev = -1;
 		}
 		if(dev->slots[i].downed)
 		{
-			BEGIN_EVENT(SETSU_EVENT_DOWN);
+			BEGIN_EVENT(SETSU_EVENT_TOUCH_DOWN);
 			event.tracking_id = dev->slots[i].tracking_id;
 			SEND_EVENT();
 			dev->slots[i].downed = false;
 		}
 		if(dev->slots[i].pos_dirty)
 		{
-			BEGIN_EVENT(SETSU_EVENT_POSITION);
+			BEGIN_EVENT(SETSU_EVENT_TOUCH_POSITION);
 			event.tracking_id = dev->slots[i].tracking_id;
 			event.x = (uint32_t)(dev->slots[i].x - dev->min_x);
 			event.y = (uint32_t)(dev->slots[i].y - dev->min_y);
@@ -538,6 +566,22 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 			dev->slots[i].pos_dirty = false;
 		}
 	}
+
+	uint64_t buttons_diff = dev->buttons_prev ^ dev->buttons_cur;
+	for(uint64_t i=0; i<64; i++)
+	{
+		if(buttons_diff & 1)
+		{
+			uint64_t button = 1 << i;
+			BEGIN_EVENT((dev->buttons_cur & button) ? SETSU_EVENT_BUTTON_DOWN : SETSU_EVENT_BUTTON_UP);
+			event.button = button;
+			SEND_EVENT();
+		}
+		buttons_diff >>= 1;
+		if(!buttons_diff)
+			break;
+	}
+	dev->buttons_prev = dev->buttons_cur;
 #undef BEGIN_EVENT
 #undef SEND_EVENT
 }
