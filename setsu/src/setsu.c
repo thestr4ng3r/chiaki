@@ -79,6 +79,7 @@ struct setsu_t
 	SetsuDevice *dev;
 };
 
+bool get_dev_ids(const char *path, uint32_t *vendor_id, uint32_t *model_id);
 static void scan_udev(Setsu *setsu);
 static void update_udev_device(Setsu *setsu, struct udev_device *dev);
 static SetsuDevice *connect(Setsu *setsu, const char *path);
@@ -166,25 +167,38 @@ beach:
 
 static bool is_device_interesting(struct udev_device *dev)
 {
-	static const char *device_ids[] = {
+	static const uint32_t device_ids[] = {
 		// vendor id, model id
-		"054c",       "05c4", // DualShock 4 Gen 1 USB
-		"054c",       "09cc", // DualShock 4 Gen 2 USB
-		NULL
+		0x054c,       0x05c4, // DualShock 4 Gen 1 USB
+		0x054c,       0x09cc // DualShock 4 Gen 2 USB
 	};
 
 	// Filter mouse-device (/dev/input/mouse*) away and only keep the evdev (/dev/input/event*) one: 
 	if(!udev_device_get_property_value(dev, "ID_INPUT_TOUCHPAD_INTEGRATION"))
 		return false;
 
-	const char *vendor = udev_device_get_property_value(dev, "ID_VENDOR_ID");
-	const char *model = udev_device_get_property_value(dev, "ID_MODEL_ID");
-	if(!vendor || !model)
-		return false;
-
-	for(const char **dev_id = device_ids; *dev_id; dev_id += 2)
+	uint32_t vendor;
+	uint32_t model;
+	// Try to get the ids from udev first. This fails for bluetooth.
+	const char *vendor_str = udev_device_get_property_value(dev, "ID_VENDOR_ID");
+	const char *model_str = udev_device_get_property_value(dev, "ID_MODEL_ID");
+	if(vendor_str && model_str)
 	{
-		if(!strcmp(vendor, dev_id[0]) && !strcmp(model, dev_id[1]))
+		vendor = strtoul(vendor_str, NULL, 16);
+		model = strtoul(model_str, NULL, 16);
+	}
+	else
+	{
+		const char *path = udev_device_get_devnode(dev);
+		if(!path)
+			return false;
+		if(!get_dev_ids(path, &vendor, &model))
+			return false;
+	}
+
+	for(const uint32_t *dev_id = device_ids; (char *)dev_id != ((char *)device_ids) + sizeof(device_ids); dev_id += 2)
+	{
+		if(vendor == dev_id[0] && model == dev_id[1])
 			return true;
 	}
 	return false;
@@ -245,6 +259,24 @@ static void poll_udev_monitor(Setsu *setsu)
 		update_udev_device(setsu, dev);
 		udev_device_unref(dev);
 	}
+}
+
+bool get_dev_ids(const char *path, uint32_t *vendor_id, uint32_t *model_id)
+{
+	int fd = open(path, O_RDONLY | O_NONBLOCK);
+	if(fd == -1)
+		return false;
+
+	struct libevdev *evdev;
+	if(libevdev_new_from_fd(fd, &evdev) < 0)
+	{
+		close(fd);
+		return false;
+	}
+
+	*vendor_id = (uint32_t)libevdev_get_id_vendor(evdev);
+	*model_id = (uint32_t)libevdev_get_id_product(evdev);
+	return true;
 }
 
 SetsuDevice *setsu_connect(Setsu *setsu, const char *path)
