@@ -278,6 +278,8 @@ bool get_dev_ids(const char *path, uint32_t *vendor_id, uint32_t *model_id)
 
 	*vendor_id = (uint32_t)libevdev_get_id_vendor(evdev);
 	*model_id = (uint32_t)libevdev_get_id_product(evdev);
+	libevdev_free(evdev);
+	close(fd);
 	return true;
 }
 
