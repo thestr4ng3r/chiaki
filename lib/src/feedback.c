@@ -124,7 +124,7 @@ CHIAKI_EXPORT void chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHist
 {
 	event->len = 5;
 	event->buf[0] = down ? 0xd0 : 0xc0;
-	event->buf[1] = pointer_id / 0x7f;
+	event->buf[1] = pointer_id & 0x7f;
 	event->buf[2] = (uint8_t)(x >> 4);
 	event->buf[3] = (uint8_t)((x & 0xf) << 4) | (uint8_t)(y >> 8);
 	event->buf[4] = (uint8_t)y;
