@@ -96,6 +96,13 @@ static inline void chiaki_gkcrypt_free(ChiakiGKCrypt *gkcrypt)
 	free(gkcrypt);
 }
 
+typedef struct chiaki_key_state_t {
+	uint64_t prev;
+} ChiakiKeyState;
+
+CHIAKI_EXPORT void chiaki_key_state_init(ChiakiKeyState *state);
+CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low);
+
 #ifdef __cplusplus
 }
 #endif

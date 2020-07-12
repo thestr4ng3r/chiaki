@@ -542,3 +542,19 @@ static void *gkcrypt_thread_func(void *user)
 	chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
 	return NULL;
 }
+
+CHIAKI_EXPORT void chiaki_key_state_init(ChiakiKeyState *state)
+{
+	state->prev = 0;
+}
+
+CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low)
+{
+	uint32_t prev_low = (uint32_t)state->prev;
+	uint32_t high = (uint32_t)(state->prev >> 32);
+	if(chiaki_seq_num_32_gt(low, prev_low) && low < prev_low)
+		high++;
+	else if(chiaki_seq_num_32_lt(low, prev_low) && low > prev_low && high)
+		high--;
+	return state->prev = (((uint64_t)high) << 32) | ((uint64_t)low);
+}

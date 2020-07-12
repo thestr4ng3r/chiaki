@@ -18,6 +18,7 @@
 #include <munit.h>
 
 extern MunitTest tests_seq_num[];
+extern MunitTest tests_key_state[];
 extern MunitTest tests_reorder_queue[];
 extern MunitTest tests_http[];
 extern MunitTest tests_rpcrypt[];
@@ -30,6 +31,13 @@ static MunitSuite suites[] = {
 	{
 		"/seq_num",
 		tests_seq_num,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		"/key_state",
+		tests_key_state,
 		NULL,
 		1,
 		MUNIT_SUITE_OPTION_NONE
