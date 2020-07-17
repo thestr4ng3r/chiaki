@@ -116,7 +116,7 @@ int real_main(int argc, char *argv[])
 		QByteArray regist_key = parser.value(regist_key_option).toUtf8();
 		if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
 		{
-			printf("Given regist key is too long (expected size <=%llu, got %u)\n",
+			printf("Given regist key is too long (expected size <=%llu, got %d)\n",
 				(unsigned long long)sizeof(ChiakiConnectInfo::regist_key),
 				regist_key.length());
 			return 1;
@@ -126,7 +126,7 @@ int real_main(int argc, char *argv[])
 		QByteArray morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
 		if(morning.length() != sizeof(ChiakiConnectInfo::morning))
 		{
-			printf("Given morning has invalid size (expected %llu, got %u)\n",
+			printf("Given morning has invalid size (expected %llu, got %d)\n",
 				(unsigned long long)sizeof(ChiakiConnectInfo::morning),
 				morning.length());
 			printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
