@@ -27,6 +27,7 @@ extern "C" {
 
 CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]);
 CHIAKI_EXPORT int chiaki_cli_cmd_wakeup(ChiakiLog *log, int argc, char *argv[]);
+CHIAKI_EXPORT int chiaki_cli_cmd_stream(ChiakiLog *log, int argc, char *argv[]);
 
 #ifdef __cplusplus
 }

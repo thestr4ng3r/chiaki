@@ -28,7 +28,8 @@ static const char doc[] =
 	"\v"
 	"Supported commands are:\n"
 	"  discover    Discover Consoles.\n"
-	"  wakeup      Send Wakeup Packet.\n";
+	"  wakeup      Send Wakeup Packet.\n"
+	"  stream      Fetch the Stream.\n";
 
 #define ARG_KEY_VERBOSE 'v'
 
@@ -76,6 +77,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				exit(call_subcmd(state, "discover", chiaki_cli_cmd_discover));
 			else if(strcmp(arg, "wakeup") == 0)
 				exit(call_subcmd(state, "wakeup", chiaki_cli_cmd_wakeup));
+			else if(strcmp(arg, "stream") == 0)
+				exit(call_subcmd(state, "stream", chiaki_cli_cmd_stream));
 			// fallthrough
 		case ARGP_KEY_END:
 			argp_usage(state);
