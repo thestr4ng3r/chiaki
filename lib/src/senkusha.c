@@ -363,7 +363,7 @@ static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32
 
 	uint32_t cur = max;
 	uint32_t request_id = 0;
-	while(max > min)
+	while((max - min) > 1)
 	{
 		bool success = false;
 		for(uint32_t attempt=0; attempt<retries; attempt++)
@@ -410,14 +410,14 @@ static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32
 		}
 
 		if(success)
-			min = cur + 1;
+			min = cur;
 		else
-			max = cur - 1;
+			max = cur;
 		cur = min + (max - min) / 2;
 	}
 
-	CHIAKI_LOGI(senkusha->log, "Senkusha determined inbound MTU %u", (unsigned int)max);
-	*mtu = max;
+	CHIAKI_LOGI(senkusha->log, "Senkusha determined inbound MTU %u", (unsigned int)min);
+	*mtu = min;
 
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -481,7 +481,7 @@ static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint3
 	err = CHIAKI_ERR_SUCCESS;
 
 	uint32_t cur = mtu_in;
-	while(max > min)
+	while((max - min) > 1)
 	{
 		bool success = false;
 		for(uint32_t attempt=0; attempt<retries; attempt++)
@@ -520,10 +520,13 @@ static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint3
 			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				CHIAKI_LOGE(senkusha->log, "Senkusha failed to send ping");
-				goto beach;
+				err = CHIAKI_ERR_TIMEOUT;
+			}
+			else
+			{
+				err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, timeout_ms, state_finished_cond_check, senkusha);
 			}
 
-			err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, timeout_ms, state_finished_cond_check, senkusha);
 			assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 
 			if(!senkusha->state_finished)
@@ -549,14 +552,14 @@ static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint3
 		}
 
 		if(success)
-			min = cur + 1;
+			min = cur;
 		else
-			max = cur - 1;
+			max = cur;
 		cur = min + (max - min) / 2;
 	}
 
-	CHIAKI_LOGI(senkusha->log, "Senkusha determined outbound MTU %u", (unsigned int)max);
-	*mtu = max;
+	CHIAKI_LOGI(senkusha->log, "Senkusha determined outbound MTU %u", (unsigned int)min);
+	*mtu = min;
 
 	CHIAKI_LOGI(senkusha->log, "Senkusha sending final Client MTU Command");
 	client_mtu_cmd.id = 2;
