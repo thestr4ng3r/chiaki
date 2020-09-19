@@ -32,6 +32,7 @@
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
 {
 	key_map = settings->GetControllerMappingForDecoding();
+	renderer_type = settings->GetRendererType();
 	hw_decode_engine = settings->GetHardwareDecodeEngine();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();

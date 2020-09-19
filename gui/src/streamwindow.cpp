@@ -58,7 +58,7 @@ void StreamWindow::Init(const StreamSessionConnectInfo &connect_info)
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+	av_widget = new AVOpenGLWidget(connect_info.renderer_type, session->GetVideoDecoder(), this);
 	setCentralWidget(av_widget);
 
 	grabKeyboard();

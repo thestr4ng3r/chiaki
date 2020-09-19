@@ -324,3 +324,20 @@ QMap<Qt::Key, int> Settings::GetControllerMappingForDecoding()
 	}
 	return result;
 }
+
+static const QMap<RendererType, QString> renderer_types = {
+		{ RendererType::OpenGL32Core, "opengl_3.2_core"},
+		{ RendererType::OpenGLES2, "opengles_2"}
+};
+
+RendererType Settings::GetRendererType() const
+{
+	auto def = RendererType::OpenGL32Core;
+	QString s = settings.value("settings/renderer_type", renderer_types[def]).toString();
+	return renderer_types.key(s, def);
+}
+
+void Settings::SetRendererType(RendererType type)
+{
+	settings.setValue("settings/renderer_type", renderer_types[type]);
+}

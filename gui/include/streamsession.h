@@ -29,6 +29,7 @@
 #include "exception.h"
 #include "sessionlog.h"
 #include "controllermanager.h"
+#include "avopenglwidget.h"
 
 #include <QObject>
 #include <QImage>
@@ -49,6 +50,7 @@ class ChiakiException: public Exception
 struct StreamSessionConnectInfo
 {
 	QMap<Qt::Key, int> key_map;
+	RendererType renderer_type;
 	HardwareDecodeEngine hw_decode_engine;
 	uint32_t log_level_mask;
 	QString log_file;

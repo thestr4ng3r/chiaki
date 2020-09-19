@@ -67,16 +67,14 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
+	Settings settings;
+
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
+	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat(settings.GetRendererType()));
 
 	QApplication app(argc, argv);
-
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
-
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-
-	Settings settings;
 
 	QCommandLineParser parser;
 	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);

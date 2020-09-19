@@ -85,6 +85,21 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
 
+	renderer_combo_box = new QComboBox(this);
+	static const QList<QPair<RendererType, const char *>> renderer_type_strings = {
+		{ RendererType::OpenGL32Core, "OpenGL 3.2 Core (recommended)"},
+		{ RendererType::OpenGLES2, "OpenGL ES 2.0"}
+	};
+	auto current_renderer_type = settings->GetRendererType();
+	for(const auto &r : renderer_type_strings)
+	{
+		renderer_combo_box->addItem(tr(r.second), (int)r.first);
+		if(current_renderer_type == r.first)
+			renderer_combo_box->setCurrentIndex(renderer_combo_box->count() - 1);
+	}
+	connect(renderer_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(RendererSelected()));
+	general_layout->addRow(tr("Renderer\n(might require complete app restart)"), renderer_combo_box);
+
 	auto about_button = new QPushButton(tr("About Chiaki"), this);
 	general_layout->addRow(about_button);
 	connect(about_button, &QPushButton::clicked, this, [this]() {
@@ -251,6 +266,11 @@ void SettingsDialog::ResolutionSelected()
 void SettingsDialog::LogVerboseChanged()
 {
 	settings->SetLogVerbose(log_verbose_check_box->isChecked());
+}
+
+void SettingsDialog::RendererSelected()
+{
+	settings->SetRendererType(static_cast<RendererType>(renderer_combo_box->currentData().toInt()));
 }
 
 void SettingsDialog::FPSSelected()

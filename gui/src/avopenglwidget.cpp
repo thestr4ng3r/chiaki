@@ -28,7 +28,7 @@
 
 #define MOUSE_TIMEOUT_MS 1000
 
-//#define DEBUG_OPENGL
+#define DEBUG_OPENGL
 
 static const char *shader_vert_glsl = R"glsl(
 #version 150 core
@@ -36,6 +36,20 @@ static const char *shader_vert_glsl = R"glsl(
 in vec2 pos_attr;
 
 out vec2 uv_var;
+
+void main()
+{
+	uv_var = pos_attr;
+	gl_Position = vec4(pos_attr * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 0.0, 1.0);
+}
+)glsl";
+
+static const char *shader_vert_glsl_es = R"glsl(
+#version 100
+
+attribute vec2 pos_attr;
+
+varying vec2 uv_var;
 
 void main()
 {
@@ -93,11 +107,38 @@ void main()
 }
 )glsl";
 
+static const char *yuv420p_shader_frag_glsl_es = R"glsl(
+#version 100
+
+precision mediump float;
+
+uniform sampler2D plane1; // Y
+uniform sampler2D plane2; // U
+uniform sampler2D plane3; // V
+
+varying vec2 uv_var;
+
+#define out_color gl_FragColor
+
+void main()
+{
+	vec3 yuv = vec3(
+		(texture2D(plane1, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture2D(plane2, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture2D(plane3, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
+	vec3 rgb = mat3(
+		1.0,		1.0,		1.0,
+		0.0,		-0.21482,	2.12798,
+		1.28033,	-0.38059,	0.0) * yuv;
+	out_color = vec4(rgb, 1.0);
+}
+)glsl";
+
 ConversionConfig conversion_configs[] = {
 	{
 		AV_PIX_FMT_YUV420P,
-		shader_vert_glsl,
-		yuv420p_shader_frag_glsl,
+		shader_vert_glsl_es, // TODO: adaptive
+		yuv420p_shader_frag_glsl_es, // TODO: adaptive
 		3,
 		{
 			{ 1, 1, 1, GL_R8, GL_RED },
@@ -124,22 +165,32 @@ static const float vert_pos[] = {
 	1.0f, 1.0f
 };
 
-
-QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
+QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat(RendererType renderer_type)
 {
 	QSurfaceFormat format;
 	format.setDepthBufferSize(0);
 	format.setStencilBufferSize(0);
-	format.setVersion(3, 2);
-	format.setProfile(QSurfaceFormat::CoreProfile);
+	switch(renderer_type)
+	{
+		case RendererType::OpenGL32Core:
+			format.setRenderableType(QSurfaceFormat::OpenGL);
+			format.setVersion(3, 2);
+			format.setProfile(QSurfaceFormat::CoreProfile);
+			break;
+		case RendererType::OpenGLES2:
+			format.setRenderableType(QSurfaceFormat::OpenGLES);
+			format.setVersion(2, 0);
+			break;
+	}
 #ifdef DEBUG_OPENGL
 	format.setOption(QSurfaceFormat::DebugContext, true);
 #endif
 	return format;
 }
 
-AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
+AVOpenGLWidget::AVOpenGLWidget(RendererType renderer_type, VideoDecoder *decoder, QWidget *parent)
 	: QOpenGLWidget(parent),
+	renderer_type(renderer_type),
 	decoder(decoder)
 {
 	conversion_config = nullptr;
@@ -155,12 +206,13 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	if(!conversion_config)
 		throw Exception("No matching video conversion config can be found");
 
-	setFormat(CreateSurfaceFormat());
+	setFormat(CreateSurfaceFormat(renderer_type));
 
 	frame_uploader_context = nullptr;
 	frame_uploader = nullptr;
 	frame_uploader_thread = nullptr;
 	frame_fg = 0;
+	frame_uploader_surface = nullptr;
 
 	setMouseTracking(true);
 	mouse_timer = new QTimer(this);

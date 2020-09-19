@@ -22,6 +22,7 @@
 
 #include "host.h"
 #include "videodecoder.h"
+#include "avopenglwidget.h"
 
 #include <QSettings>
 
@@ -111,6 +112,9 @@ class Settings : public QObject
 		void SetControllerButtonMapping(int, Qt::Key);
 		QMap<int, Qt::Key> GetControllerMapping();
 		QMap<Qt::Key, int> GetControllerMappingForDecoding();
+
+		RendererType GetRendererType() const;
+		void SetRendererType(RendererType type);
 
 	signals:
 		void RegisteredHostsUpdated();

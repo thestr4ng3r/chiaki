@@ -28,6 +28,11 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
+enum class RendererType {
+	OpenGL32Core,
+	OpenGLES2
+};
+
 #define MAX_PANES 3
 
 class VideoDecoder;
@@ -68,7 +73,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 	Q_OBJECT
 
 	private:
-		VideoDecoder *decoder;
+		const RendererType renderer_type;
+		VideoDecoder * const decoder;
 
 		GLuint program;
 		GLuint vbo;
@@ -87,9 +93,9 @@ class AVOpenGLWidget: public QOpenGLWidget
 		ConversionConfig *conversion_config;
 
 	public:
-		static QSurfaceFormat CreateSurfaceFormat();
+		static QSurfaceFormat CreateSurfaceFormat(RendererType renderer_type);
 
-		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);
+		explicit AVOpenGLWidget(RendererType renderer_type, VideoDecoder *decoder, QWidget *parent = nullptr);
 		~AVOpenGLWidget() override;
 
 		void SwapFrames();
