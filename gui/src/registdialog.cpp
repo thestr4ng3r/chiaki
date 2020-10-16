@@ -59,20 +59,29 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	broadcast_check_box->setChecked(host.isEmpty());
 
 	auto UpdatePSNIDEdits = [this]() {
-		psn_online_id_edit->setEnabled(psn_online_id_radio_button->isChecked());
-		psn_account_id_edit->setEnabled(psn_account_id_radio_button->isChecked());
+		bool need_account_id = NeedAccountId();
+		psn_online_id_edit->setEnabled(!need_account_id);
+		psn_account_id_edit->setEnabled(need_account_id);
 	};
 
-	psn_online_id_radio_button = new QRadioButton(tr("PSN Online-ID (username, case-sensitive) for PS4 < 7.0:"), this);
-	psn_online_id_edit = new QLineEdit(this);
-	form_layout->addRow(psn_online_id_radio_button, psn_online_id_edit);
-	connect(psn_online_id_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+	auto version_layout = new QVBoxLayout(nullptr);
+	ps4_pre9_radio_button = new QRadioButton(tr("< 7.0"), this);
+	version_layout->addWidget(ps4_pre9_radio_button);
+	connect(ps4_pre9_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+	ps4_pre10_radio_button = new QRadioButton(tr(">= 7.0, < 8.0"), this);
+	version_layout->addWidget(ps4_pre10_radio_button);
+	connect(ps4_pre10_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+	ps4_10_radio_button = new QRadioButton(tr(">= 8.0"), this);
+	version_layout->addWidget(ps4_10_radio_button);
+	connect(ps4_10_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+	form_layout->addRow(tr("PS4 Firmware:"), version_layout);
 
-	psn_account_id_radio_button = new QRadioButton(tr("PSN Account-ID (base64) for PS4 >= 7.0:"), this);
+	psn_online_id_edit = new QLineEdit(this);
+	form_layout->addRow(tr("PSN Online-ID (username, case-sensitive):"), psn_online_id_edit);
 	psn_account_id_edit = new QLineEdit(this);
-	form_layout->addRow(psn_account_id_radio_button, psn_account_id_edit);
-	psn_account_id_radio_button->setChecked(true);
-	connect(psn_account_id_radio_button, &QRadioButton::toggled, this, UpdatePSNIDEdits);
+	form_layout->addRow(tr("PSN Account-ID (base64):"), psn_account_id_edit);
+
+	ps4_10_radio_button->setChecked(true);
 
 	UpdatePSNIDEdits();
 
@@ -96,11 +105,17 @@ RegistDialog::~RegistDialog()
 {
 }
 
+bool RegistDialog::NeedAccountId()
+{
+	return !ps4_pre9_radio_button->isChecked();
+}
+
 void RegistDialog::ValidateInput()
 {
+	bool need_account_id = NeedAccountId();
 	bool valid = !host_edit->text().trimmed().isEmpty()
-				 && (!psn_online_id_radio_button->isChecked() || !psn_online_id_edit->text().trimmed().isEmpty())
-				 && (!psn_account_id_radio_button->isChecked() || !psn_account_id_radio_button->text().trimmed().isEmpty())
+				 && !(!need_account_id && psn_online_id_edit->text().trimmed().isEmpty())
+				 && !(need_account_id && psn_account_id_edit->text().trimmed().isEmpty())
 				 && pin_edit->text().length() == PIN_LENGTH;
 	register_button->setEnabled(valid);
 }
@@ -111,8 +126,16 @@ void RegistDialog::accept()
 	QByteArray host = host_edit->text().trimmed().toUtf8();
 	info.host = host.constData();
 
+	if(ps4_pre9_radio_button->isChecked())
+		info.target = CHIAKI_TARGET_PS4_8;
+	else if(ps4_pre10_radio_button->isChecked())
+		info.target = CHIAKI_TARGET_PS4_9;
+	else
+		info.target = CHIAKI_TARGET_PS4_10;
+
+	bool need_account_id = NeedAccountId();
 	QByteArray psn_id; // keep this out of the if scope
-	if(psn_online_id_radio_button->isChecked())
+	if(!need_account_id)
 	{
 		psn_id = psn_online_id_edit->text().trimmed().toUtf8();
 		info.psn_online_id = psn_id.constData();

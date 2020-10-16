@@ -702,6 +702,11 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 			  ")V");
 
 	jclass regist_info_class = E->GetObjectClass(env, regist_info_obj);
+
+	jobject target_obj = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "target", "L"BASE_PACKAGE"/Target;"));
+	jclass target_class = E->GetObjectClass(env, target_obj);
+	jint target_value = E->GetIntField(env, target_obj, E->GetFieldID(env, target_class, "value", "I"));
+
 	jstring host_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "host", "Ljava/lang/String;"));
 	jboolean broadcast = E->GetBooleanField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "broadcast", "Z"));
 	jstring psn_online_id_string = E->GetObjectField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "psnOnlineId", "Ljava/lang/String;"));
@@ -709,6 +714,7 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	jint pin = E->GetIntField(env, regist_info_obj, E->GetFieldID(env, regist_info_class, "pin", "I"));
 
 	ChiakiRegistInfo regist_info = { 0 };
+	regist_info.target = (ChiakiTarget)target_value;
 	regist_info.host = E->GetStringUTFChars(env, host_string, NULL);
 	regist_info.broadcast = broadcast;
 	if(psn_online_id_string)

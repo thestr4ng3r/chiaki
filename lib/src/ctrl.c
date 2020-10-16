@@ -576,9 +576,23 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 
+	char bitrate_b64[256];
+	bool have_bitrate = session->target >= CHIAKI_TARGET_PS4_10;
+	if(have_bitrate)
+	{
+		uint8_t bitrate[4] = { 0 };
+		uint8_t bitrate_enc[4] = { 0 };
+		err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)bitrate, bitrate_enc, 4);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error;
+
+		err = chiaki_base64_encode(bitrate_enc, 4, bitrate_b64, sizeof(bitrate_b64));
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error;
+	}
 
 	static const char request_fmt[] =
-			"GET /sce/rp/session/ctrl HTTP/1.1\r\n"
+			"GET %s HTTP/1.1\r\n"
 			"Host: %s:%d\r\n"
 			"User-Agent: remoteplay Windows\r\n"
 			"Connection: keep-alive\r\n"
@@ -589,17 +603,27 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			"RP-ControllerType: 3\r\n"
 			"RP-ClientType: 11\r\n"
 			"RP-OSType: %s\r\n"
-			"RP-ConPath: 1\r\n\r\n";
+			"RP-ConPath: 1\r\n"
+			"%s%s%s"
+			"\r\n";
 
-	const char *rp_version = chiaki_rp_version_string(session->rp_version);
+	const char *path = (session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
+		? "/sce/rp/session/ctrl"
+		: "/sie/ps4/rp/sess/ctrl";
+	const char *rp_version = chiaki_rp_version_string(session->target);
 
 	char buf[512];
 	int request_len = snprintf(buf, sizeof(buf), request_fmt,
-			session->connect_info.hostname, SESSION_CTRL_PORT, auth_b64, rp_version ? rp_version : "", did_b64, ostype_b64);
+			path, session->connect_info.hostname, SESSION_CTRL_PORT, auth_b64,
+			rp_version ? rp_version : "", did_b64, ostype_b64,
+			have_bitrate ? "RP-StartBitrate: " : "",
+			have_bitrate ? bitrate_b64 : "",
+			have_bitrate ? "\r\n" : "");
 	if(request_len < 0 || request_len >= sizeof(buf))
 		goto error;
 
 	CHIAKI_LOGI(session->log, "Sending ctrl request");
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, (size_t)request_len);
 
 	int sent = send(sock, buf, (size_t)request_len, 0);
 	if(sent < 0)

@@ -41,15 +41,18 @@ class RegistDialog : public QDialog
 
 		QLineEdit *host_edit;
 		QCheckBox *broadcast_check_box;
-		QRadioButton *psn_online_id_radio_button;
+		QRadioButton *ps4_pre9_radio_button;
+		QRadioButton *ps4_pre10_radio_button;
+		QRadioButton *ps4_10_radio_button;
 		QLineEdit *psn_online_id_edit;
-		QRadioButton *psn_account_id_radio_button;
 		QLineEdit *psn_account_id_edit;
 		QLineEdit *pin_edit;
 		QDialogButtonBox *button_box;
 		QPushButton *register_button;
 
 		RegisteredHost registered_host;
+
+		bool NeedAccountId();
 
 	private slots:
 		void ValidateInput();

@@ -31,6 +31,7 @@ android {
                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
                         "-DCHIAKI_ENABLE_CLI=OFF",
                         "-DCHIAKI_ENABLE_GUI=OFF",
+                        "-DCHIAKI_ENABLE_SETSU=OFF",
                         "-DCHIAKI_ENABLE_ANDROID=ON",
                         "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
                         "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON"

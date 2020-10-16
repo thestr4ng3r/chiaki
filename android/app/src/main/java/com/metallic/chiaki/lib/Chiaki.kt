@@ -3,10 +3,18 @@ package com.metallic.chiaki.lib
 import android.os.Parcelable
 import android.util.Log
 import android.view.Surface
+import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import java.lang.Exception
 import java.net.InetSocketAddress
 import kotlin.math.abs
+
+enum class Target(val value: Int)
+{
+	PS4_8(800),
+	PS4_9(900),
+	PS4_10(1000)
+}
 
 enum class VideoResolutionPreset(val value: Int)
 {
@@ -316,6 +324,7 @@ class DiscoveryService(
 
 @Parcelize
 data class RegistInfo(
+	val target: Target,
 	val host: String,
 	val broadcast: Boolean,
 	val psnOnlineId: String?,

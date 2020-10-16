@@ -28,7 +28,8 @@
     <string name="hint_regist_host">Host</string>
     <string name="regist_broadcast">Broadcast</string>
     <string name="regist_option_ps4_lt_7">PS4 &lt; 7.0</string>
-    <string name="regist_option_ps4_ge_7">PS4 ≥ 7.0</string>
+    <string name="regist_option_ps4_ge_7">PS4 ≥ 7.0, &lt; 8</string>
+    <string name="regist_option_ps4_ge_8">PS4 ≥ 8.0</string>
     <string name="regist_psn_account_id_help">About obtaining your Account ID, see</string>
     <string name="regist_psn_account_id_help_url">https://github.com/thestr4ng3r/chiaki/blob/master/README.md#obtaining-your-psn-accountid</string>
     <string name="hint_regist_psn_online_id">PSN Online ID (username, case-sensitive)</string>

@@ -70,12 +70,21 @@
                 app:layout_constraintTop_toBottomOf="@id/broadcastCheckBox">
 
                 <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ps4VersionGE8RadioButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/regist_option_ps4_ge_8"
+                    android:layout_weight="1"
+                    android:checked="true"/>
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
                     android:id="@+id/ps4VersionGE7RadioButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/regist_option_ps4_ge_7"
                     android:layout_weight="1"
-                    android:checked="true"/>
+                    android:checked="false"
+                    android:text="@string/regist_option_ps4_ge_7" />
+
                 <com.google.android.material.radiobutton.MaterialRadioButton
                     android:id="@+id/ps4VersionLT7RadioButton"
                     android:layout_width="wrap_content"

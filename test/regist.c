@@ -24,25 +24,25 @@ static const uint8_t ambassador[CHIAKI_RPCRYPT_KEY_SIZE] = { 0x13, 0x37, 0xde, 0
 static const uint32_t pin = 13374201;
 static const char * const psn_id = "ChiakiNanami1337";
 
-static MunitResult test_aeropause(const MunitParameter params[], void *user)
+static MunitResult test_aeropause_ps4_pre10(const MunitParameter params[], void *user)
 {
 	uint8_t expected[CHIAKI_RPCRYPT_KEY_SIZE] = { 0x0b, 0xe1, 0x2f, 0xbb, 0x4c, 0x7c, 0x99, 0x4a, 0x41, 0x1e, 0x2d, 0x4c, 0xa4, 0x19, 0xf4, 0x35 };
 	uint8_t aeropause[CHIAKI_RPCRYPT_KEY_SIZE];
-	chiaki_rpcrypt_aeropause(aeropause, ambassador);
+	chiaki_rpcrypt_aeropause_ps4_pre10(aeropause, ambassador);
 	munit_assert_memory_equal(sizeof(expected), aeropause, expected);
 	return MUNIT_OK;
 }
 
-static MunitResult test_pin_bright(const MunitParameter params[], void *user)
+static MunitResult test_pin_bright_ps4_pre10(const MunitParameter params[], void *user)
 {
 	uint8_t expected[CHIAKI_RPCRYPT_KEY_SIZE] = { 0x3f, 0xd0, 0xd6, 0x4f, 0xdc, 0xbb, 0x3e, 0xcc, 0x50, 0xba, 0xed, 0xef, 0x97, 0x34, 0xc7, 0xc9 };
 	ChiakiRPCrypt rpcrypt;
-	chiaki_rpcrypt_init_regist(&rpcrypt, ambassador, pin);
+	chiaki_rpcrypt_init_regist_ps4_pre10(&rpcrypt, ambassador, pin);
 	munit_assert_memory_equal(sizeof(expected), rpcrypt.bright, expected);
 	return MUNIT_OK;
 }
 
-static MunitResult test_request_payload(const MunitParameter params[], void *user)
+static MunitResult test_request_payload_ps4_pre10(const MunitParameter params[], void *user)
 {
 	uint8_t expected[] = {
 		0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
@@ -65,11 +65,10 @@ static MunitResult test_request_payload(const MunitParameter params[], void *use
 	};
 
 	ChiakiRPCrypt rpcrypt;
-	chiaki_rpcrypt_init_regist(&rpcrypt, ambassador, pin);
 
 	uint8_t payload[0x400];
 	size_t payload_size = sizeof(payload);
-	ChiakiErrorCode err = chiaki_regist_request_payload_format(payload, &payload_size, &rpcrypt, psn_id, NULL);
+	ChiakiErrorCode err = chiaki_regist_request_payload_format(CHIAKI_TARGET_PS4_9, ambassador, payload, &payload_size, &rpcrypt, psn_id, NULL, pin);
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
 	munit_assert_size(payload_size, ==, sizeof(expected));
 	munit_assert_memory_equal(sizeof(expected), payload, expected);
@@ -78,24 +77,24 @@ static MunitResult test_request_payload(const MunitParameter params[], void *use
 
 MunitTest tests_regist[] = {
 	{
-		"/aeropause",
-		test_aeropause,
+		"/aeropause_ps4_pre10",
+		test_aeropause_ps4_pre10,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
 		NULL
 	},
 	{
-		"/pin_bright",
-		test_pin_bright,
+		"/pin_bright_ps4_pre10",
+		test_pin_bright_ps4_pre10,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
 		NULL
 	},
 	{
-		"/request_payload",
-		test_request_payload,
+		"/request_payload_ps4_pre10",
+		test_request_payload_ps4_pre10,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,

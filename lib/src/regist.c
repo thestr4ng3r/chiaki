@@ -106,34 +106,42 @@ static void regist_event_simple(ChiakiRegist *regist, ChiakiRegistEventType type
 	regist->cb(&event, regist->cb_user);
 }
 
-static const char * const request_head_fmt =
-	"POST /sce/rp/regist HTTP/1.1\r\n"
+static const char *const request_head_fmt =
+	"POST %s HTTP/1.1\r\n HTTP/1.1\r\n"
 	"HOST: 10.0.2.15\r\n" // random lol
 	"User-Agent: remoteplay Windows\r\n"
 	"Connection: close\r\n"
 	"Content-Length: %llu\r\n";
 
-static const char * const request_rp_version_fmt = "RP-Version: %s\r\n";
+static const char *request_path = "/sie/ps4/rp/sess/rgst";
+static const char *request_path_ps4_pre10 = "/sce/rp/regist";
 
-static const char * const request_tail = "\r\n";
+static const char *const request_rp_version_fmt = "RP-Version: %s\r\n";
 
-static const char * const request_inner_account_id_fmt =
-	"Client-Type: Windows\r\n"
+static const char *const request_tail = "\r\n";
+
+const char *client_type = "dabfa2ec873de5839bee8d3f4c0239c4282c07c25c6077a2931afcf0adc0d34f";
+const char *client_type_ps4_pre10 = "Windows";
+
+static const char *const request_inner_account_id_fmt =
+	"Client-Type: %s\r\n"
 	"Np-AccountId: %s\r\n";
 
-static const char * const request_inner_online_id_fmt =
+static const char *const request_inner_online_id_fmt =
 	"Client-Type: Windows\r\n"
 	"Np-Online-Id: %s\r\n";
 
 
-static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiRpVersion rp_version)
+static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiTarget target)
 {
-	int cur = snprintf(buf, buf_size, request_head_fmt, (unsigned long long)payload_size);
+	int cur = snprintf(buf, buf_size, request_head_fmt,
+			target < CHIAKI_TARGET_PS4_10 ? request_path_ps4_pre10 : request_path,
+			(unsigned long long)payload_size);
 	if(cur < 0 || cur >= payload_size)
 		return -1;
-	if(rp_version >= CHIAKI_RP_VERSION_9_0)
+	if(target >= CHIAKI_TARGET_PS4_9)
 	{
-		const char *rp_version_str = chiaki_rp_version_string(rp_version);
+		const char *rp_version_str = chiaki_rp_version_string(target);
 		size_t s = buf_size - cur;
 		int r = snprintf(buf + cur, s, request_rp_version_fmt, rp_version_str);
 		if(r < 0 || r >= s)
@@ -149,14 +157,31 @@ static int request_header_format(char *buf, size_t buf_size, size_t payload_size
 }
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget target, const uint8_t *ambassador, uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id, uint32_t pin)
 {
 	size_t buf_size_val = *buf_size;
 	static const size_t inner_header_off = 0x1e0;
 	if(buf_size_val < inner_header_off)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
-	memset(buf, 'A', inner_header_off);
-	chiaki_rpcrypt_aeropause(buf + 0x11c, crypt->ambassador);
+	memset(buf, 'A', inner_header_off); // can be random
+
+	if(target < CHIAKI_TARGET_PS4_10)
+	{
+		chiaki_rpcrypt_init_regist_ps4_pre10(crypt, ambassador, pin);
+		chiaki_rpcrypt_aeropause_ps4_pre10(buf + 0x11c, crypt->ambassador);
+	}
+	else
+	{
+		size_t key_0_off = buf[0x18D] & 0x1F;
+		size_t key_1_off = buf[0] >> 3;
+		chiaki_rpcrypt_init_regist(crypt, ambassador, key_0_off, pin);
+		uint8_t aeropause[0x10];
+		chiaki_rpcrypt_aeropause(key_1_off, aeropause, crypt->ambassador);
+		memcpy(buf + 0xc7, aeropause + 8, 8);
+		memcpy(buf + 0x191, aeropause, 8);
+		psn_online_id = NULL; // don't need this
+	}
+
 	int inner_header_size;
 	if(psn_online_id)
 		inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_online_id_fmt, psn_online_id);
@@ -166,7 +191,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf,
 		ChiakiErrorCode err = chiaki_base64_encode(psn_account_id, CHIAKI_PSN_ACCOUNT_ID_SIZE, account_id_b64, sizeof(account_id_b64));
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
-		inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off, request_inner_account_id_fmt, account_id_b64);
+		inner_header_size = snprintf((char *)buf + inner_header_off, buf_size_val - inner_header_off,
+				request_inner_account_id_fmt,
+				target < CHIAKI_TARGET_PS4_10 ? client_type_ps4_pre10 : client_type,
+				account_id_b64);
 	}
 	else
 		return CHIAKI_ERR_INVALID_DATA;
@@ -184,29 +212,26 @@ static void *regist_thread_func(void *user)
 	bool canceled = false;
 	bool success = false;
 
+	ChiakiRPCrypt crypt;
 	uint8_t ambassador[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiErrorCode err = chiaki_random_bytes_crypt(ambassador, sizeof(ambassador));
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(regist->log, "Regist failed to generate random nonce");
+		CHIAKI_LOGE(regist->log, "Regist failed to generate random ambassador");
 		goto fail;
 	}
 
-	ChiakiRPCrypt crypt;
-	chiaki_rpcrypt_init_regist(&crypt, ambassador, regist->info.pin);
-
 	uint8_t payload[0x400];
 	size_t payload_size = sizeof(payload);
-	err = chiaki_regist_request_payload_format(payload, &payload_size, &crypt, regist->info.psn_online_id, regist->info.psn_account_id);
+	err = chiaki_regist_request_payload_format(regist->info.target, ambassador, payload, &payload_size, &crypt, regist->info.psn_online_id, regist->info.psn_account_id, regist->info.pin);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to format payload");
 		goto fail;
 	}
 
-	ChiakiRpVersion rp_version = regist->info.psn_online_id ? CHIAKI_RP_VERSION_8_0 : CHIAKI_RP_VERSION_9_0;
 	char request_header[0x100];
-	int request_header_size = request_header_format(request_header, sizeof(request_header), payload_size, rp_version);
+	int request_header_size = request_header_format(request_header, sizeof(request_header), payload_size, regist->info.target);
 
 	if(request_header_size < 0 || request_header_size >= sizeof(request_header))
 	{
