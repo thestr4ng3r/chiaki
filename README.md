@@ -3,6 +3,8 @@
 
 # Chiaki
 
+**Warning ⚠:** Currently not [working on PS4 with firmware version ^8.0.0](https://github.com/thestr4ng3r/chiaki/issues/328)
+
 **Disclaimer:** This project is not endorsed or certified by Sony Interactive Entertainment LLC.
 
 [![Travis Build Status](https://travis-ci.com/thestr4ng3r/chiaki.svg?branch=master)](https://travis-ci.com/thestr4ng3r/chiaki) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
