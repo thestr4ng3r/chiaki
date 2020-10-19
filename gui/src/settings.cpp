@@ -98,7 +98,8 @@ static const QMap<HardwareDecodeEngine, QString> hw_decode_engine_values = {
 	{ HW_DECODE_NONE, "none" },
 	{ HW_DECODE_VAAPI, "vaapi" },
 	{ HW_DECODE_VDPAU, "vdpau" },
-	{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox" }
+	{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox" },
+	{ HW_DECODE_CUDA, "cuda" }
 };
 
 static const HardwareDecodeEngine hw_decode_engine_default = HW_DECODE_NONE;

@@ -159,7 +159,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
 		{ HW_DECODE_NONE, "none"},
 		{ HW_DECODE_VAAPI, "vaapi"},
-		{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"}
+		{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
+		{ HW_DECODE_CUDA, "cuda"}
 	};
 	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
 	for(const auto &p : hardware_decode_engines)

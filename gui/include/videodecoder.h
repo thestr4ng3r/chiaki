@@ -39,6 +39,7 @@ typedef enum {
 	HW_DECODE_VAAPI = 1,
 	HW_DECODE_VDPAU = 2,
 	HW_DECODE_VIDEOTOOLBOX = 3,
+	HW_DECODE_CUDA = 4,
 } HardwareDecodeEngine;
 
 
@@ -47,6 +48,7 @@ static const QMap<HardwareDecodeEngine, const char *> hardware_decode_engine_nam
 	{ HW_DECODE_VAAPI, "vaapi"},
 	{ HW_DECODE_VDPAU, "vdpau"},
 	{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
+	{ HW_DECODE_CUDA, "cuda"},
 };
 
 class VideoDecoderException: public Exception
