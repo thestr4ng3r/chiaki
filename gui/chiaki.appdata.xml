@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2020 Florian Märkl <info@florianmaerkl.de> -->
+<!-- Copyright 2020 Florian Märkl <chiaki@metallic.software> -->
 <component type="desktop">
-  <id>chiaki.desktop</id>
+  <id>com.metallic.chiaki</id>
   <name>Chiaki</name>
   <summary>Free and Open Source Client for PlayStation 4 Remote Play</summary>
   <metadata_license>CC0-1.0</metadata_license>
