@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2020 Florian Märkl <chiaki@metallic.software> -->
+<component type="desktop">
+  <id>com.metallic.chiaki</id>
+  <name>Chiaki</name>
+  <summary>Free and Open Source Client for PlayStation 4 Remote Play</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <developer_name>Florian Märkl</developer_name>
+  <url type="homepage">https://github.com/thestr4ng3r/chiaki</url>
+  <description>
+    <p>
+      Chiaki is a Free and Open Source Client for PlayStation 4 Remote Play. It can be used to play in real time on a PlayStation 4 as long as there is a network connection.
+    </p>
+    <p>
+      For more information and instructions how to use Chiaki, please refer to the official documentation: https://github.com/thestr4ng3r/chiaki/blob/master/README.md#usage
+    </p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/thestr4ng3r/chiaki/master/assets/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <update_contact>chiaki@metallic.software</update_contact>
+  <content_rating type="oars-1.1" />
+</component>
