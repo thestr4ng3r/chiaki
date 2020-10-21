@@ -169,11 +169,9 @@ int RunMain(QApplication &app, Settings *settings)
 	return app.exec();
 }
 
-
-
 int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
 {
-	StreamWindow window(connect_info);
+	StreamWindow *window = new StreamWindow(connect_info);
 	app.setQuitOnLastWindowClosed(true);
 	return app.exec();
 }
