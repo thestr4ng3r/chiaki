@@ -46,21 +46,29 @@ function (_ffmpeg_find component headername)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
     if(FFMPEG_${component}_FOUND)
-      if(APPLE)
-        join(FFMPEG_LDFLAGS_STRING " " ${FFMPEG_${component}_LDFLAGS})
-        string(REGEX REPLACE "-Wl,-framework,([^ ]+)" "-framework \\1" FFMPEG_LDFLAGS_STRING_CLEAN ${FFMPEG_LDFLAGS_STRING})
-        string(REGEX MATCHALL "-framework [^ ]+" FFMPEG_FRAMEWORKS ${FFMPEG_LDFLAGS_STRING_CLEAN})
-        list(APPEND FFMPEG_${component}_LIBRARIES ${FFMPEG_FRAMEWORKS})
-        set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES
-                INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
-                INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}"
-                INTERFACE_LINK_OPTIONS "")
-        message("set libs to \"${FFMPEG_${component}_LIBRARIES}\"")
-        message("set lib dirs to \"${FFMPEG_${component}_LIBRARY_DIRS}\"")
-        message("set lib otps not to \"${FFMPEG_${component}_LDFLAGS}\"")
+      if((TARGET PkgConfig::FFMPEG_${component}) AND (NOT CMAKE_VERSION VERSION_LESS "3.11.0"))
+        if(APPLE)
+          join(FFMPEG_LDFLAGS_STRING " " ${FFMPEG_${component}_LDFLAGS})
+          string(REGEX REPLACE "-Wl,-framework,([^ ]+)" "-framework \\1" FFMPEG_LDFLAGS_STRING_CLEAN ${FFMPEG_LDFLAGS_STRING})
+          string(REGEX MATCHALL "-framework [^ ]+" FFMPEG_FRAMEWORKS ${FFMPEG_LDFLAGS_STRING_CLEAN})
+          list(APPEND FFMPEG_${component}_LIBRARIES ${FFMPEG_FRAMEWORKS})
+          set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES
+                  INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
+                  INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}"
+                  INTERFACE_LINK_OPTIONS "")
+          message("set libs to \"${FFMPEG_${component}_LIBRARIES}\"")
+          message("set lib dirs to \"${FFMPEG_${component}_LIBRARY_DIRS}\"")
+          message("set lib otps not to \"${FFMPEG_${component}_LDFLAGS}\"")
+        endif()
+        set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES IMPORTED_GLOBAL TRUE)
+        add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
+      else()
+        add_library("FFMPEG::${component}" INTERFACE IMPORTED)
+        set_target_properties("FFMPEG::${component}" PROPERTIES
+          INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
+          INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_${component}_INCLUDE_DIRS}"
+          INTERFACE_LINK_LIBRARIES "${FFMPEG_${component}_LIBRARIES}")
       endif()
-      set_target_properties(PkgConfig::FFMPEG_${component} PROPERTIES IMPORTED_GLOBAL TRUE)
-      add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
       return()
     endif()
   endif()
