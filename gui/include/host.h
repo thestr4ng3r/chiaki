@@ -59,6 +59,7 @@ class RegisteredHost
 		QString ap_name;
 		HostMAC ps4_mac;
 		QString ps4_nickname;
+    QString ps4_ip;
 		char rp_regist_key[CHIAKI_SESSION_AUTH_SIZE];
 		uint32_t rp_key_type;
 		uint8_t rp_key[0x10];
@@ -71,6 +72,7 @@ class RegisteredHost
 
 		const HostMAC &GetPS4MAC() const 		{ return ps4_mac; }
 		const QString &GetPS4Nickname() const	{ return ps4_nickname; }
+    const QString &GetPS4IP() const	{ return ps4_ip; }
 		const QByteArray GetRPRegistKey() const	{ return QByteArray(rp_regist_key, sizeof(rp_regist_key)); }
 		const QByteArray GetRPKey() const		{ return QByteArray((const char *)rp_key, sizeof(rp_key)); }
 
