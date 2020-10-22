@@ -20,6 +20,7 @@ option(CHIAKI_LIB_ENABLE_MBEDTLS "Use mbedtls instead of OpenSSL as part of Chia
 option(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT "Use OpenSSL as CMake external project" OFF)
 option(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER "Use SDL Gamecontroller for Input" ON)
 option(CHIAKI_CLI_ARGP_STANDALONE "Search for standalone argp lib for CLI" OFF)
+tri_option(CHIAKI_USE_SYSTEM_JERASURE "Use system-provided jerasure instead of submodule" AUTO)
 
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 3)
@@ -50,6 +51,16 @@ elseif(CHIAKI_ENABLE_SWITCH)
 	# TODO check if android ... or other versions are enabled
 	# force mbedtls as crypto lib
 	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)
+endif()
+
+if(CHIAKI_USE_SYSTEM_JERASURE)
+	if(CHIAKI_USE_SYSTEM_JERASURE STREQUAL AUTO)
+		find_package(Jerasure QUIET)
+		set(CHIAKI_USE_SYSTEM_JERASURE ${Jerasure_FOUND})
+	else()
+		find_package(Jerasure REQUIRED)
+		set(CHIAKI_USE_SYSTEM_JERASURE ON)
+	endif()
 endif()
 
 add_subdirectory(third-party)

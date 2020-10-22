@@ -1,0 +1,22 @@
+name: Debian Bullseye
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    name: Debian Bullseye
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: |
+            git submodule init
+            git submodule update
+      - name: Docker Build
+        run: cd scripts && docker build -t chiaki-bullseye . -f Dockerfile.bullseye && cd ..
+      - name: Build and Test
+        run: docker run --rm -v "`pwd`:/build" -t chiaki-bullseye /bin/bash -c "cd /build && scripts/ci-script -DCHIAKI_USE_SYSTEM_JERASURE=ON"
+
