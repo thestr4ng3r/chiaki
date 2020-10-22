@@ -50,7 +50,8 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_HEARTBEAT_REP = 0x1fe,
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REQ = 0x4,
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REP = 0x8004,
-	CTRL_MESSAGE_TYPE_LOGIN = 0x5
+	CTRL_MESSAGE_TYPE_LOGIN = 0x5,
+	CTRL_MESSAGE_TYPE_GOTO_BED = 0x50
 } CtrlMessageType;
 
 typedef enum ctrl_login_state_t {
@@ -58,15 +59,22 @@ typedef enum ctrl_login_state_t {
 	CTRL_LOGIN_STATE_PIN_INCORRECT = 0x1
 } CtrlLoginState;
 
+struct chiaki_ctrl_message_queue_t
+{
+	ChiakiCtrlMessageQueue *next;
+	uint16_t type;
+	uint8_t *payload;
+	size_t payload_size;
+};
 
 static void *ctrl_thread_func(void *user);
-static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type, const uint8_t *payload, size_t payload_size);
+static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession *session)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
 	ctrl->session = session;
 
@@ -75,6 +83,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession 
 	ctrl->login_pin_requested = false;
 	ctrl->login_pin = NULL;
 	ctrl->login_pin_size = 0;
+	ctrl->msg_queue = NULL;
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -84,17 +93,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, ChiakiSession 
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_notif_pipe;
 
-	err = chiaki_thread_create(&ctrl->thread, ctrl_thread_func, ctrl);
-	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_notif_mutex;
-
-	chiaki_thread_set_name(&ctrl->thread, "Chiaki Ctrl");
 	return err;
-
 error_notif_mutex:
 	chiaki_mutex_fini(&ctrl->notif_mutex);
 error_notif_pipe:
 	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
+	return err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl)
+{
+	ChiakiErrorCode err = chiaki_thread_create(&ctrl->thread, ctrl_thread_func, ctrl);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	chiaki_thread_set_name(&ctrl->thread, "Chiaki Ctrl");
 	return err;
 }
 
@@ -109,11 +122,57 @@ CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl)
 {
-	ChiakiErrorCode err = chiaki_thread_join(&ctrl->thread, NULL);
+	return chiaki_thread_join(&ctrl->thread, NULL);
+}
+
+CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl)
+{
 	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
 	free(ctrl->login_pin);
-	return err;
+}
+
+static void ctrl_message_queue_free(ChiakiCtrlMessageQueue *queue)
+{
+	free(queue->payload);
+	free(queue);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_send_message(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size)
+{
+	ChiakiCtrlMessageQueue *queue = CHIAKI_NEW(ChiakiCtrlMessageQueue);
+	if(!queue)
+		return CHIAKI_ERR_MEMORY;
+	queue->next = NULL;
+	queue->type = type;
+	if(payload)
+	{
+		queue->payload = malloc(payload_size);
+		if(!queue->payload)
+		{
+			free(queue);
+			return CHIAKI_ERR_MEMORY;
+		}
+		queue->payload_size = payload_size;
+	}
+	else
+	{
+		queue->payload = NULL;
+		queue->payload_size = 0;
+	}
+	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->notif_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	if(!ctrl->msg_queue)
+		ctrl->msg_queue = queue;
+	else
+	{
+		ChiakiCtrlMessageQueue *c = ctrl->msg_queue;
+		while(c->next)
+			c = c->next;
+		c->next = queue;
+	}
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
+	chiaki_stop_pipe_stop(&ctrl->notif_pipe);
 }
 
 CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pin, size_t pin_size)
@@ -133,6 +192,10 @@ CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pi
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl)
+{
+	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_GOTO_BED, NULL, 0);
+}
 
 static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl);
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size);
@@ -202,10 +265,12 @@ static void *ctrl_thread_func(void *user)
 		chiaki_mutex_lock(&ctrl->notif_mutex);
 		if(err == CHIAKI_ERR_CANCELED)
 		{
-			if(ctrl->should_stop)
+			while(ctrl->msg_queue)
 			{
-				CHIAKI_LOGI(ctrl->session->log, "Ctrl requested to stop");
-				break;
+				ctrl_message_send(ctrl, ctrl->msg_queue->type, ctrl->msg_queue->payload, ctrl->msg_queue->payload_size);
+				ChiakiCtrlMessageQueue *next = ctrl->msg_queue->next;
+				ctrl_message_queue_free(ctrl->msg_queue);
+				ctrl->msg_queue = next;
 			}
 
 			if(ctrl->login_pin_entered)
@@ -219,11 +284,14 @@ static void *ctrl_thread_func(void *user)
 				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
 				continue;
 			}
-			else
+
+			if(ctrl->should_stop)
 			{
-				CHIAKI_LOGE(ctrl->session->log, "Ctrl notif pipe set without state");
+				CHIAKI_LOGI(ctrl->session->log, "Ctrl requested to stop");
 				break;
 			}
+
+			continue;
 		}
 		else if(err != CHIAKI_ERR_SUCCESS)
 		{
@@ -252,9 +320,14 @@ static void *ctrl_thread_func(void *user)
 	return NULL;
 }
 
-static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, CtrlMessageType type, const uint8_t *payload, size_t payload_size)
+static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size)
 {
 	assert(payload_size == 0 || payload);
+
+	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending message type %x, size %llx\n",
+			(unsigned int)type, (unsigned long long)payload_size);
+	if(payload)
+		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
 	uint8_t *enc = NULL;
 	if(payload && payload_size)

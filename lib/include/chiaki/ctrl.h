@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+typedef struct chiaki_ctrl_message_queue_t ChiakiCtrlMessageQueue;
+
 typedef struct chiaki_ctrl_t
 {
 	struct chiaki_session_t *session;
@@ -42,6 +44,7 @@ typedef struct chiaki_ctrl_t
 	bool login_pin_entered;
 	uint8_t *login_pin;
 	size_t login_pin_size;
+	ChiakiCtrlMessageQueue *msg_queue;
 	ChiakiStopPipe notif_pipe;
 	ChiakiMutex notif_mutex;
 
@@ -59,10 +62,14 @@ typedef struct chiaki_ctrl_t
 	uint64_t crypt_counter_remote;
 } ChiakiCtrl;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_send_message(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
 CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pin, size_t pin_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl);
 
 #ifdef __cplusplus
 }

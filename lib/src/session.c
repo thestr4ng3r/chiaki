@@ -170,8 +170,6 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 	}
 }
 
-
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log)
 {
 	memset(session, 0, sizeof(ChiakiSession));
@@ -199,11 +197,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->login_pin = NULL;
 	session->login_pin_size = 0;
 
+	err = chiaki_ctrl_init(&session->ctrl, session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl init failed");
+		goto error_stop_pipe;
+	}
+
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection init failed");
-		goto error_stop_pipe;
+		goto error_ctrl;
 	}
 
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
@@ -229,6 +234,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	return CHIAKI_ERR_SUCCESS;
 error_stop_pipe:
 	chiaki_stop_pipe_fini(&session->stop_pipe);
+error_ctrl:
+	chiaki_ctrl_fini(&session->ctrl);
 error_state_mutex:
 	chiaki_mutex_fini(&session->state_mutex);
 error_state_cond:
@@ -244,6 +251,7 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	free(session->login_pin);
 	free(session->quit_reason_str);
 	chiaki_stream_connection_fini(&session->stream_connection);
+	chiaki_ctrl_fini(&session->ctrl);
 	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
 	chiaki_mutex_fini(&session->state_mutex);
@@ -402,7 +410,7 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting ctrl");
 
-	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
+	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
@@ -831,4 +839,9 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiTarget 
 	chiaki_http_response_fini(&http_response);
 	CHIAKI_SOCKET_CLOSE(session_sock);
 	return response.success;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session)
+{
+	return chiaki_ctrl_goto_bed(&session->ctrl);
 }
