@@ -117,7 +117,7 @@ if(CHIAKI_ENABLE_SWITCH AND NOT CHIAKI_ENABLE_SWITCH_LINUX)
 endif()
 
 target_link_libraries(chiaki-lib protobuf-nanopb-static)
-target_link_libraries(chiaki-lib jerasure)
+target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
