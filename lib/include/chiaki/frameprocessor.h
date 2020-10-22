@@ -37,6 +37,7 @@ typedef struct chiaki_frame_processor_t
 	uint8_t *frame_buf;
 	size_t frame_buf_size;
 	size_t buf_size_per_unit;
+	size_t buf_stride_per_unit;
 	unsigned int units_source_expected;
 	unsigned int units_fec_expected;
 	unsigned int units_source_received;

@@ -28,8 +28,10 @@ int *create_matrix(unsigned int k, unsigned int m)
 	return cauchy_original_coding_matrix(k, m, CHIAKI_FEC_WORDSIZE);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_size, unsigned int k, unsigned int m, const unsigned int *erasures, size_t erasures_count)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_size, size_t stride, unsigned int k, unsigned int m, const unsigned int *erasures, size_t erasures_count)
 {
+	if(stride < unit_size)
+		return CHIAKI_ERR_INVALID_DATA;
 	int *matrix = create_matrix(k, m);
 	if(!matrix)
 		return CHIAKI_ERR_MEMORY;
@@ -61,7 +63,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_
 
 	for(size_t i=0; i<k+m; i++)
 	{
-		uint8_t *buf_ptr = frame_buf + unit_size * i;
+		uint8_t *buf_ptr = frame_buf + stride * i;
 		if(i < k)
 			data_ptrs[i] = buf_ptr;
 		else
