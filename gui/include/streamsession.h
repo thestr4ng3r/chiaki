@@ -48,6 +48,7 @@ class ChiakiException: public Exception
 
 struct StreamSessionConnectInfo
 {
+	Settings *settings;
 	QMap<Qt::Key, int> key_map;
 	HardwareDecodeEngine hw_decode_engine;
 	uint32_t log_level_mask;
@@ -71,6 +72,7 @@ class StreamSession : public QObject
 		SessionLog log;
 		ChiakiSession session;
 		ChiakiOpusDecoder opus_decoder;
+		bool connected;
 
 		Controller *controller;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -103,8 +105,11 @@ class StreamSession : public QObject
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
 		~StreamSession();
 
+		bool IsConnected()	{ return connected; }
+
 		void Start();
 		void Stop();
+		void GoToBed();
 
 		void SetLoginPIN(const QString &pin);
 

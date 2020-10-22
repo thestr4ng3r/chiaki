@@ -38,6 +38,13 @@ enum class ControllerButtonExt
 	ANALOG_STICK_RIGHT_Y_DOWN = (1 << 25),
 };
 
+enum class DisconnectAction
+{
+	AlwaysNothing,
+	AlwaysSleep,
+	Ask
+};
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -94,6 +101,9 @@ class Settings : public QObject
 		void SetAudioBufferSize(unsigned int size);
 
 		ChiakiConnectVideoProfile GetVideoProfile();
+
+		DisconnectAction GetDisconnectAction();
+		void SetDisconnectAction(DisconnectAction action);
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);

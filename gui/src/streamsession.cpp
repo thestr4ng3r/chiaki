@@ -30,6 +30,7 @@
 #define SETSU_UPDATE_INTERVAL_MS 4
 
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
+	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
 	hw_decode_engine = settings->GetHardwareDecodeEngine();
@@ -58,6 +59,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_output(nullptr),
 	audio_io(nullptr)
 {
+	connected = false;
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	audio_buffer_size = connect_info.audio_buffer_size;
 
@@ -133,6 +135,11 @@ void StreamSession::Start()
 void StreamSession::Stop()
 {
 	chiaki_session_stop(&session);
+}
+
+void StreamSession::GoToBed()
+{
+	chiaki_session_goto_bed(&session);
 }
 
 void StreamSession::SetLoginPIN(const QString &pin)
@@ -299,8 +306,10 @@ void StreamSession::Event(ChiakiEvent *event)
 	switch(event->type)
 	{
 		case CHIAKI_EVENT_CONNECTED:
+			connected = true;
 			break;
 		case CHIAKI_EVENT_QUIT:
+			connected = false;
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:

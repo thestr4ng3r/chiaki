@@ -136,6 +136,25 @@ ChiakiConnectVideoProfile Settings::GetVideoProfile()
 	return profile;
 }
 
+static const QMap<DisconnectAction, QString> disconnect_action_values = {
+	{ DisconnectAction::Ask, "ask" },
+	{ DisconnectAction::AlwaysNothing, "nothing" },
+	{ DisconnectAction::AlwaysSleep, "sleep" }
+};
+
+static const DisconnectAction disconnect_action_default = DisconnectAction::Ask;
+
+DisconnectAction Settings::GetDisconnectAction()
+{
+	auto v = settings.value("settings/disconnect_action", disconnect_action_values[disconnect_action_default]).toString();
+	return disconnect_action_values.key(v, disconnect_action_default);
+}
+
+void Settings::SetDisconnectAction(DisconnectAction action)
+{
+	settings.setValue("settings/disconnect_action", disconnect_action_values[action]);
+}
+
 void Settings::LoadRegisteredHosts()
 {
 	registered_hosts.clear();

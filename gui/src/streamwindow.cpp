@@ -19,6 +19,7 @@
 #include <streamsession.h>
 #include <avopenglwidget.h>
 #include <loginpindialog.h>
+#include <settings.h>
 
 #include <QLabel>
 #include <QMessageBox>
@@ -26,7 +27,8 @@
 #include <QAction>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
-	: QMainWindow(parent)
+	: QMainWindow(parent),
+	connect_info(connect_info)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle(qApp->applicationName() + " | Stream");
@@ -36,7 +38,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 
 	try
 	{
-		Init(connect_info);
+		Init();
 	}
 	catch(const Exception &e)
 	{
@@ -51,7 +53,7 @@ StreamWindow::~StreamWindow()
 	delete av_widget;
 }
 
-void StreamWindow::Init(const StreamSessionConnectInfo &connect_info)
+void StreamWindow::Init()
 {
 	session = new StreamSession(connect_info, this);
 
@@ -98,10 +100,42 @@ void StreamWindow::mouseReleaseEvent(QMouseEvent *event)
 		session->HandleMouseEvent(event);
 }
 
-void StreamWindow::closeEvent(QCloseEvent *)
+void StreamWindow::closeEvent(QCloseEvent *event)
 {
 	if(session)
+	{
+		if(session->IsConnected())
+		{
+			bool sleep = false;
+			switch(connect_info.settings->GetDisconnectAction())
+			{
+				case DisconnectAction::Ask: {
+					auto res = QMessageBox::question(this, tr("Disconnect Session"), tr("Do you want the PS4 to go into sleep mode?"),
+							QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+					switch(res)
+					{
+						case QMessageBox::Yes:
+							sleep = true;
+							break;
+						case QMessageBox::Cancel:
+							event->ignore();
+							return;
+						default:
+							break;
+					}
+					break;
+				}
+				case DisconnectAction::AlwaysSleep:
+					sleep = true;
+					break;
+				default:
+					break;
+			}
+			if(sleep)
+				session->GoToBed();
+		}
 		session->Stop();
+	}
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)

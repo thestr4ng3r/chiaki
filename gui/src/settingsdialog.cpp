@@ -85,6 +85,23 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
 
+	disconnect_action_combo_box = new QComboBox(this);
+	QList<QPair<DisconnectAction, const char *>> disconnect_action_strings = {
+		{ DisconnectAction::AlwaysNothing, "Do Nothing"},
+		{ DisconnectAction::AlwaysSleep, "Enter Sleep Mode"},
+		{ DisconnectAction::Ask, "Ask"}
+	};
+	auto current_disconnect_action = settings->GetDisconnectAction();
+	for(const auto &p : disconnect_action_strings)
+	{
+		disconnect_action_combo_box->addItem(tr(p.second), (int)p.first);
+		if(current_disconnect_action == p.first)
+			disconnect_action_combo_box->setCurrentIndex(disconnect_action_combo_box->count() - 1);
+	}
+	connect(disconnect_action_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(DisconnectActionSelected()));
+
+	general_layout->addRow(tr("Action on Disconnect:"), disconnect_action_combo_box);
+
 	auto about_button = new QPushButton(tr("About Chiaki"), this);
 	general_layout->addRow(about_button);
 	connect(about_button, &QPushButton::clicked, this, [this]() {
@@ -140,7 +157,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	UpdateBitratePlaceholder();
 
 	audio_buffer_size_edit = new QLineEdit(this);
-	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000));
+	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000, audio_buffer_size_edit));
 	unsigned int audio_buffer_size = settings->GetAudioBufferSizeRaw();
 	audio_buffer_size_edit->setText(audio_buffer_size ? QString::number(audio_buffer_size) : "");
 	stream_settings_layout->addRow(tr("Audio Buffer Size:"), audio_buffer_size_edit);
@@ -247,6 +264,11 @@ void SettingsDialog::ResolutionSelected()
 {
 	settings->SetResolution((ChiakiVideoResolutionPreset)resolution_combo_box->currentData().toInt());
 	UpdateBitratePlaceholder();
+}
+
+void SettingsDialog::DisconnectActionSelected()
+{
+	settings->SetDisconnectAction(static_cast<DisconnectAction>(disconnect_action_combo_box->currentData().toInt()));
 }
 
 void SettingsDialog::LogVerboseChanged()

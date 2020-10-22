@@ -34,11 +34,12 @@ class StreamWindow: public QMainWindow
 		~StreamWindow() override;
 
 	private:
+		const StreamSessionConnectInfo connect_info;
 		StreamSession *session;
 
 		AVOpenGLWidget *av_widget;
 
-		void Init(const StreamSessionConnectInfo &connect_info);
+		void Init();
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
