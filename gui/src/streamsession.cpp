@@ -41,7 +41,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	this->regist_key = regist_key;
 	this->morning = morning;
 	audio_buffer_size = settings->GetAudioBufferSize();
-  this->fullscreen = fullscreen;
+	this->fullscreen = fullscreen;
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);

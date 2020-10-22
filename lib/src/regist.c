@@ -641,15 +641,15 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 			host->name[len] = 0; \
 			continue; \
 		} else if(strcmp(key_str, "PS4-IP") ==0)    \
-    { \
-      memcpy(host->name, regist->info.host, 16);  \
-    }
+		{ \
+			memcpy(host->name, regist->info.host, 16);  \
+		}
 		COPY_STRING(ap_ssid, "AP-Ssid")
 		COPY_STRING(ap_bssid, "AP-Bssid")
 		COPY_STRING(ap_key, "AP-Key")
 		COPY_STRING(ap_name, "AP-Name")
 		COPY_STRING(ps4_nickname, "PS4-Nickname")
-    COPY_STRING(ps4_ip, "PS4-IP")
+		COPY_STRING(ps4_ip, "PS4-IP")
 #undef COPY_STRING
 
 		if(strcmp(header->key, "PS4-RegistKey") == 0)

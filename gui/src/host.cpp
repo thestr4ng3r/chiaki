@@ -32,7 +32,7 @@ RegisteredHost::RegisteredHost(const RegisteredHost &o)
 	ap_name(o.ap_name),
 	ps4_mac(o.ps4_mac),
 	ps4_nickname(o.ps4_nickname),
-  ps4_ip(o.ps4_ip),
+	ps4_ip(o.ps4_ip),
 	rp_key_type(o.rp_key_type)
 {
 	memcpy(rp_regist_key, o.rp_regist_key, sizeof(rp_regist_key));
@@ -47,7 +47,7 @@ RegisteredHost::RegisteredHost(const ChiakiRegisteredHost &chiaki_host)
 	ap_key = chiaki_host.ap_key;
 	ap_name = chiaki_host.ap_name;
 	ps4_nickname = chiaki_host.ps4_nickname;
-  ps4_ip = chiaki_host.ps4_ip;
+	ps4_ip = chiaki_host.ps4_ip;
 	memcpy(rp_regist_key, chiaki_host.rp_regist_key, sizeof(rp_regist_key));
 	rp_key_type = chiaki_host.rp_key_type;
 	memcpy(rp_key, chiaki_host.rp_key, sizeof(rp_key));

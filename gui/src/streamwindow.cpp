@@ -39,7 +39,8 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	try
 	{
 		if(connect_info.fullscreen)
-			showFullScreen();Init();
+			showFullScreen();
+		Init();
 	}
 	catch(const Exception &e)
 	{
