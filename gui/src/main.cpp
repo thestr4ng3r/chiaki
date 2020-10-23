@@ -135,10 +135,11 @@ Use 'list' to get the nickname");
               {
                   morning = temphost.GetRPKey();
                   regist_key = temphost.GetRPRegistKey();
+                  break;
               }
+              printf("No configuration found for '%s'\n", args[1].toLocal8Bit().constData());
+              return 1;
           }
-          if(morning == NULL && regist_key == NULL)
-              parser.showHelp(1);
       } else
       {
           regist_key = parser.value(regist_key_option).toUtf8();
