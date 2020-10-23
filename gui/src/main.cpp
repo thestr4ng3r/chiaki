@@ -84,13 +84,15 @@ int real_main(int argc, char *argv[])
 
 	QStringList cmds;
 	cmds.append("stream");
-	cmds.append("show");
+	cmds.append("list");
 #ifdef CHIAKI_ENABLE_CLI
 	cmds.append(cli_commands.keys());
 #endif
 
 	parser.addPositionalArgument("command", cmds.join(", "));
-	parser.addPositionalArgument("host", "Address to connect to (when using the stream command and don't want to use the settings (IP, morning, etc.) saved in the configuration file)");
+	parser.addPositionalArgument("nickname", "Needed for stream command to get credentials for connecting.\
+Use 'list' to get the nickname");
+	parser.addPositionalArgument("host", "Address to connect to (when using the stream command)");
 
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
@@ -98,7 +100,7 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
-	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen (only for use with stream command)", "true");
+	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen (only for use with stream command)");
   	parser.addOption(fullscreen_option);
 
 	parser.process(app);
@@ -110,70 +112,55 @@ int real_main(int argc, char *argv[])
 	if(args[0] == "list")
 	{
 		for(const auto &host : settings.GetRegisteredHosts())
-		{
-			printf("Host: %s \n", host.GetPS4Nickname().toLocal8Bit().data());
-		}
+        printf("Host: %s \n", host.GetPS4Nickname().toLocal8Bit().constData());
 		return 0;
 	}
-
 	if(args[0] == "stream")
 	{
-		if(args.length() < 2)
-			parser.showHelp(1);
+      if(args.length() < 2)
+          parser.showHelp(1);
 
-		QString host;
-		QByteArray morning;
-		QByteArray regist_key;
+      //QString host = args[sizeof(args) -1]; //the ip is always the last param for stream
+      QString host = args[args.size()-1];
+      QByteArray morning;
+      QByteArray regist_key;
 
-		if(parser.value(regist_key_option).isEmpty() && parser.value(morning_option).isEmpty())
-		{
-			for(const auto &temphost : settings.GetRegisteredHosts())
-			{
-				if(temphost.GetPS4Nickname() == args[1])
-				{
-					morning = temphost.GetRPKey();
-					regist_key = temphost.GetRPRegistKey();
-					if(args.length() == 3)
-					{
-						host = args[2];
-					}else
-					{
-						host = temphost.GetPS4IP();
-						printf("Using IP '%s' from the configuration file. This IP could have changed. \
-								If the connection does not succeed please pass the correct IP manually. \
-								(To avoid this in the future assign a static IP to your PS4)\n\n", host.toLocal8Bit().data());
-						if(host == "")
-						{
-							printf("No IP saved for Host '%s' - please pass manually.\n\n", temphost.GetPS4Nickname().toLocal8Bit().data());
-							parser.showHelp(1);
-						}
-					}
-				} else
-					parser.showHelp(1);
-			}
-		} else
-		{
-			host = args[1];
-			regist_key = parser.value(regist_key_option).toUtf8();
-			if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
-			{
-				printf("Given regist key is too long (expected size <=%llu, got %d)\n",
-						(unsigned long long)sizeof(ChiakiConnectInfo::regist_key),
-						regist_key.length());
-				return 1;
-			}
-			regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - regist_key.length(), 0);
-			morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
-			if(morning.length() != sizeof(ChiakiConnectInfo::morning))
-			{
-				printf("Given morning has invalid size (expected %llu, got %d)\n",
-						(unsigned long long)sizeof(ChiakiConnectInfo::morning),
-						morning.length());
-				printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
-				return 1;
-			}
-		}
-		StreamSessionConnectInfo connect_info(&settings, host, regist_key, morning, (strcmp (parser.value(fullscreen_option).toLocal8Bit().data(),"true") == 0));
+      if(parser.value(regist_key_option).isEmpty() && parser.value(morning_option).isEmpty())
+      {
+          if(args.length() < 3)
+              parser.showHelp(1);
+          for(const auto &temphost : settings.GetRegisteredHosts())
+          {
+              if(temphost.GetPS4Nickname() == args[1])
+              {
+                  morning = temphost.GetRPKey();
+                  regist_key = temphost.GetRPRegistKey();
+              }
+          }
+          if(morning == NULL && regist_key == NULL)
+              parser.showHelp(1);
+      } else
+      {
+          regist_key = parser.value(regist_key_option).toUtf8();
+          if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
+          {
+              printf("Given regist key is too long (expected size <=%llu, got %d)\n",
+                     (unsigned long long)sizeof(ChiakiConnectInfo::regist_key),
+                     regist_key.length());
+              return 1;
+          }
+          regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - regist_key.length(), 0);
+          morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
+          if(morning.length() != sizeof(ChiakiConnectInfo::morning))
+          {
+              printf("Given morning has invalid size (expected %llu, got %d)\n",
+                     (unsigned long long)sizeof(ChiakiConnectInfo::morning),
+                     morning.length());
+              printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
+              return 1;
+          }
+      }
+		StreamSessionConnectInfo connect_info(&settings, host, regist_key, morning, parser.isSet(fullscreen_option));
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI
