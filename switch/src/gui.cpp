@@ -172,7 +172,7 @@ void HostInterface::Connect(brls::View * view)
 			ConnectSession();
 			// decrement block input token number
 			brls::Application::unblockInputs();
-		}
+		};
 		this->host->SetRegistEventTypeFinishedSuccess(event_type_finished_success_cb);
 
 		auto event_type_finished_failed_cb = [this]()
@@ -180,7 +180,7 @@ void HostInterface::Connect(brls::View * view)
 			// unlock user inputs
 			brls::Application::unblockInputs();
 			brls::Application::notify("Registration failed");
-		}
+		};
 		this->host->SetRegistEventTypeFinishedFailed(event_type_finished_failed_cb);
 
 		this->Register(false);
@@ -433,7 +433,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 		this->settings->WriteFile();
 	};
 
-	fps->getValueSelectedEvent()->subscribe(ftp_cb);
+	fps->getValueSelectedEvent()->subscribe(fps_cb);
 	ls->addView(fps);
 
 	if(host != nullptr)
