@@ -705,8 +705,8 @@ inline void IO::SetOpenGlYUVPixels(AVFrame * frame)
 			// Y
 			memcpy(buf, frame->data[i], size);
 		}
-        else
-        {
+		else
+		{
 			// UV
 			for(int l=0; l<height; l++)
 				memcpy(buf + width * l * planes[i][2],

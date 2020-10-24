@@ -31,7 +31,7 @@
 #else
 bool appletMainLoop()
 {
-    return true;
+	return true;
 }
 #endif
 

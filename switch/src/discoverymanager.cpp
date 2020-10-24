@@ -202,14 +202,15 @@ void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
 	CHIAKI_LOGI(this->log, "--");
 	CHIAKI_LOGI(this->log, "Discovered Host:");
 	CHIAKI_LOGI(this->log, "State:                             %s", chiaki_discovery_host_state_string(discovered_host->state));
-	/* host attr
+	/*
+	   host attr
 	   uint32_t host_addr;
 	   int system_version;
 	   int device_discovery_protocol_version;
 	   std::string host_name;
 	   std::string host_type;
 	   std::string host_id;
-	   */
+	*/
 	host->state = discovered_host->state;
 
 	// add host ptr to list

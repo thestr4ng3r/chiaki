@@ -113,15 +113,15 @@ class Host
 		void RegistCB(ChiakiRegistEvent *);
 
 		void SetRegistEventTypeFinishedCanceled(std::function<void()> chiaki_regist_event_type_finished_canceled)
-        {
+		{
 			this->chiaki_regist_event_type_finished_canceled = chiaki_regist_event_type_finished_canceled;
 		};
 		void SetRegistEventTypeFinishedFailed(std::function<void()> chiaki_regist_event_type_finished_failed)
-        {
+		{
 			this->chiaki_regist_event_type_finished_failed = chiaki_regist_event_type_finished_failed;
 		};
 		void SetRegistEventTypeFinishedSuccess(std::function<void()> chiaki_regist_event_type_finished_success)
-        {
+		{
 			this->chiaki_regist_event_type_finished_success = chiaki_regist_event_type_finished_success;
 		};
 };

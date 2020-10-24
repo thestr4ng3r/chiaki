@@ -109,15 +109,15 @@ class IO
 		void SetMesaConfig();
 		bool VideoCB(uint8_t * buf, size_t buf_size);
 		void SetEventConnectedCallback(std::function<bool()> chiaki_event_connected_cb)
-        {
+		{
 			this->chiaki_event_connected_cb = chiaki_event_connected_cb;
 		};
 		void SetEventLoginPinRequestCallback(std::function<bool(bool)> chiaki_even_login_pin_request_cb)
-        {
+		{
 			this->chiaki_even_login_pin_request_cb = chiaki_even_login_pin_request_cb;
 		};
 		void SetEventQuitCallback(std::function<bool(ChiakiQuitEvent *)> chiaki_event_quit_cb)
-        {
+		{
 			this->chiaki_event_quit_cb = chiaki_event_quit_cb;
 		};
 		void InitAudioCB(unsigned int channels, unsigned int rate);

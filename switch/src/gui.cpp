@@ -240,8 +240,8 @@ bool HostInterface::CloseStream(ChiakiQuitEvent * quit)
 
 	// brls::Application::setDisplayFramerate(false);
 	/*
-	   DIALOG(sqrs, chiaki_quit_reason_string(quit->reason));
-	   */
+	  DIALOG(sqrs, chiaki_quit_reason_string(quit->reason));
+	*/
 	brls::Application::notify(chiaki_quit_reason_string(quit->reason));
 	Disconnect();
 	return false;
@@ -351,7 +351,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = {0};
 		bool input = this->io->ReadUserKeyboard(account_id, sizeof(account_id));
 		if(input)
-        {
+		{
 			// update gui
 			psn_account_id->setValue(account_id);
 			// push in setting
@@ -420,7 +420,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 	{
 		ChiakiVideoFPSPreset value = CHIAKI_VIDEO_FPS_PRESET_60;
 		switch(result)
-        {
+		{
 			case 0:
 				value = CHIAKI_VIDEO_FPS_PRESET_60;
 				break;
@@ -492,11 +492,11 @@ void PS4RemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned 
 	// this->frame_counter += 1;
 	// double frame_time = glfwGetTime();
 	// if((frame_time - base_time) >= 1.0)
-    // {
-	//     base_time += 1;
-	//     //printf("FPS: %d\n", this->frame_counter);
-	//     this->fps = this->frame_counter;
-	//     this->frame_counter = 0;
+	// {
+	// 	base_time += 1;
+	// 	//printf("FPS: %d\n", this->frame_counter);
+	// 	this->fps = this->frame_counter;
+	// 	this->frame_counter = 0;
 	// }
 	// nvgBeginPath(vg);
 	// nvgFillColor(vg, nvgRGBA(255,192,0,255));

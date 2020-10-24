@@ -70,8 +70,8 @@ int Host::Wakeup()
 		CHIAKI_LOGE(this->log, "Given registkey is too long");
 		return 1;
 	}
-    else if (strlen(this->rp_regist_key) <=0)
-    {
+	else if (strlen(this->rp_regist_key) <=0)
+	{
 		CHIAKI_LOGE(this->log, "Given registkey is not defined");
 		return 2;
 	}
