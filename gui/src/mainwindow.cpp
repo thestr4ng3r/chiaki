@@ -263,7 +263,7 @@ void MainWindow::ServerItemWidgetTriggered()
 		}
 
 		QString host = server.GetHostAddr();
-		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey());
+		StreamSessionConnectInfo info(settings, host, server.registered_host.GetRPRegistKey(), server.registered_host.GetRPKey(), false);
 		new StreamWindow(info);
 	}
 	else

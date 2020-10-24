@@ -29,7 +29,7 @@
 
 #define SETSU_UPDATE_INTERVAL_MS 4
 
-StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning)
+StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen)
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -41,6 +41,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	this->regist_key = regist_key;
 	this->morning = morning;
 	audio_buffer_size = settings->GetAudioBufferSize();
+	this->fullscreen = fullscreen;
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
