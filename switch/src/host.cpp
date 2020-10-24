@@ -57,12 +57,10 @@ static void RegistEventCB(ChiakiRegistEvent * event, void * user)
 Host::Host(ChiakiLog * log,  Settings * settings, std::string host_name)
 	: log(log), settings(settings), host_name(host_name)
 {
-	;
 }
 
 Host::~Host()
 {
-	;
 }
 
 int Host::Wakeup()

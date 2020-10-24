@@ -81,7 +81,6 @@ static const float vert_pos[] = {
 IO::IO(ChiakiLog * log)
 	: log(log)
 {
-	;
 }
 
 IO::~IO()

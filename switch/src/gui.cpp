@@ -253,7 +253,6 @@ MainApplication::MainApplication(std::map<std::string, Host> * hosts,
 	: hosts(hosts), settings(settings), discoverymanager(discoverymanager),
 	io(io), log(log)
 {
-	;
 }
 
 MainApplication::~MainApplication()
@@ -511,6 +510,5 @@ void PS4RemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned 
 
 PS4RemotePlay::~PS4RemotePlay()
 {
-	;
 }
 
