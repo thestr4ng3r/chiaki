@@ -101,19 +101,16 @@ target_link_libraries(chiaki-lib Threads::Threads)
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	# provided by mbedtls-static (mbedtls-devel)
-	# find_package(mbedcrypto REQUIRED)
-	target_link_libraries(chiaki-lib mbedtls mbedx509 mbedcrypto)
+	find_library(MBEDTLS mbedtls)
+	find_library(MBEDX509 mbedx509)
+	find_library(MBEDCRYPTO mbedcrypto)
+	target_link_libraries(chiaki-lib ${MBEDTLS} ${MBEDX509} ${MBEDCRYPTO})
 elseif(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT)
 	target_link_libraries(chiaki-lib OpenSSL_Crypto)
 else()
 	# default
 	find_package(OpenSSL REQUIRED)
 	target_link_libraries(chiaki-lib OpenSSL::Crypto)
-endif()
-
-if(CHIAKI_ENABLE_SWITCH AND NOT CHIAKI_ENABLE_SWITCH_LINUX)
-	# to provides csrngGetRandomBytes
-	target_link_libraries(chiaki-lib nx)
 endif()
 
 target_link_libraries(chiaki-lib protobuf-nanopb-static)

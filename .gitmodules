@@ -13,3 +13,6 @@
 [submodule "android/app/src/main/cpp/oboe"]
 	path = android/app/src/main/cpp/oboe
 	url = https://github.com/google/oboe
+[submodule "third-party/borealis"]
+	path = third-party/borealis
+	url = https://github.com/natinusala/borealis.git

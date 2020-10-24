@@ -13,4 +13,8 @@ jobs:
             git submodule update
       - name: Build Chiaki
         run: scripts/switch/run-docker-build-chiaki.sh
-
+      - name: Upload chiaki.nro
+        uses: actions/upload-artifact@v1
+        with:
+          name: chiaki.nro
+          path: ./build_switch/switch/chiaki.nro
