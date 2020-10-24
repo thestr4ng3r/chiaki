@@ -29,7 +29,10 @@
 #ifdef __SWITCH__
 #include <switch.h>
 #else
-bool appletMainLoop(){return true;};
+bool appletMainLoop()
+{
+    return true;
+}
 #endif
 
 #ifndef CHIAKI_SWITCH_ENABLE_LINUX
@@ -40,20 +43,20 @@ bool appletMainLoop(){return true;};
 // use a custom nintendo switch socket config
 // chiaki requiers many threads with udp/tcp sockets
 static const SocketInitConfig g_chiakiSocketInitConfig = {
-    .bsdsockets_version = 1,
+	.bsdsockets_version = 1,
 
-    .tcp_tx_buf_size = 0x8000,
-    .tcp_rx_buf_size = 0x10000,
-    .tcp_tx_buf_max_size = 0x40000,
-    .tcp_rx_buf_max_size = 0x40000,
+	.tcp_tx_buf_size = 0x8000,
+	.tcp_rx_buf_size = 0x10000,
+	.tcp_tx_buf_max_size = 0x40000,
+	.tcp_rx_buf_max_size = 0x40000,
 
-    .udp_tx_buf_size = 0x40000,
-    .udp_rx_buf_size = 0x40000,
+	.udp_tx_buf_size = 0x40000,
+	.udp_rx_buf_size = 0x40000,
 
-    .sb_efficiency = 8,
+	.sb_efficiency = 8,
 
-    .num_bsd_sessions = 16,
-    .bsd_service_type = BsdServiceType_User,
+	.num_bsd_sessions = 16,
+	.bsd_service_type = BsdServiceType_User,
 };
 #endif // __SWITCH__
 
@@ -62,24 +65,24 @@ static int s_nxlinkSock = -1;
 
 static void initNxLink()
 {
-    // use chiaki socket config initialization
-    if (R_FAILED(socketInitialize(&g_chiakiSocketInitConfig)))
-        return;
+	// use chiaki socket config initialization
+	if (R_FAILED(socketInitialize(&g_chiakiSocketInitConfig)))
+		return;
 
-    s_nxlinkSock = nxlinkStdio();
-    if (s_nxlinkSock >= 0)
-        printf("initNxLink");
-    else
-        socketExit();
+	s_nxlinkSock = nxlinkStdio();
+	if (s_nxlinkSock >= 0)
+		printf("initNxLink");
+	else
+		socketExit();
 }
 
 static void deinitNxLink()
 {
-    if (s_nxlinkSock >= 0)
-    {
-        close(s_nxlinkSock);
-        s_nxlinkSock = -1;
-    }
+	if (s_nxlinkSock >= 0)
+	{
+		close(s_nxlinkSock);
+		s_nxlinkSock = -1;
+	}
 }
 #endif // CHIAKI_ENABLE_SWITCH_NXLINK
 
@@ -87,22 +90,22 @@ static void deinitNxLink()
 extern "C" void userAppInit()
 {
 #ifdef CHIAKI_ENABLE_SWITCH_NXLINK
-    initNxLink();
+	initNxLink();
 #endif
-    // to load gui resources
-    romfsInit();
-    plInitialize(PlServiceType_User);
-    // load socket custom config
-    socketInitialize(&g_chiakiSocketInitConfig);
-    setsysInitialize();
+	// to load gui resources
+	romfsInit();
+	plInitialize(PlServiceType_User);
+	// load socket custom config
+	socketInitialize(&g_chiakiSocketInitConfig);
+	setsysInitialize();
 }
 
 extern "C" void userAppExit()
 {
 #ifdef CHIAKI_ENABLE_SWITCH_NXLINK
-    deinitNxLink();
+	deinitNxLink();
 #endif // CHIAKI_ENABLE_SWITCH_NXLINK
-    socketExit();
+	socketExit();
 	/* Cleanup tesla required services. */
 	hidsysExit();
 	pmdmntExit();
@@ -117,54 +120,56 @@ extern "C" void userAppExit()
 }
 #endif // __SWITCH__
 
-int main(int argc, char* argv[]){
-    // init chiaki lib
-    ChiakiLog log;
+int main(int argc, char* argv[])
+{
+	// init chiaki lib
+	ChiakiLog log;
 #if defined(CHIAKI_ENABLE_SWITCH_NXLINK) || defined(CHIAKI_SWITCH_ENABLE_LINUX)
 #ifdef __SWITCH__
-    chiaki_log_init(&log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
+	chiaki_log_init(&log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
 #else
-    chiaki_log_init(&log, CHIAKI_LOG_ALL, chiaki_log_cb_print, NULL);
+	chiaki_log_init(&log, CHIAKI_LOG_ALL, chiaki_log_cb_print, NULL);
 #endif
 #else
-    // null log for switch version
-    chiaki_log_init(&log, 0, chiaki_log_cb_print, NULL);
+	// null log for switch version
+	chiaki_log_init(&log, 0, chiaki_log_cb_print, NULL);
 #endif
 
-    // load chiaki lib
-    CHIAKI_LOGI(&log, "Loading chaki lib");
+	// load chiaki lib
+	CHIAKI_LOGI(&log, "Loading chaki lib");
 
-    ChiakiErrorCode err = chiaki_lib_init();
-    if(err != CHIAKI_ERR_SUCCESS)
-    {
-        CHIAKI_LOGE(&log, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
-        return 1;
-    }
+	ChiakiErrorCode err = chiaki_lib_init();
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(&log, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
+		return 1;
+	}
 
-    CHIAKI_LOGI(&log, "Loading SDL audio / joystick");
-    if(SDL_Init( SDL_INIT_AUDIO | SDL_INIT_JOYSTICK )) {
-        CHIAKI_LOGE(&log, "SDL initialization failed: %s", SDL_GetError());
-        return 1;
-    }
+	CHIAKI_LOGI(&log, "Loading SDL audio / joystick");
+	if(SDL_Init( SDL_INIT_AUDIO | SDL_INIT_JOYSTICK ))
+	{
+		CHIAKI_LOGE(&log, "SDL initialization failed: %s", SDL_GetError());
+		return 1;
+	}
 
-    // build sdl OpenGl and AV decoders graphical interface
-    IO io = IO(&log); // open Input Output class
+	// build sdl OpenGl and AV decoders graphical interface
+	IO io = IO(&log); // open Input Output class
 
-    // manage ps4 setting discovery wakeup and registration
-    std::map<std::string, Host> hosts;
-    // create host objects form config file
-    Settings settings = Settings(&log, &hosts);
-    CHIAKI_LOGI(&log, "Read chiaki settings file");
-    // FIXME use GUI for config
-    settings.ParseFile();
-    Host * host = nullptr;
+	// manage ps4 setting discovery wakeup and registration
+	std::map<std::string, Host> hosts;
+	// create host objects form config file
+	Settings settings = Settings(&log, &hosts);
+	CHIAKI_LOGI(&log, "Read chiaki settings file");
+	// FIXME use GUI for config
+	settings.ParseFile();
+	Host * host = nullptr;
 
-    DiscoveryManager discoverymanager = DiscoveryManager(&settings);
-    MainApplication app = MainApplication(&hosts, &settings, &discoverymanager, &io, &log);
-    app.Load();
+	DiscoveryManager discoverymanager = DiscoveryManager(&settings);
+	MainApplication app = MainApplication(&hosts, &settings, &discoverymanager, &io, &log);
+	app.Load();
 
-    CHIAKI_LOGI(&log, "Quit applet");
+	CHIAKI_LOGI(&log, "Quit applet");
 	SDL_Quit();
-    return 0;
+	return 0;
 }
 

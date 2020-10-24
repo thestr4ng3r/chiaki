@@ -12,8 +12,7 @@ add_executable(chiaki WIN32
 	src/io.cpp
 	src/host.cpp
 	src/main.cpp
-	src/gui.cpp
-)
+	src/gui.cpp)
 
 target_include_directories(chiaki PRIVATE include)
 
@@ -21,9 +20,9 @@ target_link_libraries(chiaki
 	chiaki-lib
 	borealis
 	${SDL2}
-    FFMPEG::avcodec
-    FFMPEG::avutil
-    FFMPEG::swscale
+	FFMPEG::avcodec
+	FFMPEG::avutil
+	FFMPEG::swscale
 	${SWRESAMPLE}
 	${SWSCALE})
 

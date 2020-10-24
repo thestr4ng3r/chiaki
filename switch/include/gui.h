@@ -34,72 +34,68 @@
 #include "discoverymanager.h"
 #include "io.h"
 
-class HostInterface {
-    private:
-        brls::TabFrame * root;
-        IO * io;
-        Host * host;
-        Settings * settings;
-        brls::List * hostList;
-        bool connected = false;
-    public:
-        HostInterface(brls::List * hostList, IO * io, Host * host, Settings * settings);
-        ~HostInterface();
+class HostInterface
+{
+	private:
+		brls::TabFrame * root;
+		IO * io;
+		Host * host;
+		Settings * settings;
+		brls::List * hostList;
+		bool connected = false;
+	public:
+		HostInterface(brls::List * hostList, IO * io, Host * host, Settings * settings);
+		~HostInterface();
 
-        void Register(bool pin_incorrect);
-        void Wakeup(brls::View * view);
-        void Connect(brls::View * view);
-        void ConnectSession();
-        void Disconnect();
-        bool Stream();
-        bool CloseStream(ChiakiQuitEvent * quit);
+		void Register(bool pin_incorrect);
+		void Wakeup(brls::View * view);
+		void Connect(brls::View * view);
+		void ConnectSession();
+		void Disconnect();
+		bool Stream();
+		bool CloseStream(ChiakiQuitEvent * quit);
 };
 
-class MainApplication {
-    private:
-        ChiakiLog * log;
-        std::map<std::string, Host> * hosts;
-        Settings * settings;
-        DiscoveryManager * discoverymanager;
-        IO * io;
-        brls::TabFrame* rootFrame;
-        std::map<Host *, brls::List *> host_menuitems;
-        bool BuildConfigurationMenu(brls::List *, Host * host = nullptr);
-    public:
-        MainApplication(std::map<std::string, Host> * hosts,
-                Settings * settings, DiscoveryManager * discoverymanager,
-                IO * io, ChiakiLog * log);
+class MainApplication
+{
+	private:
+		ChiakiLog * log;
+		std::map<std::string, Host> * hosts;
+		Settings * settings;
+		DiscoveryManager * discoverymanager;
+		IO * io;
+		brls::TabFrame * rootFrame;
+		std::map<Host *, brls::List *> host_menuitems;
+		bool BuildConfigurationMenu(brls::List *, Host * host = nullptr);
+	public:
+		MainApplication(std::map<std::string, Host> * hosts,
+				Settings * settings, DiscoveryManager * discoverymanager,
+				IO * io, ChiakiLog * log);
 
-        ~MainApplication();
-        // :
-        // hosts(hosts),
-        // settings(settings),
-        // discoverymanager(discoverymanager),
-        // io(io),
-        // log(log) {};
-        bool Load();
+		~MainApplication();
+		bool Load();
 };
 
 class PS4RemotePlay : public brls::View
 {
-    private:
-        brls::AppletFrame * frame;
-        // to display stream on screen
-        IO * io;
-        // to send gamepad inputs
-        Host * host;
-        brls::Label * label;
-        ChiakiControllerState state = { 0 };
-        // FPS calculation
-        // double base_time;
-        // int frame_counter = 0;
-        // int fps = 0;
+	private:
+		brls::AppletFrame * frame;
+		// to display stream on screen
+		IO * io;
+		// to send gamepad inputs
+		Host * host;
+		brls::Label * label;
+		ChiakiControllerState state = { 0 };
+		// FPS calculation
+		// double base_time;
+		// int frame_counter = 0;
+		// int fps = 0;
 
-    public:
-        PS4RemotePlay(IO * io, Host * host);
-        ~PS4RemotePlay();
+	public:
+		PS4RemotePlay(IO * io, Host * host);
+		~PS4RemotePlay();
 
-        void draw(NVGcontext * vg, int x, int y, unsigned width, unsigned height, brls::Style * style, brls::FrameContext * ctx) override;
+		void draw(NVGcontext * vg, int x, int y, unsigned width, unsigned height, brls::Style * style, brls::FrameContext * ctx) override;
 };
 
 #endif // CHIAKI_GUI_H
