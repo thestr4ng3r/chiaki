@@ -38,9 +38,6 @@ Host * Settings::GetOrCreateHost(std::string *host_name)
 		// to the newly created host
 		this->SetPSNOnlineID(host, this->global_psn_online_id);
 		this->SetPSNAccountID(host, this->global_psn_account_id);
-#ifdef CHIAKI_ENABLE_SWITCH_OVERCLOCK
-		this->SetCPUOverclock(host, this->global_cpu_overclock);
-#endif
 		this->SetVideoResolution(host, this->global_video_resolution);
 		this->SetVideoFPS(host, this->global_video_fps);
 	}
