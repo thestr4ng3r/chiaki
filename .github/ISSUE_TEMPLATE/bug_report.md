@@ -9,6 +9,8 @@ assignees: ''
 
 <!-- IF YOU DO NOT USE THE TEMPLATE BELOW, YOUR ISSUE WILL BE CLOSED! THIS APPLIES FOR BUG REPORTS AND FEATURE REQUESTS, NO EXCEPTIONS!
 
+If you only have a question that is not a concrete bug report, ask it on Telegram (https://t.me/chiakitg) or IRC (#chiaki on freenode) instead.
+
 The template below shows what you need to include in a good bug report, and you must use it.
 I'm happy to help, but you have to ensure I fully understand what you want and have the information I need. -->
 
