@@ -1,14 +1,16 @@
 
-##################
-# nanopb
-##################
+if(NOT CHIAKI_USE_SYSTEM_NANOPB)
+	##################
+	# nanopb
+	##################
 
-find_package(PythonInterp 3 REQUIRED) # Make sure nanopb doesn't find Python 2.7 because Python 2 should just die.
-
-add_subdirectory(nanopb EXCLUDE_FROM_ALL)
-set(NANOPB_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/nanopb")
-set(NANOPB_SOURCE_DIR "${NANOPB_SOURCE_DIR}" PARENT_SCOPE)
-set(NANOPB_GENERATOR_PY "${NANOPB_SOURCE_DIR}/generator/nanopb_generator.py" PARENT_SCOPE)
+	add_subdirectory(nanopb EXCLUDE_FROM_ALL)
+	set(NANOPB_GENERATOR_PY "${CMAKE_CURRENT_SOURCE_DIR}/nanopb/generator/nanopb_generator.py" PARENT_SCOPE)
+	add_library(nanopb INTERFACE)
+	target_link_libraries(nanopb INTERFACE protobuf-nanopb-static)
+	target_include_directories(nanopb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/nanopb")
+	add_library(Nanopb::nanopb ALIAS nanopb)
+endif()
 
 if(NOT CHIAKI_USE_SYSTEM_JERASURE)
 	##################
