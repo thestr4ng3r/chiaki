@@ -74,6 +74,13 @@ Settings -> Remote Play (ensure this is ticked) -> Add Device
 
 You can now double-click your PS4 in Chiaki's main window to start Remote Play.
 
+## Joining the Community or Getting Help
+
+There are official groups for Chiaki on Telegram and IRC. They are bridged so you can join whichever you like:
+
+- **Telegram:** https://t.me/chiakitg
+- **IRC:** #chiaki on irc.freenode.net
+
 ## Acknowledgements
 
 This project has only been made possible because of the following Open Source projects:
