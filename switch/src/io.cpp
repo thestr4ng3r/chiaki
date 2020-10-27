@@ -8,9 +8,9 @@
 
 #include "io.h"
 
-// https://github.com/matlo/GIMX/blob/3af491c3b6a89c6a76c9831f1f022a1b73a00752/shared/gimxcontroller/include/ds4.h#L112
-#define DS4_TRACKPAD_MAX_X 1919
-#define DS4_TRACKPAD_MAX_Y 919
+// https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
+#define DS4_TRACKPAD_MAX_X 1920
+#define DS4_TRACKPAD_MAX_Y 942
 #define SWITCH_TOUCHSCREEN_MAX_X 1280
 #define SWITCH_TOUCHSCREEN_MAX_Y 720
 
