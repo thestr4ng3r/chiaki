@@ -18,9 +18,9 @@ if(Nanopb_FOUND)
 	set(Nanopb_INCLUDE_DIRS "${NANOPB_INCLUDE_DIR}")
 	if(NOT TARGET Nanopb::nanopb)
 		add_library(Nanopb::nanopb ALIAS nanopb::protobuf-nanopb-static)
-		set_target_properties(Nanopb::nanopb PROPERTIES
-		  IMPORTED_LOCATION "${Nanopb_LIBRARY}"
-		  INTERFACE_INCLUDE_DIRECTORIES "${Nanopb_INCLUDE_DIRS}"
-		)
+#		set_target_properties(nanopb::protobuf-nanopb-static PROPERTIES
+#		  IMPORTED_LOCATION "${Nanopb_LIBRARY}"
+#		  INTERFACE_INCLUDE_DIRECTORIES "${Nanopb_INCLUDE_DIRS}"
+#		)
 	endif()
 endif()
