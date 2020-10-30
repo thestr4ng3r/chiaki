@@ -103,4 +103,3 @@ install(TARGETS chiaki
 		BUNDLE DESTINATION bin)
 install(FILES chiaki.desktop DESTINATION share/applications)
 install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512/apps)
-install(FILES re.chiaki.Chiaki.appdata.xml DESTINATION share/metainfo)
