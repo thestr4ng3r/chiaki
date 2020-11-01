@@ -79,7 +79,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 		goto error_notif_pipe;
 
 	return err;
-error_notif_mutex:
 	chiaki_mutex_fini(&ctrl->notif_mutex);
 error_notif_pipe:
 	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
