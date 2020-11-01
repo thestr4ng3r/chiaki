@@ -118,13 +118,20 @@ int Host::Register(std::string pin)
 	else
 	{
 		CHIAKI_LOGE(this->log, "Undefined PS4 system version (please run discover first)");
+		throw Exception("Undefined PS4 system version (please run discover first)");
 	}
 
 	this->regist_info.pin = atoi(pin.c_str());
 	this->regist_info.host = this->host_addr.c_str();
 	this->regist_info.broadcast = false;
-	CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN AccountID `%s` pin `%s`",
-			this->host_name.c_str(), this->host_addr.c_str(), psn_account_id.c_str(), pin.c_str());
+
+	if(this->system_version >= 7000000)
+		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN AccountID `%s` pin `%s`",
+			this->host_name.c_str(), this->host_addr.c_str(), account_id.c_str(), pin.c_str());
+	else
+		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN OnlineID `%s` pin `%s`",
+			this->host_name.c_str(), this->host_addr.c_str(), online_id.c_str(), pin.c_str());
+
 	chiaki_regist_start(&this->regist, this->log, &this->regist_info, RegistEventCB, this);
 	return HOST_REGISTER_OK;
 }
