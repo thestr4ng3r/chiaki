@@ -31,9 +31,9 @@ typedef struct chiaki_gkcrypt_t {
 	uint8_t *key_buf; // circular buffer of the ctr mode key stream
 	size_t key_buf_size;
 	size_t key_buf_populated; // size of key_buf that is already populated (on startup)
-	size_t key_buf_key_pos_min; // minimal key pos currently in key_buf
+	uint64_t key_buf_key_pos_min; // minimal key pos currently in key_buf
 	size_t key_buf_start_offset; // offset in key_buf of the minimal key pos
-	size_t last_key_pos; // last key pos that has been requested
+	uint64_t last_key_pos;        // last key pos that has been requested
 	bool key_buf_thread_stop;
 	ChiakiMutex key_buf_mutex;
 	ChiakiCond key_buf_cond;

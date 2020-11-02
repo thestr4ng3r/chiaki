@@ -339,7 +339,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const
 }
 
 
-static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, ChiakiKeyState* keystate, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, uint64_t *key_pos_out)
+static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size, uint8_t *mac_out, uint8_t *mac_old_out, uint64_t *key_pos_out)
 {
 	if(buf_size < 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
@@ -358,8 +358,13 @@ static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, ChiakiKeyS
 
 	memset(buf + mac_offset, 0, CHIAKI_GKCRYPT_GMAC_SIZE);
 
-	uint32_t key_pos_lo = ntohl(*((uint32_t *)(buf + key_pos_offset)));
-	uint64_t key_pos = chiaki_key_state_request_pos(keystate, key_pos_lo);
+	uint64_t key_pos = 0;
+	uint32_t key_pos_lo = ntohl(*((chiaki_unaligned_uint32_t *)(buf + key_pos_offset)));
+
+	if (key_state)
+		key_pos = chiaki_key_state_request_pos(key_state, key_pos_lo);
+	else
+		key_pos = key_pos_lo;
 
 	if(crypt)
 	{
@@ -367,7 +372,7 @@ static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, ChiakiKeyS
 			memset(buf + key_pos_offset, 0, sizeof(uint32_t));
 
 		chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
-		*((uint32_t *)(buf + key_pos_offset)) = htonl(key_pos);
+		*((chiaki_unaligned_uint32_t *)(buf + key_pos_offset)) = htonl(key_pos);
 	}
 
 	if(key_pos_out)
@@ -384,7 +389,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
-	err = chiaki_takion_packet_mac(takion->gkcrypt_local, &takion->keystate, buf, buf_size, mac, NULL, NULL);
+	err = chiaki_takion_packet_mac(takion->gkcrypt_local, NULL, buf, buf_size, mac, NULL, NULL);
 	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
@@ -784,7 +789,7 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 	uint8_t mac[CHIAKI_GKCRYPT_GMAC_SIZE];
 	uint8_t mac_expected[CHIAKI_GKCRYPT_GMAC_SIZE];
 	uint64_t key_pos;
-	ChiakiErrorCode err = chiaki_takion_packet_mac(takion->gkcrypt_remote, &takion->keystate, buf, buf_size, mac_expected, mac, &key_pos);
+	ChiakiErrorCode err = chiaki_takion_packet_mac(takion->gkcrypt_remote, &takion->key_state, buf, buf_size, mac_expected, mac, &key_pos);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to calculate mac for received packet");
@@ -1188,7 +1193,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 
 	ChiakiTakionAVPacket packet;
-	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->keystate, buf, buf_size);
+	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->key_state, buf, buf_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
@@ -1205,7 +1210,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState* keystate, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
 
@@ -1246,7 +1251,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	packet->codec = av[8];
 	packet->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(av + 0xd)));
-   packet->key_pos = chiaki_key_state_request_pos(keystate, packet->key_pos);
+	packet->key_pos = chiaki_key_state_request_pos(key_state, packet->key_pos);
 
 	uint8_t unknown_1 = av[0x11];
 
@@ -1335,7 +1340,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *keystate, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
 

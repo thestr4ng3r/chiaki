@@ -86,7 +86,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, Chi
 	senkusha->ping_tag = 0;
 	senkusha->pong_time_us = 0;
 
-	chiaki_key_state_init(&senkusha->takion.keystate);
+	chiaki_key_state_init(&senkusha->takion.key_state);
 
 	return CHIAKI_ERR_SUCCESS;
 
