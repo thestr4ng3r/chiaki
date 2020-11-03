@@ -87,7 +87,16 @@ static inline void chiaki_gkcrypt_free(ChiakiGKCrypt *gkcrypt)
 }
 
 CHIAKI_EXPORT void chiaki_key_state_init(ChiakiKeyState *state);
-CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low);
+
+/**
+ * @param commit whether to remember this key_pos to update the state. Should only be true after authentication to avoid DoS.
+ */
+CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low, bool commit);
+
+/**
+ * Update the internal state after knowing that this key_pos is authentic.
+ */
+CHIAKI_EXPORT uint64_t chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev);
 
 #ifdef __cplusplus
 }

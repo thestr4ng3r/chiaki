@@ -541,7 +541,7 @@ CHIAKI_EXPORT void chiaki_key_state_init(ChiakiKeyState *state)
 	state->prev = 0;
 }
 
-CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low)
+CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low, bool commit)
 {
 	uint32_t prev_low = (uint32_t)state->prev;
 	uint32_t high = (uint32_t)(state->prev >> 32);
@@ -549,5 +549,13 @@ CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint3
 		high++;
 	else if(chiaki_seq_num_32_lt(low, prev_low) && low > prev_low && high)
 		high--;
-	return state->prev = (((uint64_t)high) << 32) | ((uint64_t)low);
+	uint64_t res = (((uint64_t)high) << 32) | ((uint64_t)low);
+	if(commit)
+		state->prev = res;
+	return res;
+}
+
+CHIAKI_EXPORT uint64_t chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev)
+{
+	state->prev = prev;
 }
