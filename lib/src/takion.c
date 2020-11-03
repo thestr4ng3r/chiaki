@@ -108,7 +108,7 @@ typedef struct takion_message_t
 {
 	uint32_t tag;
 	//uint8_t zero[4];
-	uint32_t key_pos;
+	uint64_t key_pos;
 
 	uint8_t chunk_type;
 	uint8_t chunk_flags;
@@ -359,12 +359,12 @@ static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, ChiakiKeyS
 	memset(buf + mac_offset, 0, CHIAKI_GKCRYPT_GMAC_SIZE);
 
 	uint64_t key_pos = 0;
-	uint32_t key_pos_lo = ntohl(*((chiaki_unaligned_uint32_t *)(buf + key_pos_offset)));
+	uint32_t key_pos_low = ntohl(*((chiaki_unaligned_uint32_t *)(buf + key_pos_offset)));
 
 	if (key_state)
-		key_pos = chiaki_key_state_request_pos(key_state, key_pos_lo);
+		key_pos = chiaki_key_state_request_pos(key_state, key_pos_low);
 	else
-		key_pos = key_pos_lo;
+		key_pos = key_pos_low;
 
 	if(crypt)
 	{
@@ -1041,7 +1041,8 @@ static ChiakiErrorCode takion_parse_message(ChiakiTakion *takion, uint8_t *buf, 
 	}
 
 	msg->tag = ntohl(*((chiaki_unaligned_uint32_t *)buf));
-	msg->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 0x8)));
+	uint32_t key_pos_low = ntohl(*((chiaki_unaligned_uint32_t *)(buf + 0x8)));
+	msg->key_pos = chiaki_key_state_request_pos(&takion->key_state, key_pos_low);
 	msg->chunk_type = buf[0xc];
 	msg->chunk_flags = buf[0xd];
 	msg->payload_size = ntohs(*((chiaki_unaligned_uint16_t *)(buf + 0xe)));
@@ -1250,8 +1251,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 	}
 
 	packet->codec = av[8];
-	packet->key_pos = ntohl(*((chiaki_unaligned_uint32_t *)(av + 0xd)));
-	packet->key_pos = chiaki_key_state_request_pos(key_state, packet->key_pos);
+	uint32_t key_pos_low = ntohl(*((chiaki_unaligned_uint32_t *)(av + 0xd)));
+	packet->key_pos = chiaki_key_state_request_pos(key_state, key_pos_low);
 
 	uint8_t unknown_1 = av[0x11];
 
@@ -1321,7 +1322,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *
 
 	*(chiaki_unaligned_uint32_t *)(buf + 0xa) = 0; // unknown
 
-	*(chiaki_unaligned_uint32_t *)(buf + 0xe) = packet->key_pos;
+	*(chiaki_unaligned_uint32_t *)(buf + 0xe) = (uint32_t)packet->key_pos;
 
 	uint8_t *cur = buf + 0x12;
 	if(packet->is_video)

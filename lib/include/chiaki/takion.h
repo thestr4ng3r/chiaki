@@ -43,7 +43,7 @@ typedef struct chiaki_takion_av_packet_t
 	uint8_t adaptive_stream_index;
 	uint8_t byte_at_0x2c;
 
-	uint32_t key_pos;
+	uint64_t key_pos;
 
 	uint8_t *data; // not owned
 	size_t data_size;

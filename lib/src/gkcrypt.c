@@ -291,7 +291,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcry
 	if(key_pos < gkcrypt->key_buf_key_pos_min
 		|| key_pos + buf_size >= gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated)
 	{
-		CHIAKI_LOGW(gkcrypt->log, "Requested key stream for key pos %#llx on GKCrypt %d, but it's not in the buffer", (int)key_pos, gkcrypt->index);
+		CHIAKI_LOGW(gkcrypt->log, "Requested key stream for key pos %#llx on GKCrypt %d, but it's not in the buffer:"
+				" key buf size %#llx, start offset: %#llx, populated: %#llx, min key pos: %#llx, last key pos: %#llx",
+				(unsigned long long)key_pos,
+				gkcrypt->index,
+				(unsigned long long)gkcrypt->key_buf_size,
+				(unsigned long long)gkcrypt->key_buf_start_offset,
+				(unsigned long long)gkcrypt->key_buf_populated,
+				(unsigned long long)gkcrypt->key_buf_key_pos_min,
+				(unsigned long long)gkcrypt->last_key_pos);
 		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
 		err = chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf, buf_size);
 	}
@@ -320,7 +328,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcry
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, uint64_t key_pos, uint8_t *buf, size_t buf_size)
 {
-	size_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
+	uint64_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
 	size_t full_size = ((padding_pre + buf_size + CHIAKI_GKCRYPT_BLOCK_SIZE - 1) / CHIAKI_GKCRYPT_BLOCK_SIZE) * CHIAKI_GKCRYPT_BLOCK_SIZE;
 
 	uint8_t *key_stream = malloc(full_size);
