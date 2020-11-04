@@ -157,6 +157,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_send_message(ChiakiCtrl *ctrl, uint16_
 	}
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	chiaki_stop_pipe_stop(&ctrl->notif_pipe);
+	return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pin, size_t pin_size)

@@ -334,14 +334,6 @@ static bool session_check_state_pred_pin(void *user)
 		   || session->login_pin_entered;
 }
 
-static bool session_check_state_pred_session_id(void *user)
-{
-	ChiakiSession *session = user;
-	return session->should_stop
-		   || session->ctrl_failed
-		   || session->ctrl_session_id_received;
-}
-
 #define ENABLE_SENKUSHA
 
 static void *session_thread_func(void *arg)

@@ -110,7 +110,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_base64_decode(const char *in, size_t in_siz
 
 	while (in < end)
 	{
-		unsigned char c = d[*in++];
+		unsigned char c = d[(size_t)(*in++)];
 
 		switch(c)
 		{

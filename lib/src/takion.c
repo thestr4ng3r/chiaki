@@ -1273,7 +1273,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 	uint32_t key_pos_low = ntohl(*((chiaki_unaligned_uint32_t *)(av + 0xd)));
 	packet->key_pos = chiaki_key_state_request_pos(key_state, key_pos_low, true);
 
-	uint8_t unknown_1 = av[0x11];
+	uint8_t unknown_1 = av[0x11]; (void)unknown_1;
 
 	av += 0x11;
 	av_size -= 0x11;
