@@ -58,6 +58,7 @@ static MunitResult test_key_stream(const MunitParameter params[], void *user)
 	static const uint8_t gkcrypt_key[] = { 0x8, 0x81, 0x6f, 0xa2, 0xe5, 0x55, 0x89, 0x61, 0xd5, 0xa2, 0x86, 0xd9, 0xe, 0xec, 0x5b, 0x8c };
 	static const uint8_t gkcrypt_iv[] = { 0x2a, 0xe1, 0xbb, 0x3d, 0x84, 0xdc, 0x9a, 0xa9, 0xc3, 0x52, 0xa4, 0xcf, 0x3f, 0xfb, 0x8b, 0x72 };
 	static const uint8_t key_stream[] = { 0xf, 0x6d, 0x89, 0x85, 0x5b, 0xa7, 0x86, 0x74, 0x5b, 0xa1, 0xfe, 0x5c, 0x81, 0x19, 0x6c, 0xd5, 0x54, 0xc4, 0x1c, 0xca, 0xf6, 0xe9, 0x34, 0xa4, 0x89, 0x26, 0x98, 0xb0, 0x62, 0x12, 0xb3, 0x1a };
+	static const uint8_t key_stream_high[] = { 0x14, 0x31, 0x9f, 0xf8, 0xbe, 0x08, 0x17, 0xa4, 0xfc, 0x28, 0x49, 0x0b, 0x1e, 0x5f, 0x7b, 0x7e, 0xfa, 0xe9, 0x14, 0xde, 0xc6, 0xdf, 0xe7, 0x5d, 0xd6, 0x9c, 0x75, 0x3f, 0x94, 0x62, 0xd5, 0x2c };
 
 	ChiakiLog log;
 
@@ -79,6 +80,17 @@ static MunitResult test_key_stream(const MunitParameter params[], void *user)
 
 	munit_assert_memory_equal(sizeof(key_stream), key_stream_result, key_stream);
 
+	uint64_t key_pos = ((uint64_t)(1ull << 32)) + 0x420;
+
+	err = chiaki_gkcrypt_gen_key_stream(&gkcrypt, key_pos, key_stream_result, sizeof(key_stream_result));
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_gkcrypt_fini(&gkcrypt);
+		return MUNIT_ERROR;
+	}
+
+	munit_assert_memory_equal(sizeof(key_stream_high), key_stream_result, key_stream_high);
+
 	chiaki_gkcrypt_fini(&gkcrypt);
 	return MUNIT_OK;
 }
@@ -92,6 +104,7 @@ static MunitResult test_endecrypt(const MunitParameter params[], void *user)
 	static const uint8_t gkcrypt_iv[] = { 0xef, 0x20, 0x40, 0xc2, 0x15, 0x3c, 0x2, 0x66, 0x32, 0x1f, 0x42, 0xbb, 0xf4, 0x50, 0x34, 0x4d };
 	static const uint8_t clear_data[] = { 0x4e, 0x61, 0x9f, 0x94, 0x5d, 0x4b, 0x8e, 0xbd, 0x2a, 0x15, 0x4d, 0x3, 0x6a, 0xcd, 0x49, 0x56, 0x9c, 0xc7, 0x5c, 0xe3, 0xe7, 0x0, 0x17, 0x9a, 0x38, 0xd9, 0x69, 0x53, 0x45, 0xf9, 0xc, 0xb5, 0x8c, 0x5, 0x65, 0xf, 0x70 };
 	static const uint8_t enc_data[] = { 0x23, 0xf4, 0x8d, 0xd8, 0xaa, 0xf9, 0x58, 0x9b, 0xb1, 0x94, 0x4f, 0xad, 0x2b, 0x8d, 0xaa, 0x8d, 0x25, 0x88, 0xfa, 0xf8, 0xb6, 0xd4, 0x17, 0xf4, 0x5f, 0x78, 0xec, 0xf5, 0x4e, 0x37, 0x20, 0xb0, 0x76, 0x81, 0x7, 0x67, 0x9a };
+	static const uint8_t enc_data_high[] = { 0x2b, 0x9e, 0xe9, 0x83, 0x27, 0x44, 0x08, 0xb1, 0x17, 0xf5, 0x37, 0xa0, 0xd9, 0xc2, 0xc6, 0x05, 0x95, 0x78, 0xb2, 0x78, 0xfd, 0x17, 0x8c, 0x52, 0xf4, 0x17, 0x9d, 0xee, 0x3f, 0x62, 0xe6, 0x30, 0x01, 0x61, 0x4c, 0xf4, 0xa1 };
 
 	ChiakiLog log;
 
@@ -113,6 +126,7 @@ static MunitResult test_endecrypt(const MunitParameter params[], void *user)
 
 	uint8_t buf[0x25];
 
+	// Low
 	memcpy(buf, clear_data, sizeof(buf));
 	err = chiaki_gkcrypt_encrypt(&gkcrypt, 0x11, buf, sizeof(buf));
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -130,6 +144,26 @@ static MunitResult test_endecrypt(const MunitParameter params[], void *user)
 		return MUNIT_ERROR;
 	}
 	munit_assert_memory_equal(sizeof(buf), buf, enc_data);
+
+	// High
+	uint64_t key_pos_high = ((uint64_t)(1ull << 32)) + 0x420;
+	memcpy(buf, clear_data, sizeof(buf));
+	err = chiaki_gkcrypt_encrypt(&gkcrypt, key_pos_high, buf, sizeof(buf));
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_gkcrypt_fini(&gkcrypt);
+		return MUNIT_ERROR;
+	}
+	munit_assert_memory_equal(sizeof(buf), buf, enc_data_high);
+
+	memcpy(buf, clear_data, sizeof(buf));
+	err = chiaki_gkcrypt_decrypt(&gkcrypt, key_pos_high, buf, sizeof(buf));
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_gkcrypt_fini(&gkcrypt);
+		return MUNIT_ERROR;
+	}
+	munit_assert_memory_equal(sizeof(buf), buf, enc_data_high);
 
 	chiaki_gkcrypt_fini(&gkcrypt);
 	return MUNIT_OK;
@@ -158,15 +192,19 @@ static MunitResult test_gmac(const MunitParameter params[], void *user)
 									0x64, 0x2d, 0xcb, 0x98, 0x0f, 0x43, 0xa6, 0xe1, 0x4c, 0xe7, 0x9f, 0x2d, 0xab, 0x94, 0x01, 0xd7,
 									0x52, 0x84, 0x19 };
 
-	static const size_t key_pos = 0x69a0;
+	static const uint64_t key_pos = 0x69a0;
+	static const uint64_t key_pos_high = ((uint64_t)(1ull << 32)) + 0x420;
 
 	static const uint8_t gmac_expected[] = { 0x6f, 0x81, 0x10, 0x97 };
+	static const uint8_t gmac_expected_high[] = { 0x4a, 0x30, 0x98, 0x10 };
 
 	ChiakiGKCrypt gkcrypt;
-	memset(&gkcrypt, 0, sizeof(gkcrypt));
 
+	// Low
+	memset(&gkcrypt, 0, sizeof(gkcrypt));
 	memcpy(gkcrypt.key_gmac_current, gkcrypt_key, sizeof(gkcrypt.key_gmac_current));
 	memcpy(gkcrypt.iv, gkcrypt_iv, sizeof(gkcrypt.iv));
+
 	gkcrypt.key_buf = NULL;
 	gkcrypt.key_buf_size = 0;
 	gkcrypt.key_gmac_index_current = 0;
@@ -177,6 +215,21 @@ static MunitResult test_gmac(const MunitParameter params[], void *user)
 		return MUNIT_ERROR;
 
 	munit_assert_memory_equal(sizeof(gmac), gmac, gmac_expected);
+
+	// High
+	memset(&gkcrypt, 0, sizeof(gkcrypt));
+	memcpy(gkcrypt.key_gmac_current, gkcrypt_key, sizeof(gkcrypt.key_gmac_current));
+	memcpy(gkcrypt.iv, gkcrypt_iv, sizeof(gkcrypt.iv));
+
+	gkcrypt.key_buf = NULL;
+	gkcrypt.key_buf_size = 0;
+	gkcrypt.key_gmac_index_current = 0;
+
+	err = chiaki_gkcrypt_gmac(&gkcrypt, key_pos_high, buf, sizeof(buf), gmac);
+	if (err != CHIAKI_ERR_SUCCESS)
+		return MUNIT_ERROR;
+
+	munit_assert_memory_equal(sizeof(gmac), gmac, gmac_expected_high);
 
 	return MUNIT_OK;
 }
@@ -242,9 +295,11 @@ static MunitResult test_gmac_split(const MunitParameter params[], void *user)
 								   0xfa, 0x44, 0xc6, 0xd8, 0x19, 0x1, 0x8d, 0x41, 0x1f, 0xc7, 0xf, 0x89, 0x1d, 0xef, 0x34, 0x9a,
 								   0x68, 0x77, 0x8c };
 
-	static const size_t key_pos = 0xadf0;
+	static const uint64_t key_pos = 0xadf0;
+	static const uint64_t key_pos_high = ((uint64_t)(1ull << 32)) + 0x420;
 
 	static const uint8_t gmac_expected[] = { 0xd6, 0x6a, 0x07, 0xb7 };
+	static const uint8_t gmac_expected_high[] = { 0xf0, 0x17, 0x95, 0x3c };
 
 	ChiakiGKCrypt gkcrypt;
 	memset(&gkcrypt, 0, sizeof(gkcrypt));
@@ -261,6 +316,21 @@ static MunitResult test_gmac_split(const MunitParameter params[], void *user)
 		return MUNIT_ERROR;
 
 	munit_assert_memory_equal(sizeof(gmac), gmac, gmac_expected);
+
+	// High
+	memset(&gkcrypt, 0, sizeof(gkcrypt));
+
+	memcpy(gkcrypt.key_gmac_current, gkcrypt_key, sizeof(gkcrypt.key_gmac_current));
+	memcpy(gkcrypt.iv, gkcrypt_iv, sizeof(gkcrypt.iv));
+	gkcrypt.key_buf = NULL;
+	gkcrypt.key_buf_size = 0;
+	gkcrypt.key_gmac_index_current = 0;
+
+	err = chiaki_gkcrypt_gmac(&gkcrypt, key_pos_high, buf, sizeof(buf), gmac);
+	if (err != CHIAKI_ERR_SUCCESS)
+		return MUNIT_ERROR;
+
+	munit_assert_memory_equal(sizeof(gmac), gmac, gmac_expected_high);
 
 	return MUNIT_OK;
 }
@@ -290,7 +360,7 @@ static MunitResult test_gmac_multiple_of_key_refresh(const MunitParameter params
 									0xbe, 0xfd, 0xee };
 
 	static const uint8_t crypt_index = 3;
-	static const size_t key_pos = 0x6b1de0; // % CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS == 0
+	static const uint64_t key_pos = 0x6b1de0; // % CHIAKI_GKCRYPT_GMAC_KEY_REFRESH_KEY_POS == 0
 	static const uint8_t gmac_expected[] = { 0x20, 0xcc, 0xa5, 0xf1 };
 
 	ChiakiLog log;

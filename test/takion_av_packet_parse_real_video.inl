@@ -9,7 +9,9 @@ if(err != CHIAKI_ERR_SUCCESS)
 	return MUNIT_ERROR;
 
 
-// -- frame --
+// -- frame --	ChiakiKeyState key_state;
+ChiakiKeyState key_state;
+chiaki_key_state_init(&key_state);
 
 uint8_t packet_0[126]; size_t packet_0_size = sizeof(packet_0); if(chiaki_base64_decode("AgAAAAEAAAQBAwlCI7oAAACAA5gAhJT79yG83L9WhXCDP/h48VDjBL03cGscKH6DLQ3ZOzh007JcllEEIpTP3DbJwYAF5MGH2BwWJJTcbZATOGrzCznFMInIL7pWssSgxQBcf2q+u+vECFWQ5zvEQsq4RxQs3bre0DchyEMz", 168, packet_0, &packet_0_size) != CHIAKI_ERR_SUCCESS || packet_0_size != 126) return MUNIT_ERROR;
 uint8_t nalu_0[105]; size_t nalu_0_size = sizeof(nalu_0); if(chiaki_base64_decode("AAMAAAABZYiAhn8AL8gD/wh+/miASsv/rw5fm2PYQAAAAwAAAwAFIc42jXIHLchAAAe8A/i2oRmALiO8cB3sEzDosBxyZyFg4KK5rAXoBy0/2EfQAAADAAADAAADAAADAAADAAADAAJq", 140, nalu_0, &nalu_0_size) != CHIAKI_ERR_SUCCESS || nalu_0_size != 105) return MUNIT_ERROR;
@@ -17,7 +19,7 @@ uint8_t nalu_0[105]; size_t nalu_0_size = sizeof(nalu_0); if(chiaki_base64_decod
 
 ChiakiTakionAVPacket av_packet_0;
 memset(&av_packet_0, 0, sizeof(av_packet_0));
-chiaki_takion_v9_av_packet_parse(&av_packet_0, packet_0, sizeof(packet_0));
+chiaki_takion_v9_av_packet_parse(&av_packet_0, &key_state, packet_0, sizeof(packet_0));
 munit_assert(av_packet_0.is_video);
 munit_assert_size(av_packet_0.data_size, ==, sizeof(nalu_0));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_0.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_0.data, av_packet_0.data_size);
@@ -30,7 +32,7 @@ uint8_t nalu_1[108]; size_t nalu_1_size = sizeof(nalu_1); if(chiaki_base64_decod
 
 ChiakiTakionAVPacket av_packet_1;
 memset(&av_packet_1, 0, sizeof(av_packet_1));
-chiaki_takion_v9_av_packet_parse(&av_packet_1, packet_1, sizeof(packet_1));
+chiaki_takion_v9_av_packet_parse(&av_packet_1, &key_state, packet_1, sizeof(packet_1));
 munit_assert(av_packet_1.is_video);
 munit_assert_size(av_packet_1.data_size, ==, sizeof(nalu_1));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_1.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_1.data, av_packet_1.data_size);
@@ -43,7 +45,7 @@ uint8_t nalu_2[1400]; size_t nalu_2_size = sizeof(nalu_2); if(chiaki_base64_deco
 
 ChiakiTakionAVPacket av_packet_2;
 memset(&av_packet_2, 0, sizeof(av_packet_2));
-chiaki_takion_v9_av_packet_parse(&av_packet_2, packet_2, sizeof(packet_2));
+chiaki_takion_v9_av_packet_parse(&av_packet_2, &key_state, packet_2, sizeof(packet_2));
 munit_assert(av_packet_2.is_video);
 munit_assert_size(av_packet_2.data_size, ==, sizeof(nalu_2));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_2.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_2.data, av_packet_2.data_size);
@@ -56,7 +58,7 @@ uint8_t nalu_3[12]; size_t nalu_3_size = sizeof(nalu_3); if(chiaki_base64_decode
 
 ChiakiTakionAVPacket av_packet_3;
 memset(&av_packet_3, 0, sizeof(av_packet_3));
-chiaki_takion_v9_av_packet_parse(&av_packet_3, packet_3, sizeof(packet_3));
+chiaki_takion_v9_av_packet_parse(&av_packet_3, &key_state, packet_3, sizeof(packet_3));
 munit_assert(av_packet_3.is_video);
 munit_assert_size(av_packet_3.data_size, ==, sizeof(nalu_3));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_3.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_3.data, av_packet_3.data_size);
@@ -69,7 +71,7 @@ uint8_t nalu_4[1400]; size_t nalu_4_size = sizeof(nalu_4); if(chiaki_base64_deco
 
 ChiakiTakionAVPacket av_packet_4;
 memset(&av_packet_4, 0, sizeof(av_packet_4));
-chiaki_takion_v9_av_packet_parse(&av_packet_4, packet_4, sizeof(packet_4));
+chiaki_takion_v9_av_packet_parse(&av_packet_4, &key_state, packet_4, sizeof(packet_4));
 munit_assert(av_packet_4.is_video);
 munit_assert_size(av_packet_4.data_size, ==, sizeof(nalu_4));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_4.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_4.data, av_packet_4.data_size);
@@ -82,7 +84,7 @@ uint8_t nalu_5[139]; size_t nalu_5_size = sizeof(nalu_5); if(chiaki_base64_decod
 
 ChiakiTakionAVPacket av_packet_5;
 memset(&av_packet_5, 0, sizeof(av_packet_5));
-chiaki_takion_v9_av_packet_parse(&av_packet_5, packet_5, sizeof(packet_5));
+chiaki_takion_v9_av_packet_parse(&av_packet_5, &key_state, packet_5, sizeof(packet_5));
 munit_assert(av_packet_5.is_video);
 munit_assert_size(av_packet_5.data_size, ==, sizeof(nalu_5));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_5.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_5.data, av_packet_5.data_size);
@@ -95,7 +97,7 @@ uint8_t nalu_6[1339]; size_t nalu_6_size = sizeof(nalu_6); if(chiaki_base64_deco
 
 ChiakiTakionAVPacket av_packet_6;
 memset(&av_packet_6, 0, sizeof(av_packet_6));
-chiaki_takion_v9_av_packet_parse(&av_packet_6, packet_6, sizeof(packet_6));
+chiaki_takion_v9_av_packet_parse(&av_packet_6, &key_state, packet_6, sizeof(packet_6));
 munit_assert(av_packet_6.is_video);
 munit_assert_size(av_packet_6.data_size, ==, sizeof(nalu_6));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_6.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_6.data, av_packet_6.data_size);
@@ -108,7 +110,7 @@ uint8_t nalu_7[1400]; size_t nalu_7_size = sizeof(nalu_7); if(chiaki_base64_deco
 
 ChiakiTakionAVPacket av_packet_7;
 memset(&av_packet_7, 0, sizeof(av_packet_7));
-chiaki_takion_v9_av_packet_parse(&av_packet_7, packet_7, sizeof(packet_7));
+chiaki_takion_v9_av_packet_parse(&av_packet_7, &key_state, packet_7, sizeof(packet_7));
 munit_assert(av_packet_7.is_video);
 munit_assert_size(av_packet_7.data_size, ==, sizeof(nalu_7));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_7.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_7.data, av_packet_7.data_size);
@@ -121,7 +123,7 @@ uint8_t nalu_8[172]; size_t nalu_8_size = sizeof(nalu_8); if(chiaki_base64_decod
 
 ChiakiTakionAVPacket av_packet_8;
 memset(&av_packet_8, 0, sizeof(av_packet_8));
-chiaki_takion_v9_av_packet_parse(&av_packet_8, packet_8, sizeof(packet_8));
+chiaki_takion_v9_av_packet_parse(&av_packet_8, &key_state, packet_8, sizeof(packet_8));
 munit_assert(av_packet_8.is_video);
 munit_assert_size(av_packet_8.data_size, ==, sizeof(nalu_8));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_8.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_8.data, av_packet_8.data_size);
@@ -134,7 +136,7 @@ uint8_t nalu_9[1351]; size_t nalu_9_size = sizeof(nalu_9); if(chiaki_base64_deco
 
 ChiakiTakionAVPacket av_packet_9;
 memset(&av_packet_9, 0, sizeof(av_packet_9));
-chiaki_takion_v9_av_packet_parse(&av_packet_9, packet_9, sizeof(packet_9));
+chiaki_takion_v9_av_packet_parse(&av_packet_9, &key_state, packet_9, sizeof(packet_9));
 munit_assert(av_packet_9.is_video);
 munit_assert_size(av_packet_9.data_size, ==, sizeof(nalu_9));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_9.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_9.data, av_packet_9.data_size);
@@ -147,7 +149,7 @@ uint8_t nalu_10[1400]; size_t nalu_10_size = sizeof(nalu_10); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_10;
 memset(&av_packet_10, 0, sizeof(av_packet_10));
-chiaki_takion_v9_av_packet_parse(&av_packet_10, packet_10, sizeof(packet_10));
+chiaki_takion_v9_av_packet_parse(&av_packet_10, &key_state, packet_10, sizeof(packet_10));
 munit_assert(av_packet_10.is_video);
 munit_assert_size(av_packet_10.data_size, ==, sizeof(nalu_10));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_10.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_10.data, av_packet_10.data_size);
@@ -160,7 +162,7 @@ uint8_t nalu_11[11]; size_t nalu_11_size = sizeof(nalu_11); if(chiaki_base64_dec
 
 ChiakiTakionAVPacket av_packet_11;
 memset(&av_packet_11, 0, sizeof(av_packet_11));
-chiaki_takion_v9_av_packet_parse(&av_packet_11, packet_11, sizeof(packet_11));
+chiaki_takion_v9_av_packet_parse(&av_packet_11, &key_state, packet_11, sizeof(packet_11));
 munit_assert(av_packet_11.is_video);
 munit_assert_size(av_packet_11.data_size, ==, sizeof(nalu_11));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_11.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_11.data, av_packet_11.data_size);
@@ -173,7 +175,7 @@ uint8_t nalu_12[1400]; size_t nalu_12_size = sizeof(nalu_12); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_12;
 memset(&av_packet_12, 0, sizeof(av_packet_12));
-chiaki_takion_v9_av_packet_parse(&av_packet_12, packet_12, sizeof(packet_12));
+chiaki_takion_v9_av_packet_parse(&av_packet_12, &key_state, packet_12, sizeof(packet_12));
 munit_assert(av_packet_12.is_video);
 munit_assert_size(av_packet_12.data_size, ==, sizeof(nalu_12));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_12.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_12.data, av_packet_12.data_size);
@@ -186,7 +188,7 @@ uint8_t nalu_13[10]; size_t nalu_13_size = sizeof(nalu_13); if(chiaki_base64_dec
 
 ChiakiTakionAVPacket av_packet_13;
 memset(&av_packet_13, 0, sizeof(av_packet_13));
-chiaki_takion_v9_av_packet_parse(&av_packet_13, packet_13, sizeof(packet_13));
+chiaki_takion_v9_av_packet_parse(&av_packet_13, &key_state, packet_13, sizeof(packet_13));
 munit_assert(av_packet_13.is_video);
 munit_assert_size(av_packet_13.data_size, ==, sizeof(nalu_13));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_13.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_13.data, av_packet_13.data_size);
@@ -199,7 +201,7 @@ uint8_t nalu_14[1378]; size_t nalu_14_size = sizeof(nalu_14); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_14;
 memset(&av_packet_14, 0, sizeof(av_packet_14));
-chiaki_takion_v9_av_packet_parse(&av_packet_14, packet_14, sizeof(packet_14));
+chiaki_takion_v9_av_packet_parse(&av_packet_14, &key_state, packet_14, sizeof(packet_14));
 munit_assert(av_packet_14.is_video);
 munit_assert_size(av_packet_14.data_size, ==, sizeof(nalu_14));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_14.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_14.data, av_packet_14.data_size);
@@ -212,7 +214,7 @@ uint8_t nalu_15[1353]; size_t nalu_15_size = sizeof(nalu_15); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_15;
 memset(&av_packet_15, 0, sizeof(av_packet_15));
-chiaki_takion_v9_av_packet_parse(&av_packet_15, packet_15, sizeof(packet_15));
+chiaki_takion_v9_av_packet_parse(&av_packet_15, &key_state, packet_15, sizeof(packet_15));
 munit_assert(av_packet_15.is_video);
 munit_assert_size(av_packet_15.data_size, ==, sizeof(nalu_15));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_15.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_15.data, av_packet_15.data_size);
@@ -225,7 +227,7 @@ uint8_t nalu_16[1332]; size_t nalu_16_size = sizeof(nalu_16); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_16;
 memset(&av_packet_16, 0, sizeof(av_packet_16));
-chiaki_takion_v9_av_packet_parse(&av_packet_16, packet_16, sizeof(packet_16));
+chiaki_takion_v9_av_packet_parse(&av_packet_16, &key_state, packet_16, sizeof(packet_16));
 munit_assert(av_packet_16.is_video);
 munit_assert_size(av_packet_16.data_size, ==, sizeof(nalu_16));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_16.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_16.data, av_packet_16.data_size);
@@ -238,7 +240,7 @@ uint8_t nalu_17[1357]; size_t nalu_17_size = sizeof(nalu_17); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_17;
 memset(&av_packet_17, 0, sizeof(av_packet_17));
-chiaki_takion_v9_av_packet_parse(&av_packet_17, packet_17, sizeof(packet_17));
+chiaki_takion_v9_av_packet_parse(&av_packet_17, &key_state, packet_17, sizeof(packet_17));
 munit_assert(av_packet_17.is_video);
 munit_assert_size(av_packet_17.data_size, ==, sizeof(nalu_17));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_17.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_17.data, av_packet_17.data_size);
@@ -254,7 +256,7 @@ uint8_t nalu_18[575]; size_t nalu_18_size = sizeof(nalu_18); if(chiaki_base64_de
 
 ChiakiTakionAVPacket av_packet_18;
 memset(&av_packet_18, 0, sizeof(av_packet_18));
-chiaki_takion_v9_av_packet_parse(&av_packet_18, packet_18, sizeof(packet_18));
+chiaki_takion_v9_av_packet_parse(&av_packet_18, &key_state, packet_18, sizeof(packet_18));
 munit_assert(av_packet_18.is_video);
 munit_assert_size(av_packet_18.data_size, ==, sizeof(nalu_18));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_18.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_18.data, av_packet_18.data_size);
@@ -267,7 +269,7 @@ uint8_t nalu_19[1400]; size_t nalu_19_size = sizeof(nalu_19); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_19;
 memset(&av_packet_19, 0, sizeof(av_packet_19));
-chiaki_takion_v9_av_packet_parse(&av_packet_19, packet_19, sizeof(packet_19));
+chiaki_takion_v9_av_packet_parse(&av_packet_19, &key_state, packet_19, sizeof(packet_19));
 munit_assert(av_packet_19.is_video);
 munit_assert_size(av_packet_19.data_size, ==, sizeof(nalu_19));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_19.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_19.data, av_packet_19.data_size);
@@ -280,7 +282,7 @@ uint8_t nalu_20[1328]; size_t nalu_20_size = sizeof(nalu_20); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_20;
 memset(&av_packet_20, 0, sizeof(av_packet_20));
-chiaki_takion_v9_av_packet_parse(&av_packet_20, packet_20, sizeof(packet_20));
+chiaki_takion_v9_av_packet_parse(&av_packet_20, &key_state, packet_20, sizeof(packet_20));
 munit_assert(av_packet_20.is_video);
 munit_assert_size(av_packet_20.data_size, ==, sizeof(nalu_20));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_20.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_20.data, av_packet_20.data_size);
@@ -293,7 +295,7 @@ uint8_t nalu_21[1313]; size_t nalu_21_size = sizeof(nalu_21); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_21;
 memset(&av_packet_21, 0, sizeof(av_packet_21));
-chiaki_takion_v9_av_packet_parse(&av_packet_21, packet_21, sizeof(packet_21));
+chiaki_takion_v9_av_packet_parse(&av_packet_21, &key_state, packet_21, sizeof(packet_21));
 munit_assert(av_packet_21.is_video);
 munit_assert_size(av_packet_21.data_size, ==, sizeof(nalu_21));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_21.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_21.data, av_packet_21.data_size);
@@ -306,7 +308,7 @@ uint8_t nalu_22[1331]; size_t nalu_22_size = sizeof(nalu_22); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_22;
 memset(&av_packet_22, 0, sizeof(av_packet_22));
-chiaki_takion_v9_av_packet_parse(&av_packet_22, packet_22, sizeof(packet_22));
+chiaki_takion_v9_av_packet_parse(&av_packet_22, &key_state, packet_22, sizeof(packet_22));
 munit_assert(av_packet_22.is_video);
 munit_assert_size(av_packet_22.data_size, ==, sizeof(nalu_22));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_22.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_22.data, av_packet_22.data_size);
@@ -319,7 +321,7 @@ uint8_t nalu_23[1307]; size_t nalu_23_size = sizeof(nalu_23); if(chiaki_base64_d
 
 ChiakiTakionAVPacket av_packet_23;
 memset(&av_packet_23, 0, sizeof(av_packet_23));
-chiaki_takion_v9_av_packet_parse(&av_packet_23, packet_23, sizeof(packet_23));
+chiaki_takion_v9_av_packet_parse(&av_packet_23, &key_state, packet_23, sizeof(packet_23));
 munit_assert(av_packet_23.is_video);
 munit_assert_size(av_packet_23.data_size, ==, sizeof(nalu_23));
 chiaki_gkcrypt_decrypt(&gkcrypt, av_packet_23.key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, av_packet_23.data, av_packet_23.data_size);

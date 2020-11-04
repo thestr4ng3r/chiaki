@@ -16,6 +16,7 @@
 #include <pb_decode.h>
 #include <pb.h>
 #include <chiaki/takion.h>
+#include <chiaki/gkcrypt.h>
 
 #ifndef _WIN32
 #include <sys/types.h>
@@ -84,6 +85,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_init(ChiakiSenkusha *senkusha, Chi
 	senkusha->data_ack_seq_num_expected = 0;
 	senkusha->ping_tag = 0;
 	senkusha->pong_time_us = 0;
+
+	chiaki_key_state_init(&senkusha->takion.key_state);
 
 	return CHIAKI_ERR_SUCCESS;
 

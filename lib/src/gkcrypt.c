@@ -210,7 +210,7 @@ CHIAKI_EXPORT void chiaki_gkcrypt_gen_tmp_gmac_key(ChiakiGKCrypt *gkcrypt, uint6
 		memcpy(key_out, gkcrypt->key_gmac_base, sizeof(gkcrypt->key_gmac_base));
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcrypt, uint64_t key_pos, uint8_t *buf, size_t buf_size)
 {
 	assert(key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
 	assert(buf_size % CHIAKI_GKCRYPT_BLOCK_SIZE == 0);
@@ -276,7 +276,7 @@ static bool gkcrypt_key_buf_should_generate(ChiakiGKCrypt *gkcrypt)
 	return gkcrypt->last_key_pos > gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated / 2;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcrypt, uint64_t key_pos, uint8_t *buf, size_t buf_size)
 {
 	if(!gkcrypt->key_buf)
 		return chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf, buf_size);
@@ -291,7 +291,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcry
 	if(key_pos < gkcrypt->key_buf_key_pos_min
 		|| key_pos + buf_size >= gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated)
 	{
-		CHIAKI_LOGW(gkcrypt->log, "Requested key stream for key pos %#llx on GKCrypt %d, but it's not in the buffer", (int)key_pos, gkcrypt->index);
+		CHIAKI_LOGW(gkcrypt->log, "Requested key stream for key pos %#llx on GKCrypt %d, but it's not in the buffer:"
+				" key buf size %#llx, start offset: %#llx, populated: %#llx, min key pos: %#llx, last key pos: %#llx",
+				(unsigned long long)key_pos,
+				gkcrypt->index,
+				(unsigned long long)gkcrypt->key_buf_size,
+				(unsigned long long)gkcrypt->key_buf_start_offset,
+				(unsigned long long)gkcrypt->key_buf_populated,
+				(unsigned long long)gkcrypt->key_buf_key_pos_min,
+				(unsigned long long)gkcrypt->last_key_pos);
 		chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
 		err = chiaki_gkcrypt_gen_key_stream(gkcrypt, key_pos, buf, buf_size);
 	}
@@ -318,9 +326,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_get_key_stream(ChiakiGKCrypt *gkcry
 	return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, size_t key_pos, uint8_t *buf, size_t buf_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, uint64_t key_pos, uint8_t *buf, size_t buf_size)
 {
-	size_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
+	uint64_t padding_pre = key_pos % CHIAKI_GKCRYPT_BLOCK_SIZE;
 	size_t full_size = ((padding_pre + buf_size + CHIAKI_GKCRYPT_BLOCK_SIZE - 1) / CHIAKI_GKCRYPT_BLOCK_SIZE) * CHIAKI_GKCRYPT_BLOCK_SIZE;
 
 	uint8_t *key_stream = malloc(full_size);
@@ -340,7 +348,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_decrypt(ChiakiGKCrypt *gkcrypt, siz
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, size_t key_pos, const uint8_t *buf, size_t buf_size, uint8_t *gmac_out)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, uint64_t key_pos, const uint8_t *buf, size_t buf_size, uint8_t *gmac_out)
 {
 	uint8_t iv[CHIAKI_GKCRYPT_BLOCK_SIZE];
 	counter_add(iv, gkcrypt->iv, key_pos / 0x10);
@@ -463,7 +471,7 @@ static ChiakiErrorCode gkcrypt_generate_next_chunk(ChiakiGKCrypt *gkcrypt)
 {
 	assert(gkcrypt->key_buf_populated + KEY_BUF_CHUNK_SIZE <= gkcrypt->key_buf_size);
 	size_t buf_offset = (gkcrypt->key_buf_start_offset + gkcrypt->key_buf_populated) % gkcrypt->key_buf_size;
-	size_t key_pos = gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated;
+	uint64_t key_pos = gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated;
 	uint8_t *buf_start = gkcrypt->key_buf + buf_offset;
 
 	chiaki_mutex_unlock(&gkcrypt->key_buf_mutex);
@@ -505,7 +513,7 @@ static void *gkcrypt_thread_func(void *user)
 		if(gkcrypt->last_key_pos > gkcrypt->key_buf_key_pos_min + gkcrypt->key_buf_populated)
 		{
 			// skip ahead if the last key pos is already beyond our buffer
-			size_t key_pos = (gkcrypt->last_key_pos / KEY_BUF_CHUNK_SIZE) * KEY_BUF_CHUNK_SIZE;
+			uint64_t key_pos = (gkcrypt->last_key_pos / KEY_BUF_CHUNK_SIZE) * KEY_BUF_CHUNK_SIZE;
 			CHIAKI_LOGW(gkcrypt->log, "Already requested a higher key pos than in the buffer, skipping ahead from min %#llx to %#llx",
 						(unsigned long long)gkcrypt->key_buf_key_pos_min,
 						(unsigned long long)key_pos);
@@ -533,7 +541,7 @@ CHIAKI_EXPORT void chiaki_key_state_init(ChiakiKeyState *state)
 	state->prev = 0;
 }
 
-CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low)
+CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint32_t low, bool commit)
 {
 	uint32_t prev_low = (uint32_t)state->prev;
 	uint32_t high = (uint32_t)(state->prev >> 32);
@@ -541,5 +549,13 @@ CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint3
 		high++;
 	else if(chiaki_seq_num_32_lt(low, prev_low) && low > prev_low && high)
 		high--;
-	return state->prev = (((uint64_t)high) << 32) | ((uint64_t)low);
+	uint64_t res = (((uint64_t)high) << 32) | ((uint64_t)low);
+	if(commit)
+		state->prev = res;
+	return res;
+}
+
+CHIAKI_EXPORT void chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev)
+{
+	state->prev = prev;
 }
