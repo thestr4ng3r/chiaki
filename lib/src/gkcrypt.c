@@ -555,7 +555,7 @@ CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint3
 	return res;
 }
 
-CHIAKI_EXPORT uint64_t chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev)
+CHIAKI_EXPORT void chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev)
 {
 	state->prev = prev;
 }

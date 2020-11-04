@@ -96,7 +96,7 @@ CHIAKI_EXPORT uint64_t chiaki_key_state_request_pos(ChiakiKeyState *state, uint3
 /**
  * Update the internal state after knowing that this key_pos is authentic.
  */
-CHIAKI_EXPORT uint64_t chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev);
+CHIAKI_EXPORT void chiaki_key_state_commit(ChiakiKeyState *state, uint64_t prev);
 
 #ifdef __cplusplus
 }
