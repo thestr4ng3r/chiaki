@@ -822,3 +822,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session)
 {
 	return chiaki_ctrl_goto_bed(&session->ctrl);
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text)
+{
+	return chiaki_ctrl_keyboard_set_text(&session->ctrl, text);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *session)
+{
+	return chiaki_ctrl_keyboard_reject(&session->ctrl);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session)
+{
+	return chiaki_ctrl_keyboard_accept(&session->ctrl);
+}

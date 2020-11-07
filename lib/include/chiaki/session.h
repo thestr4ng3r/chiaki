@@ -102,6 +102,11 @@ typedef struct chiaki_quit_event_t
 	const char *reason_str;
 } ChiakiQuitEvent;
 
+typedef struct chiaki_keyboard_event_t
+{
+	const char *text_str;
+} ChiakiKeyboardEvent;
+
 typedef struct chiaki_audio_stream_info_event_t
 {
 	ChiakiAudioHeader audio_header;
@@ -111,7 +116,10 @@ typedef struct chiaki_audio_stream_info_event_t
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
-	CHIAKI_EVENT_QUIT
+	CHIAKI_EVENT_KEYBOARD_OPEN,
+	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
+	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
+	CHIAKI_EVENT_QUIT,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t
@@ -120,6 +128,7 @@ typedef struct chiaki_event_t
 	union
 	{
 		ChiakiQuitEvent quit;
+		ChiakiKeyboardEvent keyboard;
 		struct
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
@@ -202,6 +211,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session);
 
 static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
 {

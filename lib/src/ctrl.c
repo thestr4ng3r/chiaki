@@ -36,7 +36,13 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REQ = 0x4,
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REP = 0x8004,
 	CTRL_MESSAGE_TYPE_LOGIN = 0x5,
-	CTRL_MESSAGE_TYPE_GOTO_BED = 0x50
+	CTRL_MESSAGE_TYPE_GOTO_BED = 0x50,
+	CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE = 0x20,
+	CTRL_MESSAGE_TYPE_KEYBOARD_OPEN = 0x21,
+	CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REMOTE = 0x22,
+	CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ = 0x23,
+	CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_RES = 0x24,
+	CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ = 0x25,
 } CtrlMessageType;
 
 typedef enum ctrl_login_state_t {
@@ -52,12 +58,44 @@ struct chiaki_ctrl_message_queue_t
 	size_t payload_size;
 };
 
+typedef struct ctrl_keyboard_open_t
+{
+	uint8_t unk[0x1C];
+	uint32_t text_length;
+} CtrlKeyboardOpenMessage;
+
+typedef struct ctrl_keyboard_text_request_t
+{
+	uint32_t counter;
+	uint32_t text_length1;
+	uint8_t unk1[0x8];
+	uint8_t unk2[0x10];
+	uint32_t text_length2;
+} CtrlKeyboardTextRequestMessage;
+
+typedef struct ctrl_keyboard_text_response_t
+{
+	uint32_t counter;
+	uint32_t unk;
+	uint32_t text_length1;
+	uint32_t unk2;
+	uint8_t unk3[0x10];
+	uint32_t unk4;
+	uint32_t text_length2;
+} CtrlKeyboardTextResponseMessage;
+
+void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
+
 static void *ctrl_thread_func(void *user);
 static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
+static void ctrl_enable_optional_features(ChiakiCtrl *ctrl);
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
@@ -69,6 +107,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->login_pin = NULL;
 	ctrl->login_pin_size = 0;
 	ctrl->msg_queue = NULL;
+	ctrl->keyboard_text_counter = 0;
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -137,6 +176,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_send_message(ChiakiCtrl *ctrl, uint16_
 			free(queue);
 			return CHIAKI_ERR_MEMORY;
 		}
+		memcpy(queue->payload, payload, payload_size);
 		queue->payload_size = payload_size;
 	}
 	else
@@ -180,6 +220,41 @@ CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pi
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl)
 {
 	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_GOTO_BED, NULL, 0);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, const char *text)
+{
+	const uint32_t length = strlen(text);
+	const size_t payload_size = sizeof(CtrlKeyboardTextRequestMessage) + length;
+
+	uint8_t *payload = malloc(payload_size);
+	if(!payload)
+		return CHIAKI_ERR_MEMORY;
+	memset(payload, 0, payload_size);
+	memcpy(payload + sizeof(CtrlKeyboardTextRequestMessage), text, length);
+
+	CtrlKeyboardTextRequestMessage *msg = (CtrlKeyboardTextRequestMessage *)payload;
+	msg->counter = ntohl(++ctrl->keyboard_text_counter);
+	msg->text_length1 = ntohl(length);
+	msg->text_length2 = ntohl(length);
+
+	ChiakiErrorCode err;
+	err = chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ, payload, payload_size);
+
+	free(payload);
+	return err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl)
+{
+	const uint8_t accept[4] = { 0x00, 0x00, 0x00, 0x00 };
+	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, accept, 4);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl)
+{
+	const uint8_t reject[4] = { 0x00, 0x00, 0x00, 0x01 };
+	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, reject, 4);
 }
 
 static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl);
@@ -248,6 +323,8 @@ static void *ctrl_thread_func(void *user)
 		chiaki_mutex_unlock(&ctrl->notif_mutex);
 		err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, false, UINT64_MAX);
 		chiaki_mutex_lock(&ctrl->notif_mutex);
+
+		bool msg_queue_updated = false;
 		if(err == CHIAKI_ERR_CANCELED)
 		{
 			while(ctrl->msg_queue)
@@ -256,6 +333,7 @@ static void *ctrl_thread_func(void *user)
 				ChiakiCtrlMessageQueue *next = ctrl->msg_queue->next;
 				ctrl_message_queue_free(ctrl->msg_queue);
 				ctrl->msg_queue = next;
+				msg_queue_updated = true;
 			}
 
 			if(ctrl->login_pin_entered)
@@ -275,6 +353,9 @@ static void *ctrl_thread_func(void *user)
 				CHIAKI_LOGI(ctrl->session->log, "Ctrl requested to stop");
 				break;
 			}
+
+			if(msg_queue_updated)
+				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
 
 			continue;
 		}
@@ -378,6 +459,7 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 	{
 		case CTRL_MESSAGE_TYPE_SESSION_ID:
 			ctrl_message_received_session_id(ctrl, payload, payload_size);
+			ctrl_enable_optional_features(ctrl);
 			break;
 		case CTRL_MESSAGE_TYPE_HEARTBEAT_REQ:
 			ctrl_message_received_heartbeat_req(ctrl, payload, payload_size);
@@ -388,11 +470,34 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 		case CTRL_MESSAGE_TYPE_LOGIN:
 			ctrl_message_received_login(ctrl, payload, payload_size);
 			break;
-		default:
+		case CTRL_MESSAGE_TYPE_KEYBOARD_OPEN:
+			ctrl_message_received_keyboard_open(ctrl, payload, payload_size);
+			break;
+		case CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_RES:
+			ctrl_message_received_keyboard_text_change(ctrl, payload, payload_size);
+			break;
+		case CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REMOTE:
+			ctrl_message_received_keyboard_close(ctrl, payload, payload_size);
+			break;
+      default:
 			CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
 			chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_WARNING, payload, payload_size);
 			break;
 	}
+}
+
+static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
+{
+	// TODO: Make this optional.
+	// TODO: Last byte of pre_enable request is random (?)
+	// TODO: Signature ?!
+	uint8_t enable = 1;
+	uint8_t pre_enable[4] = { 0x00, 0x01, 0x01, 0x80 };
+	uint8_t signature[0x10] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x05, 0xAE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	ctrl_message_send(ctrl, 0xD, signature, 0x10);
+	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
+	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE, &enable, 1);
+	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
 }
 
 
@@ -511,6 +616,64 @@ static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size
 	}
 }
 
+static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	assert(payload_size >= sizeof(CtrlKeyboardOpenMessage));
+
+	CtrlKeyboardOpenMessage *msg = (CtrlKeyboardOpenMessage *)payload;
+	msg->text_length = ntohl(msg->text_length);
+	assert(payload_size == sizeof(CtrlKeyboardOpenMessage) + msg->text_length);
+
+	uint8_t *buffer = msg->text_length > 0 ? malloc((size_t)msg->text_length + 1) : NULL;
+	if(buffer)
+	{
+		buffer[msg->text_length] = '\0';
+		memcpy(buffer, payload + sizeof(CtrlKeyboardOpenMessage), msg->text_length);
+	}
+
+	ChiakiEvent keyboard_event;
+	keyboard_event.type = CHIAKI_EVENT_KEYBOARD_OPEN;
+	keyboard_event.keyboard.text_str = (const char *)buffer;
+	chiaki_session_send_event(ctrl->session, &keyboard_event);
+
+	if(buffer)
+		free(buffer);
+}
+
+static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	(void)payload;
+	(void)payload_size;
+
+	ChiakiEvent keyboard_event;
+	keyboard_event.type = CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE;
+	keyboard_event.keyboard.text_str = NULL;
+	chiaki_session_send_event(ctrl->session, &keyboard_event);
+}
+
+static void ctrl_message_received_keyboard_text_change(ChiakiCtrl* ctrl, uint8_t* payload, size_t payload_size)
+{
+	assert(payload_size >= sizeof(CtrlKeyboardTextResponseMessage));
+
+	CtrlKeyboardTextResponseMessage *msg = (CtrlKeyboardTextResponseMessage *)payload;
+	msg->text_length1 = ntohl(msg->text_length1);
+	assert(payload_size == sizeof(CtrlKeyboardTextResponseMessage) + msg->text_length1);
+
+	uint8_t *buffer = msg->text_length1 > 0 ? malloc((size_t)msg->text_length1 + 1) : NULL;
+	if(buffer)
+	{
+		buffer[msg->text_length1] = '\0';
+		memcpy(buffer, payload + sizeof(CtrlKeyboardTextResponseMessage), msg->text_length1);
+	}
+
+	ChiakiEvent keyboard_event;
+	keyboard_event.type = CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE;
+	keyboard_event.keyboard.text_str = (const char *)buffer;
+	chiaki_session_send_event(ctrl->session, &keyboard_event);
+
+	if(buffer)
+		free(buffer);
+}
 
 typedef struct ctrl_response_t {
 	bool server_type_valid;
