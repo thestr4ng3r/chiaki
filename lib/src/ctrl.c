@@ -228,35 +228,33 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, co
 	const size_t payload_size = sizeof(CtrlKeyboardTextRequestMessage) + length;
 
 	uint8_t *payload = malloc(payload_size);
-	if (payload)
-	{
-		memset(payload, 0, payload_size);
-		memcpy(payload + sizeof(CtrlKeyboardTextRequestMessage), text, length);
+	if(!payload)
+		return CHIAKI_ERR_MEMORY;
+	memset(payload, 0, payload_size);
+	memcpy(payload + sizeof(CtrlKeyboardTextRequestMessage), text, length);
 
-		CtrlKeyboardTextRequestMessage *msg = (CtrlKeyboardTextRequestMessage *)payload;
-		msg->counter = ntohl(++ctrl->keyboard_text_counter);
-		msg->text_length1 = ntohl(length);
-		msg->text_length2 = ntohl(length);
+	CtrlKeyboardTextRequestMessage *msg = (CtrlKeyboardTextRequestMessage *)payload;
+	msg->counter = ntohl(++ctrl->keyboard_text_counter);
+	msg->text_length1 = ntohl(length);
+	msg->text_length2 = ntohl(length);
 
-		ChiakiErrorCode err;
-		err = chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ, payload, payload_size);
+	ChiakiErrorCode err;
+	err = chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ, payload, payload_size);
 
-		free(payload);
-		return err;
-	}
-	return CHIAKI_ERR_MEMORY;
+	free(payload);
+	return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl)
 {
-	uint8_t accept[4] = { 0x00, 0x00, 0x00, 0x00 };
-	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, &accept, 4);
+	const uint8_t accept[4] = { 0x00, 0x00, 0x00, 0x00 };
+	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, accept, 4);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl)
 {
-	uint8_t reject[4] = { 0x00, 0x00, 0x00, 0x01 };
-	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, &reject, 4);
+	const uint8_t reject[4] = { 0x00, 0x00, 0x00, 0x01 };
+	return chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ, reject, 4);
 }
 
 static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl);
@@ -356,10 +354,8 @@ static void *ctrl_thread_func(void *user)
 				break;
 			}
 
-			if (msg_queue_updated)
-			{
+			if(msg_queue_updated)
 				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
-			}
 
 			continue;
 		}
@@ -498,10 +494,10 @@ static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
 	uint8_t enable = 1;
 	uint8_t pre_enable[4] = { 0x00, 0x01, 0x01, 0x80 };
 	uint8_t signature[0x10] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x05, 0xAE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	ctrl_message_send(ctrl, 0xD, &signature, 0x10);
-	ctrl_message_send(ctrl, 0x36, &pre_enable, 4);
+	ctrl_message_send(ctrl, 0xD, signature, 0x10);
+	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
 	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE, &enable, 1);
-	ctrl_message_send(ctrl, 0x36, &pre_enable, 4);
+	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
 }
 
 
@@ -629,7 +625,7 @@ static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *paylo
 	assert(payload_size == sizeof(CtrlKeyboardOpenMessage) + msg->text_length);
 
 	uint8_t *buffer = msg->text_length > 0 ? malloc((size_t)msg->text_length + 1) : NULL;
-	if (buffer)
+	if(buffer)
 	{
 		buffer[msg->text_length] = '\0';
 		memcpy(buffer, payload + sizeof(CtrlKeyboardOpenMessage), msg->text_length);
@@ -640,10 +636,8 @@ static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *paylo
 	keyboard_event.keyboard.text_str = (const char *)buffer;
 	chiaki_session_send_event(ctrl->session, &keyboard_event);
 
-	if (buffer)
-	{
+	if(buffer)
 		free(buffer);
-	}
 }
 
 static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
@@ -666,7 +660,7 @@ static void ctrl_message_received_keyboard_text_change(ChiakiCtrl* ctrl, uint8_t
 	assert(payload_size == sizeof(CtrlKeyboardTextResponseMessage) + msg->text_length1);
 
 	uint8_t *buffer = msg->text_length1 > 0 ? malloc((size_t)msg->text_length1 + 1) : NULL;
-	if (buffer)
+	if(buffer)
 	{
 		buffer[msg->text_length1] = '\0';
 		memcpy(buffer, payload + sizeof(CtrlKeyboardTextResponseMessage), msg->text_length1);
@@ -677,10 +671,8 @@ static void ctrl_message_received_keyboard_text_change(ChiakiCtrl* ctrl, uint8_t
 	keyboard_event.keyboard.text_str = (const char *)buffer;
 	chiaki_session_send_event(ctrl->session, &keyboard_event);
 
-	if (buffer)
-	{
+	if(buffer)
 		free(buffer);
-	}
 }
 
 typedef struct ctrl_response_t {
