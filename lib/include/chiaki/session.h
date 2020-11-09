@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_SESSION_H
 #define CHIAKI_SESSION_H
@@ -43,22 +28,16 @@ extern "C" {
 #define CHIAKI_RP_APPLICATION_REASON_IN_USE				0x80108b10
 #define CHIAKI_RP_APPLICATION_REASON_CRASH				0x80108b15
 #define CHIAKI_RP_APPLICATION_REASON_RP_VERSION			0x80108b11
-// unknown: 0x80108bff
+#define CHIAKI_RP_APPLICATION_REASON_UNKNOWN			0x80108bff
 
 CHIAKI_EXPORT const char *chiaki_rp_application_reason_string(uint32_t reason);
-
-typedef enum {
-	CHIAKI_RP_VERSION_UNKNOWN = 0,
-	CHIAKI_RP_VERSION_8_0 = 800,
-	CHIAKI_RP_VERSION_9_0 = 900
-} ChiakiRpVersion;
 
 /**
  * @return RP-Version string or NULL
  */
-CHIAKI_EXPORT const char *chiaki_rp_version_string(ChiakiRpVersion version);
+CHIAKI_EXPORT const char *chiaki_rp_version_string(ChiakiTarget target);
 
-CHIAKI_EXPORT ChiakiRpVersion chiaki_rp_version_parse(const char *rp_version_str);
+CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str);
 
 
 #define CHIAKI_RP_DID_SIZE 32
@@ -123,6 +102,11 @@ typedef struct chiaki_quit_event_t
 	const char *reason_str;
 } ChiakiQuitEvent;
 
+typedef struct chiaki_keyboard_event_t
+{
+	const char *text_str;
+} ChiakiKeyboardEvent;
+
 typedef struct chiaki_audio_stream_info_event_t
 {
 	ChiakiAudioHeader audio_header;
@@ -132,7 +116,10 @@ typedef struct chiaki_audio_stream_info_event_t
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
-	CHIAKI_EVENT_QUIT
+	CHIAKI_EVENT_KEYBOARD_OPEN,
+	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
+	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
+	CHIAKI_EVENT_QUIT,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t
@@ -141,6 +128,7 @@ typedef struct chiaki_event_t
 	union
 	{
 		ChiakiQuitEvent quit;
+		ChiakiKeyboardEvent keyboard;
 		struct
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
@@ -171,7 +159,7 @@ typedef struct chiaki_session_t
 		ChiakiConnectVideoProfile video_profile;
 	} connect_info;
 
-	ChiakiRpVersion rp_version;
+	ChiakiTarget target;
 
 	uint8_t nonce[CHIAKI_RPCRYPT_KEY_SIZE];
 	ChiakiRPCrypt rpcrypt;
@@ -222,6 +210,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session);
 
 static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
 {

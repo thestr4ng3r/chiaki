@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <munit.h>
 
@@ -34,17 +19,20 @@ typedef struct fec_test_case_t
 static MunitResult test_fec_case(FECTestCase *test_case)
 {
 	size_t b64len = strlen(test_case->frame_buffer_b64);
-	size_t frame_buffer_size = b64len;
-
-	uint8_t *frame_buffer_ref = malloc(frame_buffer_size);
+	uint8_t *frame_buffer_ref = malloc(b64len);
 	munit_assert_not_null(frame_buffer_ref);
+
+	size_t stride = ((test_case->unit_size + 0xf) / 0x10) * 0x10;
+	size_t frame_buffer_size = stride * (test_case->k + test_case->m);
 	uint8_t *frame_buffer = malloc(frame_buffer_size);
 	munit_assert_not_null(frame_buffer);
 
-	ChiakiErrorCode err = chiaki_base64_decode(test_case->frame_buffer_b64, b64len, frame_buffer_ref, &frame_buffer_size);
+	ChiakiErrorCode err = chiaki_base64_decode(test_case->frame_buffer_b64, b64len, frame_buffer_ref, &b64len);
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
-	munit_assert_size(frame_buffer_size, ==, test_case->unit_size * (test_case->k + test_case->m));
-	memcpy(frame_buffer, frame_buffer_ref, frame_buffer_size);
+	munit_assert_size(b64len, ==, test_case->unit_size * (test_case->k + test_case->m));
+
+	for(size_t i=0; i<test_case->k + test_case->m; i++)
+		memcpy(frame_buffer + i * stride, frame_buffer_ref + i * test_case->unit_size, test_case->unit_size);
 
 	size_t erasures_count = 0;
 	for(const int *e = test_case->erasures; *e >= 0; e++, erasures_count++);
@@ -54,13 +42,14 @@ static MunitResult test_fec_case(FECTestCase *test_case)
 	{
 		unsigned int e = test_case->erasures[i];
 		munit_assert_uint(e, <, test_case->k + test_case->m);
-		memset(frame_buffer + test_case->unit_size * e, 0x42, test_case->unit_size);
+		memset(frame_buffer + stride * e, 0x42, test_case->unit_size);
 	}
 
-	err = chiaki_fec_decode(frame_buffer, test_case->unit_size, test_case->k, test_case->m, (const unsigned int *)test_case->erasures, erasures_count);
+	err = chiaki_fec_decode(frame_buffer, test_case->unit_size, stride, test_case->k, test_case->m, (const unsigned int *)test_case->erasures, erasures_count);
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
 
-	munit_assert_memory_equal(test_case->k * test_case->unit_size, frame_buffer, frame_buffer_ref);
+	for(size_t i=0; i<test_case->k; i++)
+		munit_assert_memory_equal(test_case->unit_size, frame_buffer + i * stride, frame_buffer_ref + i * test_case->unit_size);
 
 	free(frame_buffer);
 	free(frame_buffer_ref);

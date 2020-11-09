@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_FRAMEPROCESSOR_H
 #define CHIAKI_FRAMEPROCESSOR_H
@@ -37,6 +22,7 @@ typedef struct chiaki_frame_processor_t
 	uint8_t *frame_buf;
 	size_t frame_buf_size;
 	size_t buf_size_per_unit;
+	size_t buf_stride_per_unit;
 	unsigned int units_source_expected;
 	unsigned int units_fec_expected;
 	unsigned int units_source_received;

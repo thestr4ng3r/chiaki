@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <chiaki/audioreceiver.h>
 #include <chiaki/senkusha.h>
@@ -46,7 +31,7 @@
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
 static void *session_thread_func(void *arg);
-static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersion *server_version_out);
+static bool session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out);
 
 const char *chiaki_rp_application_reason_string(uint32_t reason)
 {
@@ -67,26 +52,30 @@ const char *chiaki_rp_application_reason_string(uint32_t reason)
 	}
 }
 
-const char *chiaki_rp_version_string(ChiakiRpVersion version)
+const char *chiaki_rp_version_string(ChiakiTarget version)
 {
 	switch(version)
 	{
-		case CHIAKI_RP_VERSION_8_0:
+		case CHIAKI_TARGET_PS4_8:
 			return "8.0";
-		case CHIAKI_RP_VERSION_9_0:
+		case CHIAKI_TARGET_PS4_9:
 			return "9.0";
+		case CHIAKI_TARGET_PS4_10:
+			return "10.0";
 		default:
 			return NULL;
 	}
 }
 
-CHIAKI_EXPORT ChiakiRpVersion chiaki_rp_version_parse(const char *rp_version_str)
+CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str)
 {
 	if(strcmp(rp_version_str, "8.0") == 0)
-		return CHIAKI_RP_VERSION_8_0;
+		return CHIAKI_TARGET_PS4_8;
 	if(strcmp(rp_version_str, "9.0") == 0)
-		return CHIAKI_RP_VERSION_9_0;
-	return CHIAKI_RP_VERSION_UNKNOWN;
+		return CHIAKI_TARGET_PS4_9;
+	if(strcmp(rp_version_str, "10.0") == 0)
+		return CHIAKI_TARGET_PS4_10;
+	return CHIAKI_TARGET_PS4_UNKNOWN;
 }
 
 CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps)
@@ -166,15 +155,13 @@ CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason)
 	}
 }
 
-
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log)
 {
 	memset(session, 0, sizeof(ChiakiSession));
 
 	session->log = log;
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-	session->rp_version = CHIAKI_RP_VERSION_9_0;
+	session->target = CHIAKI_TARGET_PS4_10;
 
 	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -195,11 +182,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->login_pin = NULL;
 	session->login_pin_size = 0;
 
+	err = chiaki_ctrl_init(&session->ctrl, session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl init failed");
+		goto error_stop_pipe;
+	}
+
 	err = chiaki_stream_connection_init(&session->stream_connection, session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection init failed");
-		goto error_stop_pipe;
+		goto error_ctrl;
 	}
 
 	int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
@@ -225,6 +219,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	return CHIAKI_ERR_SUCCESS;
 error_stop_pipe:
 	chiaki_stop_pipe_fini(&session->stop_pipe);
+error_ctrl:
+	chiaki_ctrl_fini(&session->ctrl);
 error_state_mutex:
 	chiaki_mutex_fini(&session->state_mutex);
 error_state_cond:
@@ -240,6 +236,7 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	free(session->login_pin);
 	free(session->quit_reason_str);
 	chiaki_stream_connection_fini(&session->stream_connection);
+	chiaki_ctrl_fini(&session->ctrl);
 	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
 	chiaki_mutex_fini(&session->state_mutex);
@@ -337,14 +334,6 @@ static bool session_check_state_pred_pin(void *user)
 		   || session->login_pin_entered;
 }
 
-static bool session_check_state_pred_session_id(void *user)
-{
-	ChiakiSession *session = user;
-	return session->should_stop
-		   || session->ctrl_failed
-		   || session->ctrl_session_id_received;
-}
-
 #define ENABLE_SENKUSHA
 
 static void *session_thread_func(void *arg)
@@ -369,13 +358,20 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting session request");
 
-	ChiakiRpVersion server_rp_version = CHIAKI_RP_VERSION_UNKNOWN;
-	success = session_thread_request_session(session, &server_rp_version);
+	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
+	success = session_thread_request_session(session, &server_target);
 
-	if(!success && server_rp_version != CHIAKI_RP_VERSION_UNKNOWN)
+	if(!success && server_target != CHIAKI_TARGET_PS4_UNKNOWN)
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session with Server's RP-Version");
-		session->rp_version = server_rp_version;
+		session->target = server_target;
+		success = session_thread_request_session(session, &server_target);
+	}
+
+	if(!success && server_target != CHIAKI_TARGET_PS4_UNKNOWN)
+	{
+		CHIAKI_LOGI(session->log, "Attempting to re-request session even harder with Server's RP-Version!!!");
+		session->target = server_target;
 		success = session_thread_request_session(session, NULL);
 	}
 
@@ -384,14 +380,14 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Session request successful");
 
-	chiaki_rpcrypt_init_auth(&session->rpcrypt, session->nonce, session->connect_info.morning);
+	chiaki_rpcrypt_init_auth(&session->rpcrypt, session->target, session->nonce, session->connect_info.morning);
 
 	// PS4 doesn't always react right away, sleep a bit
 	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10, session_check_state_pred, session);
 
 	CHIAKI_LOGI(session->log, "Starting ctrl");
 
-	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl, session);
+	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
@@ -584,9 +580,9 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
 
 
 /**
- * @param server_version_out if NULL, version mismatch means to fail the entire session, otherwise report the version here
+ * @param target_out if NULL, version mismatch means to fail the entire session, otherwise report the target here
  */
-static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersion *server_version_out)
+static bool session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out)
 {
 	chiaki_socket_t session_sock = CHIAKI_INVALID_SOCKET;
 	for(struct addrinfo *ai=session->connect_info.host_addrinfos; ai; ai=ai->ai_next)
@@ -676,7 +672,7 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
 
 	static const char session_request_fmt[] =
-			"GET /sce/rp/session HTTP/1.1\r\n"
+			"GET %s HTTP/1.1\r\n"
 			"Host: %s:%d\r\n"
 			"User-Agent: remoteplay Windows\r\n"
 			"Connection: close\r\n"
@@ -684,6 +680,9 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 			"RP-Registkey: %s\r\n"
 			"Rp-Version: %s\r\n"
 			"\r\n";
+	const char *path = (session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
+		? "/sce/rp/session"
+		: "/sie/ps4/rp/sess/init";
 
 	size_t regist_key_len = sizeof(session->connect_info.regist_key);
 	for(size_t i=0; i<regist_key_len; i++)
@@ -703,11 +702,11 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 		return false;
 	}
 
-	const char *rp_version_str = chiaki_rp_version_string(session->rp_version);
+	const char *rp_version_str = chiaki_rp_version_string(session->target);
 
 	char buf[512];
 	int request_len = snprintf(buf, sizeof(buf), session_request_fmt,
-							   session->connect_info.hostname, SESSION_PORT, regist_key_hex, rp_version_str ? rp_version_str : "");
+			path, session->connect_info.hostname, SESSION_PORT, regist_key_hex, rp_version_str ? rp_version_str : "");
 	if(request_len < 0 || request_len >= sizeof(buf))
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
@@ -774,12 +773,20 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
 	}
-	else if(response.error_code == CHIAKI_RP_APPLICATION_REASON_RP_VERSION && server_version_out && response.rp_version)
+	else if((response.error_code == CHIAKI_RP_APPLICATION_REASON_RP_VERSION
+				|| response.error_code == CHIAKI_RP_APPLICATION_REASON_UNKNOWN)
+			&& target_out && response.rp_version && strcmp(rp_version_str, response.rp_version))
 	{
-		CHIAKI_LOGI(session->log, "Reported RP-Version mismatch. ours = %s, server = %s", rp_version_str ? rp_version_str : "", response.rp_version);
-		*server_version_out = chiaki_rp_version_parse(response.rp_version);
-		if(*server_version_out != CHIAKI_RP_VERSION_UNKNOWN)
-			CHIAKI_LOGI(session->log, "Detected Server RP-Version %s", chiaki_rp_version_string(*server_version_out));
+		CHIAKI_LOGI(session->log, "Reported RP-Version mismatch. ours = %s, server = %s",
+				rp_version_str ? rp_version_str : "", response.rp_version);
+		*target_out = chiaki_rp_version_parse(response.rp_version);
+		if(*target_out != CHIAKI_TARGET_PS4_UNKNOWN)
+			CHIAKI_LOGI(session->log, "Detected Server RP-Version %s", chiaki_rp_version_string(*target_out));
+		else if(!strcmp(response.rp_version, "5.0"))
+		{
+			CHIAKI_LOGI(session->log, "Reported Server RP-Version is 5.0. This is probably nonsense, let's try with 9.0");
+			*target_out = CHIAKI_TARGET_PS4_9;
+		}
 		else
 		{
 			CHIAKI_LOGE(session->log, "Server RP-Version is unknown");
@@ -809,4 +816,24 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiRpVersi
 	chiaki_http_response_fini(&http_response);
 	CHIAKI_SOCKET_CLOSE(session_sock);
 	return response.success;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session)
+{
+	return chiaki_ctrl_goto_bed(&session->ctrl);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text)
+{
+	return chiaki_ctrl_keyboard_set_text(&session->ctrl, text);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *session)
+{
+	return chiaki_ctrl_keyboard_reject(&session->ctrl);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session)
+{
+	return chiaki_ctrl_keyboard_accept(&session->ctrl);
 }

@@ -1,33 +1,23 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 package com.metallic.chiaki.settings
 
+import android.app.Activity
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.text.InputType
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.Preferences
-import com.metallic.chiaki.common.ext.toLiveData
+import com.metallic.chiaki.common.exportAndShareAllSettings
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.common.importSettingsFromUri
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 
 class DataStore(val preferences: Preferences): PreferenceDataStore()
 {
@@ -76,12 +66,19 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 
 class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 {
+	companion object
+	{
+		private const val PICK_SETTINGS_JSON_REQUEST = 1
+	}
+
+	private var disposable = CompositeDisposable()
+	private var exportDisposable = CompositeDisposable().also { it.addTo(disposable) }
+
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
 		val context = context ?: return
 
-		val viewModel = ViewModelProviders
-			.of(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
+		val viewModel = ViewModelProvider(this, viewModelFactory { SettingsViewModel(getDatabase(context), Preferences(context)) })
 			.get(SettingsViewModel::class.java)
 
 		val preferences = viewModel.preferences
@@ -118,7 +115,43 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		viewModel.registeredHostsCount.observe(this, Observer {
 			registeredHostsPreference?.summary = getString(R.string.preferences_registered_hosts_summary, it)
 		})
+
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_export_settings_key))?.setOnPreferenceClickListener { exportSettings(); true }
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_import_settings_key))?.setOnPreferenceClickListener { importSettings(); true }
+	}
+
+	override fun onDestroy()
+	{
+		super.onDestroy()
+		disposable.dispose()
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.title_settings)
+
+	private fun exportSettings()
+	{
+		val activity = activity ?: return
+		exportDisposable.clear()
+		exportAndShareAllSettings(activity).addTo(exportDisposable)
+	}
+
+	private fun importSettings()
+	{
+		val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+			addCategory(Intent.CATEGORY_OPENABLE)
+			type = "application/json"
+		}
+		startActivityForResult(intent, PICK_SETTINGS_JSON_REQUEST)
+	}
+
+	override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
+	{
+		if(requestCode == PICK_SETTINGS_JSON_REQUEST && resultCode == Activity.RESULT_OK)
+		{
+			val activity = activity ?: return
+			data?.data?.also {
+				importSettingsFromUri(activity, it, disposable)
+			}
+		}
+	}
 }

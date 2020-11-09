@@ -31,6 +31,7 @@ matrix:
             - libgl1-mesa-dev
             - nasm
             - libsdl2-dev
+            - libva-dev
       env:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
@@ -56,6 +57,8 @@ matrix:
             - qt512svg
             - libgl1-mesa-dev
             - nasm
+            - libudev-dev
+            - libva-dev
       env:
         - CMAKE_PREFIX_PATH="$TRAVIS_BUILD_DIR/ffmpeg-prefix;$TRAVIS_BUILD_DIR/sdl2-prefix;/opt/qt512"
         - CMAKE_EXTRA_ARGS="-DCMAKE_INSTALL_PREFIX=/usr"
@@ -87,6 +90,7 @@ matrix:
         - CMAKE_EXTRA_ARGS=""
         - DEPLOY=1
       install:
+        - pip3 install protobuf
         - scripts/build-ffmpeg.sh
       script:
         - scripts/travis-build.sh
@@ -122,10 +126,10 @@ matrix:
       script:
         - cd android
         - ./gradlew assembleRelease bundleRelease
-        - export DEPLOY_FILE_BASE="Chiaki-$CHIAKI_VERSION-Android"
-        - export DEPLOY_FILE="$DEPLOY_FILE_BASE.a[pa][kb]"
-        - cp app/build/outputs/apk/release/app-release.apk "../$DEPLOY_FILE_BASE.apk"
-        - cp app/build/outputs/bundle/release/app-release.aab "../$DEPLOY_FILE_BASE.aab"
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then export DEPLOY_FILE_BASE="Chiaki-$CHIAKI_VERSION-Android"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then export DEPLOY_FILE="$DEPLOY_FILE_BASE.a[pa][kb]"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then cp app/build/outputs/apk/release/app-release.apk "../$DEPLOY_FILE_BASE.apk"; fi
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then cp app/build/outputs/bundle/release/app-release.aab "../$DEPLOY_FILE_BASE.aab"; fi
         - cd ..
 
     - name: "Source Package"
@@ -144,7 +148,9 @@ before_install:
   - if [ ! -z "$encrypted_31d5e6477a29_iv" ]; then openssl aes-256-cbc -K $encrypted_31d5e6477a29_key -iv $encrypted_31d5e6477a29_iv -in secret.tar.enc -out secret.tar -d && tar -xf secret.tar; fi
 
 after_success:
-  - if [ ! -z "$DEPLOY_FILE" ]; then curl -m 30 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- SHA256 for $DEPLOY_FILE"; openssl dgst -sha256 "$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- transfer.sh"; curl -m 30 --upload-file "$DEPLOY_FILE" "https://transfer.sh/$DEPLOY_FILE"; echo; fi
+  - if [ ! -z "$DEPLOY_FILE" ]; then echo "--- oshi.at"; curl -m 30 --upload-file "$DEPLOY_FILE" "https://oshi.at/$DEPLOY_FILE/129600"; echo; fi
 
 deploy:
   skip_cleanup: true

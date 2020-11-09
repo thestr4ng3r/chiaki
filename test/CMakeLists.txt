@@ -9,6 +9,7 @@ add_executable(chiaki-unit
 		gkcrypt.c
 		takion.c
 		seqnum.c
+		keystate.c
 		reorderqueue.c
 		fec.c
 		test_log.c

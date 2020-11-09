@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <chiaki/feedback.h>
 #include <chiaki/controller.h>
@@ -117,6 +102,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFee
 	event->buf[2] = state;
 	event->len = 3;
 	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT void chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHistoryEvent *event,
+		bool down, uint8_t pointer_id, uint16_t x, uint16_t y)
+{
+	event->len = 5;
+	event->buf[0] = down ? 0xd0 : 0xc0;
+	event->buf[1] = pointer_id & 0x7f;
+	event->buf[2] = (uint8_t)(x >> 4);
+	event->buf[3] = (uint8_t)((x & 0xf) << 4) | (uint8_t)(y >> 8);
+	event->buf[4] = (uint8_t)y;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_buffer_init(ChiakiFeedbackHistoryBuffer *feedback_history_buffer, size_t size)

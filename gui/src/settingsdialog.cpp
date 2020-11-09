@@ -1,25 +1,13 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <settingsdialog.h>
 #include <settings.h>
+#include <settingskeycapturedialog.h>
 #include <registdialog.h>
 #include <sessionlog.h>
+#include <videodecoder.h>
 
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QListWidget>
@@ -31,7 +19,6 @@
 #include <QMap>
 #include <QCheckBox>
 #include <QLineEdit>
-
 
 const char * const about_string =
 	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
@@ -46,21 +33,28 @@ const char * const about_string =
 	"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
 	"GNU General Public License for more details.</p>";
 
-
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(parent)
 {
 	this->settings = settings;
 
 	setWindowTitle(tr("Settings"));
 
-	auto layout = new QVBoxLayout(this);
-	setLayout(layout);
+	auto root_layout = new QVBoxLayout(this);
+	setLayout(root_layout);
 
+	auto horizontal_layout = new QHBoxLayout();
+	root_layout->addLayout(horizontal_layout);
+
+	auto left_layout = new QVBoxLayout();
+	horizontal_layout->addLayout(left_layout);
+
+	auto right_layout = new QVBoxLayout();
+	horizontal_layout->addLayout(right_layout);
 
 	// General
 
 	auto general_group_box = new QGroupBox(tr("General"));
-	layout->addWidget(general_group_box);
+	left_layout->addWidget(general_group_box);
 
 	auto general_layout = new QFormLayout();
 	general_group_box->setLayout(general_layout);
@@ -76,6 +70,23 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
 
+	disconnect_action_combo_box = new QComboBox(this);
+	QList<QPair<DisconnectAction, const char *>> disconnect_action_strings = {
+		{ DisconnectAction::AlwaysNothing, "Do Nothing"},
+		{ DisconnectAction::AlwaysSleep, "Enter Sleep Mode"},
+		{ DisconnectAction::Ask, "Ask"}
+	};
+	auto current_disconnect_action = settings->GetDisconnectAction();
+	for(const auto &p : disconnect_action_strings)
+	{
+		disconnect_action_combo_box->addItem(tr(p.second), (int)p.first);
+		if(current_disconnect_action == p.first)
+			disconnect_action_combo_box->setCurrentIndex(disconnect_action_combo_box->count() - 1);
+	}
+	connect(disconnect_action_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(DisconnectActionSelected()));
+
+	general_layout->addRow(tr("Action on Disconnect:"), disconnect_action_combo_box);
+
 	auto about_button = new QPushButton(tr("About Chiaki"), this);
 	general_layout->addRow(about_button);
 	connect(about_button, &QPushButton::clicked, this, [this]() {
@@ -85,7 +96,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Stream Settings
 
 	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
-	layout->addWidget(stream_settings_group_box);
+	left_layout->addWidget(stream_settings_group_box);
 
 	auto stream_settings_layout = new QFormLayout();
 	stream_settings_group_box->setLayout(stream_settings_layout);
@@ -131,17 +142,42 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	UpdateBitratePlaceholder();
 
 	audio_buffer_size_edit = new QLineEdit(this);
-	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000));
+	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000, audio_buffer_size_edit));
 	unsigned int audio_buffer_size = settings->GetAudioBufferSizeRaw();
 	audio_buffer_size_edit->setText(audio_buffer_size ? QString::number(audio_buffer_size) : "");
 	stream_settings_layout->addRow(tr("Audio Buffer Size:"), audio_buffer_size_edit);
 	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
+	// Decode Settings
+
+	auto decode_settings = new QGroupBox(tr("Decode Settings"));
+	left_layout->addWidget(decode_settings);
+
+	auto decode_settings_layout = new QFormLayout();
+	decode_settings->setLayout(decode_settings_layout);
+
+	hardware_decode_combo_box = new QComboBox(this);
+	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
+		{ HW_DECODE_NONE, "none"},
+		{ HW_DECODE_VAAPI, "vaapi"},
+		{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
+		{ HW_DECODE_CUDA, "cuda"}
+	};
+	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
+	for(const auto &p : hardware_decode_engines)
+	{
+		hardware_decode_combo_box->addItem(p.second, (int)p.first);
+		if(current_hardware_decode_engine == p.first)
+			hardware_decode_combo_box->setCurrentIndex(hardware_decode_combo_box->count() - 1);
+	}
+	connect(hardware_decode_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
+	decode_settings_layout->addRow(tr("Hardware decode method:"), hardware_decode_combo_box);
+
 	// Registered Consoles
 
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
-	layout->addWidget(registered_hosts_group_box);
+	left_layout->addWidget(registered_hosts_group_box);
 
 	auto registered_hosts_layout = new QHBoxLayout();
 	registered_hosts_group_box->setLayout(registered_hosts_layout);
@@ -162,8 +198,43 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	registered_hosts_buttons_layout->addStretch();
 
+	// Key Settings
+	auto key_settings_group_box = new QGroupBox(tr("Key Settings"));
+	right_layout->addWidget(key_settings_group_box);
+	auto key_horizontal = new QHBoxLayout();
+	key_settings_group_box->setLayout(key_horizontal);
+	key_horizontal->setSpacing(10);
+
+	auto key_left_form = new QFormLayout();
+	auto key_right_form = new QFormLayout();
+	key_horizontal->addLayout(key_left_form);
+	key_horizontal->addLayout(key_right_form);
+
+	QMap<int, Qt::Key> key_map = this->settings->GetControllerMapping();
+
+	int i = 0;
+	for(auto it = key_map.begin(); it != key_map.end(); ++it, ++i)
+	{
+		int chiaki_button = it.key();
+		auto button = new QPushButton(QKeySequence(it.value()).toString(), this);
+		button->setAutoDefault(false);
+		auto form = i % 2 ? key_left_form : key_right_form;
+		form->addRow(Settings::GetChiakiControllerButtonName(chiaki_button), button);
+		// Launch key capture dialog on clicked event
+		connect(button, &QPushButton::clicked, this, [this, chiaki_button, button](){
+			auto dialog = new SettingsKeyCaptureDialog(this);
+			// Store captured key to settings and change button label on KeyCaptured event
+			connect(dialog, &SettingsKeyCaptureDialog::KeyCaptured, button, [this, button, chiaki_button](Qt::Key key){
+						button->setText(QKeySequence(key).toString());
+						this->settings->SetControllerButtonMapping(chiaki_button, key);
+					});
+			dialog->exec();
+		});
+	}
+
+	// Close Button
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
-	layout->addWidget(button_box);
+	root_layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
@@ -178,6 +249,11 @@ void SettingsDialog::ResolutionSelected()
 {
 	settings->SetResolution((ChiakiVideoResolutionPreset)resolution_combo_box->currentData().toInt());
 	UpdateBitratePlaceholder();
+}
+
+void SettingsDialog::DisconnectActionSelected()
+{
+	settings->SetDisconnectAction(static_cast<DisconnectAction>(disconnect_action_combo_box->currentData().toInt()));
 }
 
 void SettingsDialog::LogVerboseChanged()
@@ -198,6 +274,11 @@ void SettingsDialog::BitrateEdited()
 void SettingsDialog::AudioBufferSizeEdited()
 {
 	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
+}
+
+void SettingsDialog::HardwareDecodeEngineSelected()
+{
+	settings->SetHardwareDecodeEngine((HardwareDecodeEngine)hardware_decode_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

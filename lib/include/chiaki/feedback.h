@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_FEEDBACK_H
 #define CHIAKI_FEEDBACK_H
@@ -44,7 +29,7 @@ typedef struct chiaki_feedback_state_t
 CHIAKI_EXPORT void chiaki_feedback_state_format(uint8_t *buf, ChiakiFeedbackState *state);
 
 
-#define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x3 // TODO: will be bigger later for touchpad at least
+#define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x5
 
 typedef struct chiaki_feedback_history_event_t
 {
@@ -57,6 +42,14 @@ typedef struct chiaki_feedback_history_event_t
  * @param state 0x0 for not pressed, 0xff for pressed, intermediate values for analog triggers
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state);
+
+/**
+ * @param pointer_id identifier for the touch from 0 to 127
+ * @param x from 0 to 1920
+ * @param y from 0 to 942
+ */
+CHIAKI_EXPORT void chiaki_feedback_history_event_set_touchpad(ChiakiFeedbackHistoryEvent *event,
+		bool down, uint8_t pointer_id, uint16_t x, uint16_t y);
 
 /**
  * Ring buffer of ChiakiFeedbackHistoryEvent

@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".stream.StreamActivity">
+    tools:context=".stream.StreamActivity"
+    android:keepScreenOn="true">
 
     <TextureView
         android:id="@+id/textureView"
@@ -23,13 +24,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <fragment
+        android:id="@+id/touchpadOnlyFragment"
+        android:name="com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
-        tools:paddingRight="48dp"
-        tools:paddingTop="25dp"
         android:fitsSystemWindows="true">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -52,8 +57,56 @@
                 android:layout_marginLeft="8dp"
                 android:textColor="@color/stream_text"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/touchpadOnlySwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="200dp"
+                android:text="Touchpad only"
+                android:textColor="@color/stream_text"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:switchPadding="8dp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/displayModeToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:singleSelection="true"
+                app:checkedButton="@id/display_mode_normal_button">
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_normal_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_normal"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_zoom_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_zoom"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:id="@+id/display_mode_stretch_button"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_display_stretch"
+                    app:iconTint="@color/stream_material_button_icon_tint"
+                    app:strokeColor="@color/stream_text"/>
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>

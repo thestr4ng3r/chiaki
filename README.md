@@ -8,7 +8,7 @@
 [![Travis Build Status](https://travis-ci.com/thestr4ng3r/chiaki.svg?branch=master)](https://travis-ci.com/thestr4ng3r/chiaki) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
 
 Chiaki is a Free and Open Source Software Client for PlayStation 4 Remote Play
-for Linux, Android, macOS, Windows and potentially even more platforms.
+for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potentially even more platforms.
 
 ![Screenshot](assets/screenshot.png)
 
@@ -19,9 +19,9 @@ registration and wakeup of the console, is supported.
 The following features however are yet to be implemented:
 * Congestion Control
 * H264 Error Concealment (FEC and active error recovery however are implemented)
-* Touchpad support (Triggering the Touchpad Button is currently possible by pressing `T` on the keyboard)
+* Touchpad support (Triggering the Touchpad Button is currently possible from the keyboard though)
 * Rumble
-* Configurable Keybindings
+* Accelerometer/Gyroscope
 
 ## Installing
 
@@ -34,21 +34,23 @@ Builds are provided for Linux, Android, macOS and Windows.
 You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
 
 * **Linux**: The provided file is an [AppImage](https://appimage.org/). Simply make it executable (`chmod +x <file>.AppImage`) and run it.
-* **Android**: Install from [Google Play](https://play.google.com/store/apps/details?id=com.metallic.chiaki) or download the APK from GitHub.
+* **Android**: Install from [Google Play](https://play.google.com/store/apps/details?id=com.metallic.chiaki), [F-Droid](https://f-droid.org/packages/com.metallic.chiaki/) or download the APK from GitHub.
 * **macOS**: Drag the application from the `.dmg` into your Applications folder.
 * **Windows**: Extract the `.zip` file and execute `chiaki.exe`.
+* **Switch**: Follow README specific [instructions](./switch/README.md)
 
 ### Building from Source
 
-Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1,
-protoc and the protobuf Python library (only used during compilation for Nanopb).
-Then, Chiaki builds just like any other CMake project:
+Dependencies are CMake, Qt 5 with QtMultimedia, QtOpenGL and QtSvg, FFMPEG (libavcodec with H264 is enough), libopus, OpenSSL 1.1, SDL 2,
+protoc and the protobuf Python library (only used during compilation for Nanopb). Then, Chiaki builds just like any other CMake project:
 ```
 git submodule update --init
 mkdir build && cd build
 cmake ..
 make
 ```
+
+For more detailed platform-specific instructions, see [doc/platform-build.md](doc/platform-build.md).
 
 ## Usage
 
@@ -72,6 +74,13 @@ Settings -> Remote Play (ensure this is ticked) -> Add Device
 
 You can now double-click your PS4 in Chiaki's main window to start Remote Play.
 
+## Joining the Community or Getting Help
+
+There are official groups for Chiaki on Telegram and IRC. They are bridged so you can join whichever you like:
+
+- **Telegram:** https://t.me/chiakitg
+- **IRC:** #chiaki on irc.freenode.net
+
 ## Acknowledgements
 
 This project has only been made possible because of the following Open Source projects:
@@ -92,7 +101,8 @@ Created by Florian Märkl.
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+(at your option) any later version, with the additional exemption
+that compiling, linking, and/or using OpenSSL is allowed.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -101,3 +111,14 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this program, or any covered work, by linking or
+combining it with the OpenSSL project's OpenSSL library (or a
+modified version of that library), containing parts covered by the
+terms of the OpenSSL or SSLeay licenses, the Free Software Foundation
+grants you additional permission to convey the resulting work.
+Corresponding Source for a non-source form of such a combination
+shall include the source code for the parts of OpenSSL used as well
+as that of the covered work.

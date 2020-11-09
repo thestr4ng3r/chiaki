@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <munit.h>
 
@@ -43,9 +28,12 @@ static MunitResult test_av_packet_parse(const MunitParameter params[], void *use
 			0x57, 0x5a, 0x76, 0x0, 0xc5, 0xe0, 0x93, 0xa9, 0xf5, 0x32, 0x5d, 0xee, 0xf7, 0x9d
 	};
 
+	ChiakiKeyState key_state;
+	chiaki_key_state_init(&key_state);
+
 	ChiakiTakionAVPacket av_packet;
 
-	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&av_packet, packet, sizeof(packet));
+	ChiakiErrorCode err = chiaki_takion_v9_av_packet_parse(&av_packet, &key_state, packet, sizeof(packet));
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
 
 	munit_assert(av_packet.is_video);

@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_SETTINGS_H
 #define CHIAKI_SETTINGS_H
@@ -21,8 +6,29 @@
 #include <chiaki/session.h>
 
 #include "host.h"
+#include "videodecoder.h"
 
 #include <QSettings>
+
+enum class ControllerButtonExt
+{
+	// must not overlap with ChiakiControllerButton and ChiakiControllerAnalogButton
+	ANALOG_STICK_LEFT_X_UP = (1 << 18),
+	ANALOG_STICK_LEFT_X_DOWN = (1 << 19),
+	ANALOG_STICK_LEFT_Y_UP = (1 << 20),
+	ANALOG_STICK_LEFT_Y_DOWN = (1 << 21),
+	ANALOG_STICK_RIGHT_X_UP = (1 << 22),
+	ANALOG_STICK_RIGHT_X_DOWN = (1 << 23),
+	ANALOG_STICK_RIGHT_Y_UP = (1 << 24),
+	ANALOG_STICK_RIGHT_Y_DOWN = (1 << 25),
+};
+
+enum class DisconnectAction
+{
+	AlwaysNothing,
+	AlwaysSleep,
+	Ask
+};
 
 class Settings : public QObject
 {
@@ -63,6 +69,9 @@ class Settings : public QObject
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
 
+		HardwareDecodeEngine GetHardwareDecodeEngine() const;
+		void SetHardwareDecodeEngine(HardwareDecodeEngine enabled);
+
 		unsigned int GetAudioBufferSizeDefault() const;
 
 		/**
@@ -78,6 +87,9 @@ class Settings : public QObject
 
 		ChiakiConnectVideoProfile GetVideoProfile();
 
+		DisconnectAction GetDisconnectAction();
+		void SetDisconnectAction(DisconnectAction action);
+
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);
 		void RemoveRegisteredHost(const HostMAC &mac);
@@ -89,6 +101,11 @@ class Settings : public QObject
 		void RemoveManualHost(int id);
 		bool GetManualHostExists(int id)							{ return manual_hosts.contains(id); }
 		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
+
+		static QString GetChiakiControllerButtonName(int);
+		void SetControllerButtonMapping(int, Qt::Key);
+		QMap<int, Qt::Key> GetControllerMapping();
+		QMap<Qt::Key, int> GetControllerMappingForDecoding();
 
 	signals:
 		void RegisteredHostsUpdated();

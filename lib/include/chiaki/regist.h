@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_REGIST_H
 #define CHIAKI_REGIST_H
@@ -33,6 +18,7 @@ extern "C" {
 
 typedef struct chiaki_regist_info_t
 {
+	ChiakiTarget target;
 	const char *host;
 	bool broadcast;
 
@@ -94,7 +80,7 @@ CHIAKI_EXPORT void chiaki_regist_stop(ChiakiRegist *regist);
 /**
  * @param psn_account_id must be exactly of size CHIAKI_PSN_ACCOUNT_ID_SIZE
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget target, const uint8_t *ambassador, uint8_t *buf, size_t *buf_size, ChiakiRPCrypt *crypt, const char *psn_online_id, const uint8_t *psn_account_id, uint32_t pin);
 
 #ifdef __cplusplus
 }

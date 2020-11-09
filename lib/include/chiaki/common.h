@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_COMMON_H
 #define CHIAKI_COMMON_H
@@ -71,6 +56,15 @@ CHIAKI_EXPORT const char *chiaki_error_string(ChiakiErrorCode code);
 
 CHIAKI_EXPORT void *chiaki_aligned_alloc(size_t alignment, size_t size);
 CHIAKI_EXPORT void chiaki_aligned_free(void *ptr);
+
+typedef enum
+{
+	// values must not change
+	CHIAKI_TARGET_PS4_UNKNOWN = 0,
+	CHIAKI_TARGET_PS4_8 = 800,
+	CHIAKI_TARGET_PS4_9 = 900,
+	CHIAKI_TARGET_PS4_10 = 1000
+} ChiakiTarget;
 
 /**
  * Perform initialization of global state needed for using the Chiaki lib

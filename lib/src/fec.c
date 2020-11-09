@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <chiaki/fec.h>
 
@@ -28,8 +13,10 @@ int *create_matrix(unsigned int k, unsigned int m)
 	return cauchy_original_coding_matrix(k, m, CHIAKI_FEC_WORDSIZE);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_size, unsigned int k, unsigned int m, const unsigned int *erasures, size_t erasures_count)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_size, size_t stride, unsigned int k, unsigned int m, const unsigned int *erasures, size_t erasures_count)
 {
+	if(stride < unit_size)
+		return CHIAKI_ERR_INVALID_DATA;
 	int *matrix = create_matrix(k, m);
 	if(!matrix)
 		return CHIAKI_ERR_MEMORY;
@@ -61,7 +48,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_decode(uint8_t *frame_buf, size_t unit_
 
 	for(size_t i=0; i<k+m; i++)
 	{
-		uint8_t *buf_ptr = frame_buf + unit_size * i;
+		uint8_t *buf_ptr = frame_buf + stride * i;
 		if(i < k)
 			data_ptrs[i] = buf_ptr;
 		else

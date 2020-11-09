@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+set -x
+
+mkdir build && cd build
+cmake .. -DCHIAKI_ENABLE_SETSU=ON "$@"
+make -j8
+make test

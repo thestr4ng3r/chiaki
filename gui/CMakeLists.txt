@@ -6,12 +6,6 @@ find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL Svg)
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)
 endif()
-if(CHIAKI_GUI_ENABLE_QT_GAMEPAD AND CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
-	message(FATAL_ERROR "Only one input method may be enabled. Disable either CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER or CHIAKI_GUI_ENABLE_QT_GAMEPAD.")
-endif()
-if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
-	find_package(Qt5 REQUIRED COMPONENTS Gamepad)
-endif()
 if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 	find_package(SDL2 MODULE REQUIRED)
 endif()
@@ -60,6 +54,8 @@ add_executable(chiaki WIN32
 		src/registdialog.cpp
 		include/host.h
 		src/host.cpp
+		include/settingskeycapturedialog.h
+		src/settingskeycapturedialog.cpp
 		include/settingsdialog.h
 		src/settingsdialog.cpp
 		include/manualhostdialog.h
@@ -83,13 +79,13 @@ if(APPLE)
 	target_link_libraries(chiaki Qt5::MacExtras)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_MACEXTRAS)
 endif()
-if(CHIAKI_GUI_ENABLE_QT_GAMEPAD)
-	target_link_libraries(chiaki Qt5::Gamepad)
-	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_GAMEPAD)
-endif()
 if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
 	target_link_libraries(chiaki SDL2::SDL2)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
+endif()
+if(CHIAKI_ENABLE_SETSU)
+	target_link_libraries(chiaki setsu)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SETSU)
 endif()
 
 set_target_properties(chiaki PROPERTIES
@@ -106,4 +102,4 @@ install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
 install(FILES chiaki.desktop DESTINATION share/applications)
-install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512)
+install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512/apps)

@@ -74,7 +74,6 @@ set(SOURCE_FILES
 		src/opusdecoder.c)
 
 add_subdirectory(protobuf)
-include_directories("${NANOPB_SOURCE_DIR}")
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
 include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
 
@@ -86,6 +85,10 @@ endif()
 add_library(chiaki-lib ${HEADER_FILES} ${SOURCE_FILES} ${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES})
 configure_file(config.h.in include/chiaki/config.h)
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
+
+if(CMAKE_C_COMPILER_ID STREQUAL GNU OR CMAKE_C_COMPILER_ID STREQUAL Clang)
+	target_compile_options(chiaki-lib PRIVATE -Wall)
+endif()
 
 add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
@@ -99,15 +102,22 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
-if(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT)
+if(CHIAKI_LIB_ENABLE_MBEDTLS)
+	# provided by mbedtls-static (mbedtls-devel)
+	find_library(MBEDTLS mbedtls)
+	find_library(MBEDX509 mbedx509)
+	find_library(MBEDCRYPTO mbedcrypto)
+	target_link_libraries(chiaki-lib ${MBEDTLS} ${MBEDX509} ${MBEDCRYPTO})
+elseif(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT)
 	target_link_libraries(chiaki-lib OpenSSL_Crypto)
 else()
+	# default
 	find_package(OpenSSL REQUIRED)
 	target_link_libraries(chiaki-lib OpenSSL::Crypto)
 endif()
 
-target_link_libraries(chiaki-lib protobuf-nanopb-static)
-target_link_libraries(chiaki-lib jerasure)
+target_link_libraries(chiaki-lib Nanopb::nanopb)
+target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})

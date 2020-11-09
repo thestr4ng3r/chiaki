@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #ifndef CHIAKI_CTRL_H
 #define CHIAKI_CTRL_H
@@ -33,6 +18,8 @@
 extern "C" {
 #endif
 
+typedef struct chiaki_ctrl_message_queue_t ChiakiCtrlMessageQueue;
+
 typedef struct chiaki_ctrl_t
 {
 	struct chiaki_session_t *session;
@@ -42,6 +29,7 @@ typedef struct chiaki_ctrl_t
 	bool login_pin_entered;
 	uint8_t *login_pin;
 	size_t login_pin_size;
+	ChiakiCtrlMessageQueue *msg_queue;
 	ChiakiStopPipe notif_pipe;
 	ChiakiMutex notif_mutex;
 
@@ -57,12 +45,20 @@ typedef struct chiaki_ctrl_t
 	size_t recv_buf_size;
 	uint64_t crypt_counter_local;
 	uint64_t crypt_counter_remote;
+	uint32_t keyboard_text_counter;
 } ChiakiCtrl;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_send_message(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
 CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pin, size_t pin_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, const char* text);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl);
 
 #ifdef __cplusplus
 }

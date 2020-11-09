@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #define _GNU_SOURCE
 
@@ -24,12 +9,28 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifdef __SWITCH__
+#include <switch.h>
+#endif
+
 #if _WIN32
 static DWORD WINAPI win32_thread_func(LPVOID param)
 {
 	ChiakiThread *thread = (ChiakiThread *)param;
 	thread->ret = thread->func(thread->arg);
 	return 0;
+}
+#endif
+
+#ifdef __SWITCH__
+int64_t get_thread_limit(){
+	uint64_t resource_limit_handle_value = INVALID_HANDLE;
+	svcGetInfo(&resource_limit_handle_value, InfoType_ResourceLimit, INVALID_HANDLE, 0);
+	int64_t thread_cur_value = 0, thread_lim_value = 0;
+	svcGetResourceLimitCurrentValue(&thread_cur_value, resource_limit_handle_value, LimitableResource_Threads);
+	svcGetResourceLimitLimitValue(&thread_lim_value, resource_limit_handle_value, LimitableResource_Threads);
+	//printf("thread_cur_value: %lu, thread_lim_value: %lu\n", thread_cur_value, thread_lim_value);
+	return thread_lim_value - thread_cur_value;
 }
 #endif
 
@@ -43,6 +44,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiT
 	if(!thread->thread)
 		return CHIAKI_ERR_THREAD;
 #else
+#ifdef __SWITCH__
+	if(get_thread_limit() <= 1){
+		return CHIAKI_ERR_THREAD;
+	}
+#endif
 	int r = pthread_create(&thread->thread, NULL, func, arg);
 	if(r != 0)
 		return CHIAKI_ERR_THREAD;

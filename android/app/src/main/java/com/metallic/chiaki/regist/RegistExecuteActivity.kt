@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 package com.metallic.chiaki.regist
 
@@ -25,7 +10,7 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.MacAddress
@@ -52,15 +37,18 @@ class RegistExecuteActivity: AppCompatActivity()
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_regist_execute)
 
-		viewModel = ViewModelProviders
-			.of(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
+		viewModel = ViewModelProvider(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
 			.get(RegistExecuteViewModel::class.java)
 
 		logTextView.setHorizontallyScrolling(true)
 		logTextView.movementMethod = ScrollingMovementMethod()
 		viewModel.logText.observe(this, Observer {
+			val textLayout = logTextView.layout ?: return@Observer
+			val lineCount = textLayout.lineCount
+			if(lineCount < 1)
+				return@Observer
 			logTextView.text = it
-			val scrollY = logTextView.layout.getLineBottom(logTextView.lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
+			val scrollY = textLayout.getLineBottom(lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
 			logTextView.scrollTo(0, max(scrollY, 0))
 		})
 

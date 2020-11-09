@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 package com.metallic.chiaki.regist
 
@@ -24,10 +9,11 @@ import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.lib.RegistInfo
+import com.metallic.chiaki.lib.Target
 import kotlinx.android.synthetic.main.activity_regist.*
 import java.lang.IllegalArgumentException
 
@@ -56,14 +42,15 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		setContentView(R.layout.activity_regist)
 		handleReveal()
 
-		viewModel = ViewModelProviders.of(this).get(RegistViewModel::class.java)
+		viewModel = ViewModelProvider(this).get(RegistViewModel::class.java)
 
 		hostEditText.setText(intent.getStringExtra(EXTRA_HOST) ?: "255.255.255.255")
 		broadcastCheckBox.isChecked = intent.getBooleanExtra(EXTRA_BROADCAST, true)
 
 		registButton.setOnClickListener { doRegist() }
 
-		ps4VersionRadioGroup.check(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7) {
+		ps4VersionRadioGroup.check(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_8) {
+			RegistViewModel.PS4Version.GE_8 -> R.id.ps4VersionGE8RadioButton
 			RegistViewModel.PS4Version.GE_7 -> R.id.ps4VersionGE7RadioButton
 			RegistViewModel.PS4Version.LT_7 -> R.id.ps4VersionLT7RadioButton
 		})
@@ -71,6 +58,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		ps4VersionRadioGroup.setOnCheckedChangeListener { _, checkedId ->
 			viewModel.ps4Version.value = when(checkedId)
 			{
+				R.id.ps4VersionGE8RadioButton -> RegistViewModel.PS4Version.GE_8
 				R.id.ps4VersionGE7RadioButton -> RegistViewModel.PS4Version.GE_7
 				R.id.ps4VersionLT7RadioButton -> RegistViewModel.PS4Version.LT_7
 				else -> RegistViewModel.PS4Version.GE_7
@@ -78,11 +66,11 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		}
 
 		viewModel.ps4Version.observe(this, Observer {
-			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.PS4Version.GE_7) View.VISIBLE else View.GONE
+			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.PS4Version.LT_7) View.GONE else View.VISIBLE
 			psnIdTextInputLayout.hint = getString(when(it!!)
 			{
-				RegistViewModel.PS4Version.GE_7 -> R.string.hint_regist_psn_account_id
 				RegistViewModel.PS4Version.LT_7 -> R.string.hint_regist_psn_online_id
+				else -> R.string.hint_regist_psn_account_id
 			})
 		})
 	}
@@ -98,14 +86,14 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		val psnId = psnIdEditText.text.toString().trim()
 		val psnOnlineId: String? = if(ps4Version == RegistViewModel.PS4Version.LT_7) psnId else null
 		val psnAccountId: ByteArray? =
-			if(ps4Version == RegistViewModel.PS4Version.GE_7)
+			if(ps4Version != RegistViewModel.PS4Version.LT_7)
 				try { Base64.decode(psnId, Base64.DEFAULT) } catch(e: IllegalArgumentException) { null }
 			else
 				null
 		val psnIdValid = when(ps4Version)
 		{
-			RegistViewModel.PS4Version.GE_7 -> psnAccountId != null && psnAccountId.size == RegistInfo.ACCOUNT_ID_SIZE
 			RegistViewModel.PS4Version.LT_7 -> psnOnlineId?.isNotEmpty() ?: false
+			else -> psnAccountId != null && psnAccountId.size == RegistInfo.ACCOUNT_ID_SIZE
 		}
 
 
@@ -117,8 +105,8 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 			if(!psnIdValid)
 				getString(when(ps4Version)
 				{
-					RegistViewModel.PS4Version.GE_7 -> R.string.regist_psn_account_id_invalid
 					RegistViewModel.PS4Version.LT_7 -> R.string.regist_psn_online_id_invalid
+					else -> R.string.regist_psn_account_id_invalid
 				})
 			else
 				null
@@ -127,7 +115,14 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 		if(!hostValid || !psnIdValid || !pinValid)
 			return
 
-		val registInfo = RegistInfo(host, broadcast, psnOnlineId, psnAccountId, pin.toInt())
+		val target = when(ps4Version)
+		{
+			RegistViewModel.PS4Version.GE_8 -> Target.PS4_10
+			RegistViewModel.PS4Version.GE_7 -> Target.PS4_9
+			RegistViewModel.PS4Version.LT_7 -> Target.PS4_8
+		}
+
+		val registInfo = RegistInfo(target, host, broadcast, psnOnlineId, psnAccountId, pin.toInt())
 
 		Intent(this, RegistExecuteActivity::class.java).also {
 			it.putExtra(RegistExecuteActivity.EXTRA_REGIST_INFO, registInfo)

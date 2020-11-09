@@ -1,22 +1,10 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 package com.metallic.chiaki.common
 
+import com.squareup.moshi.FromJson
+import com.squareup.moshi.JsonDataException
+import com.squareup.moshi.ToJson
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -38,6 +26,14 @@ class MacAddress(v: Long)
 				buf.getLong(0)
 			})
 
+	constructor(string: String) : this(
+		(Regex("([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})[:-]([0-9A-Fa-f]{2})").matchEntire(string)
+			?: throw IllegalArgumentException("Invalid MAC Address String"))
+			.groupValues
+			.subList(1, 7)
+			.map { it.toUByte(16).toByte() }
+			.toByteArray())
+
 	val value: Long = v and 0xffffffffffff
 
 	override fun equals(other: Any?): Boolean =
@@ -56,4 +52,10 @@ class MacAddress(v: Long)
 		(value shr 0x20) and 0xff,
 		(value shr 0x28) and 0xff
 	)
+}
+
+class MacAddressJsonAdapter
+{
+	@ToJson fun toJson(macAddress: MacAddress) = macAddress.toString()
+	@FromJson fun fromJson(string: String) = try { MacAddress(string) } catch(e: IllegalArgumentException) { throw JsonDataException(e.message) }
 }
