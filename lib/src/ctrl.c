@@ -488,7 +488,8 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 
 static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
 {
-	// TODO: Make this optional.
+	if(!ctrl->session->connect_info.enable_keyboard)
+		return;
 	// TODO: Last byte of pre_enable request is random (?)
 	// TODO: Signature ?!
 	uint8_t enable = 1;

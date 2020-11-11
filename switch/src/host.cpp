@@ -136,7 +136,7 @@ int Host::InitSession(IO * user)
 	// Build chiaki ps4 stream session
 	chiaki_opus_decoder_init(&(this->opus_decoder), this->log);
 	ChiakiAudioSink audio_sink;
-	ChiakiConnectInfo chiaki_connect_info;
+	ChiakiConnectInfo chiaki_connect_info = { 0 };
 
 	chiaki_connect_info.host = this->host_addr.c_str();
 	chiaki_connect_info.video_profile = this->video_profile;

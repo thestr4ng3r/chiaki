@@ -204,7 +204,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	jobject connect_video_profile_obj = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "videoProfile", "L"BASE_PACKAGE"/ConnectVideoProfile;"));
 	jclass connect_video_profile_class = E->GetObjectClass(env, connect_video_profile_obj);
 
-	ChiakiConnectInfo connect_info;
+	ChiakiConnectInfo connect_info = { 0 };
 	const char *str_borrow = E->GetStringUTFChars(env, host_string, NULL);
 	connect_info.host = host_str = strdup(str_borrow);
 	E->ReleaseStringUTFChars(env, host_string, str_borrow);

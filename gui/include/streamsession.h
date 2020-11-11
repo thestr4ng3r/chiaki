@@ -44,6 +44,7 @@ struct StreamSessionConnectInfo
 	ChiakiConnectVideoProfile video_profile;
 	unsigned int audio_buffer_size;
 	bool fullscreen;
+	bool enable_keyboard;
 
 	StreamSessionConnectInfo(Settings *settings, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen);
 };
