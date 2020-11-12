@@ -6,6 +6,11 @@
 
 #include <QImage>
 
+//fred
+//#include <stdio.h>
+//#include <iostream>
+//#include <sys/time.h> 
+
 VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log) : hw_decode_engine(hw_decode_engine), log(log)
 {
 	enum AVHWDeviceType type;
@@ -56,8 +61,9 @@ VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log
 		throw VideoDecoderException("Failed to open codec context");
 	}
 	
+	
 	if(1)  //is RPi?
-	{
+	{	
 		pi_hw_decoder = new ChiakiPihwDecoder;
 		chiaki_pihw_decoder_init(pi_hw_decoder, log);
 	}
@@ -74,6 +80,8 @@ VideoDecoder::~VideoDecoder()
 	}
 }
 
+
+// Used in PushVideoSample in streamsession.cpp
 void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 {
 	{
@@ -83,11 +91,20 @@ void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 		packet.data = buf;
 		packet.size = buf_size;
 		
-		// RPi decode and render.
-		// The code after this is disabled to save on CPU.
-		if (buf != NULL && buf_size>0) {
+		// RPi decode and render
+		if (buf != NULL && buf_size>0) {		
 			chiaki_pihw_decoder_get_buffer(pi_hw_decoder, buf, buf_size);
 			chiaki_pihw_decoder_draw(pi_hw_decoder);
+			
+			/*
+			// timings check
+			if(buf_size > 30000){
+				struct timeval current_time;
+				gettimeofday(&current_time, NULL);
+				printf("Frame size in videodecoder: %d\n", buf_size);
+				printf("in videodecoder: seconds : %ld.%ld\n", current_time.tv_sec, current_time.tv_usec);
+			}
+			*/
 		}
 		
 /*
@@ -127,8 +144,11 @@ send_packet:
 	}
 
 	//emit FramesAvailable();
+
 }
 
+
+// Used in UpdateFrame in openglframeuploader.cpp
 AVFrame *VideoDecoder::PullFrame()
 {
 	QMutexLocker locker(&mutex);
@@ -153,13 +173,16 @@ AVFrame *VideoDecoder::PullFrame()
 		}
 		frame_last = frame;
 		frame = next_frame;
-		int r = avcodec_receive_frame(codec_context, frame);
+		
+		int r = avcodec_receive_frame(codec_context, frame); //r=0 is success
+
 		
 		if(r == 0)
 		{	
-			// Fred: Not 100% sure whats the implication of this
-			// so I took out to not waste CPU.
+			//ORIG only line: frame = hw_decode_engine ? GetFromHardware(frame) : frame;
 			//frame = hw_decode_engine ? GetFromHardware(frame) : frame;		
+					
+			//printf("VideoDecoder::PullFrame\n");
 		}
 		else
 		{
@@ -177,7 +200,8 @@ AVFrame *VideoDecoder::GetFromHardware(AVFrame *hw_frame)
 	AVFrame *sw_frame;
 
 	sw_frame = av_frame_alloc();
-
+	
+	// from /home/pi/sensit/dependencies/FFmpeg/libavutil/hwcontext.c
 	int ret = av_hwframe_transfer_data(sw_frame, hw_frame, 0);
 
 	if(ret < 0)
