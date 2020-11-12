@@ -11,6 +11,9 @@
 #include <QCoreApplication>
 #include <QAction>
 
+//Fred: didn't work to put in .h I got a clash
+#include "chiaki/x11.h"		// RPi specific X functions
+
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
 	connect_info(connect_info)
@@ -62,20 +65,12 @@ void StreamWindow::Init()
 	resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	show();
 	
-	// Start in full screen mode.
-	// Fred - No! - Actually on RPi we don't want this window at all!
-	//ToggleFullscreen();
-	// Need a Quit hotkey as with the Pi the main framebuffer is used by the hw decoder
-	// and it seems hard to quit.
-	
-	auto rpi_quit_action = new QAction(tr("Quit"), this);
-	rpi_quit_action->setShortcut(Qt::Key_Escape);
-	addAction(rpi_quit_action);
-	connect(rpi_quit_action, &QAction::triggered, this, &StreamWindow::RpiQuit);
-	
-	
-	
-	
+	menubar = this->menuBar();
+	menubar->installEventFilter(this);
+	statusbar = new QStatusBar(this);
+	statusbar->installEventFilter(this);
+	     
+    this->setUpdatesEnabled(true);
 }
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
@@ -183,11 +178,78 @@ void StreamWindow::ToggleFullscreen()
 	}
 }
 
-
-void StreamWindow::RpiQuit()
+void StreamWindow::resizeEvent(QResizeEvent* event)
 {
-	printf("\n\n\n Quitting \n\n\n");
-	qApp->exit();
+	// RPi
+	QRect r = geometry();
+	VideoDecoder *vdec = session->GetVideoDecoder();
+	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
+	chiaki_pihw_decoder_transform(pi_hw_decoder, r.x(), r.y(), r.width(), r.height());
+	
+	QMainWindow::resizeEvent(event);
+}
+
+void StreamWindow::moveEvent(QMoveEvent* event)
+{	
+	// RPi
+	QRect r = geometry();
+	VideoDecoder *vdec = session->GetVideoDecoder();
+	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
+	chiaki_pihw_decoder_transform(pi_hw_decoder, r.x(), r.y(), r.width(), r.height());
+	
+	QMainWindow::moveEvent(event);
+}
+
+void StreamWindow::PiScreenTransform(int x, int y, int width, int height)
+{
+	VideoDecoder *vdec = session->GetVideoDecoder();
+	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
+	chiaki_pihw_decoder_transform(pi_hw_decoder, x, y, width, height);
+}
+
+void StreamWindow::PiScreenVisibility(int vis)
+{	
+	VideoDecoder *vdec = session->GetVideoDecoder();
+	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
+	chiaki_pihw_decoder_visibility(pi_hw_decoder, vis);
+}
+
+bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
+{
+	PiEventFilter(obj, event);
+	
+	return QWidget::eventFilter(obj, event);
 }
 
 
+bool StreamWindow::PiEventFilter(QObject *obj, QEvent *event)
+{	
+	
+	if(event->type() == QEvent::WindowActivate || event->type() == QEvent::Show)
+	{
+		PiScreenVisibility(1);
+		return 1;
+	} else
+	if(event->type() == QEvent::WindowDeactivate || event->type() == QEvent::Hide)
+	{
+		PiScreenVisibility(0);
+		return 1;
+	} 
+				
+	if(obj == menubar || obj == statusbar)
+	{	
+		ChXMouse mouse = ChXGetMouse();
+		int buttonState = mouse.lmb;
+		
+		if(buttonState == 1) // LMB down or Alt+RMB down
+		{	
+			PiScreenVisibility(0);
+		}
+		else if(buttonState == 0) // No mouse button down
+		{
+			// seems I don't actually need this. Maybe later to clean up glitches.
+		}	
+	}
+			
+	return QWidget::eventFilter(obj, event);
+}

@@ -123,9 +123,22 @@ target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
 #if(CHIAKI_ENABLE_RPI)
 
+# RPi needs:  cmake -DCMAKE_PREFIX_PATH=/usr/lib/qt5.12 ..
+add_compile_definitions(OMX_SKIP64BIT)
+
+set(X11INCL include/chiaki/x11.h)
+set(X11SRC  src/x11.c)
+add_library(chiaki-x11 ${X11INCL} ${X11SRC})
+target_link_libraries(chiaki-lib chiaki-x11)
+target_link_libraries(chiaki-lib
+	/usr/lib/arm-linux-gnueabihf/libX11.so)
+
+include_directories(/usr/include/libdrm
+	/usr/include/xorg
+	/usr/include/X11)
+
 # Should set up some auto build of libilclient.
 
-	add_compile_definitions(OMX_SKIP64BIT)
 include_directories(/opt/vc/src/hello_pi/libs/ilclient)
 include_directories(include
 	/opt/vc/include/
@@ -135,7 +148,7 @@ target_link_libraries(chiaki-lib
 	/opt/vc/lib/libbcm_host.so
 	/opt/vc/lib/libvcilcs.a
 	/opt/vc/lib/libvchiq_arm.so
-	/opt/vc/lib/libvcos.so)	
+	/opt/vc/lib/libvcos.so)
 #endif()
 
 if(CHIAKI_LIB_ENABLE_OPUS)

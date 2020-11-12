@@ -147,10 +147,12 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	frame_uploader_thread = nullptr;
 	frame_fg = 0;
 
-	setMouseTracking(true);
 	mouse_timer = new QTimer(this);
 	connect(mouse_timer, &QTimer::timeout, this, &AVOpenGLWidget::HideMouse);
 	ResetMouseTimeout();
+	//RPi
+	this->setAttribute(Qt::WA_TransparentForMouseEvents, 1);
+	this->setMouseTracking(0);
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
@@ -167,9 +169,14 @@ AVOpenGLWidget::~AVOpenGLWidget()
 }
 
 void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
-{
+{	
 	QOpenGLWidget::mouseMoveEvent(event);
 	ResetMouseTimeout();
+}
+
+void AVOpenGLWidget::resizeEvent(QResizeEvent *event)
+{
+	QWidget::resizeEvent(event);
 }
 
 void AVOpenGLWidget::ResetMouseTimeout()
