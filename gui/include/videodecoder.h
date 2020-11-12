@@ -18,7 +18,9 @@ extern "C"
 
 #include <cstdint>
 
+// fred adds for Pi
 #include <chiaki/pihwdecoder.h>
+
 
 typedef enum {
 	HW_DECODE_NONE = 0,
@@ -58,7 +60,11 @@ class VideoDecoder: public QObject
 		ChiakiLog *GetChiakiLog()	{ return log; }
 
 		enum AVPixelFormat PixelFormat() { return hw_decode_engine?AV_PIX_FMT_NV12:AV_PIX_FMT_YUV420P; }
-
+		
+		//RPi
+		ChiakiPihwDecoder* GetPihwDecoder() { return pi_hw_decoder; }
+		
+		
 	signals:
 		void FramesAvailable();
 
@@ -74,8 +80,11 @@ class VideoDecoder: public QObject
 		enum AVPixelFormat hw_pix_fmt;
 		AVBufferRef *hw_device_ctx;
 		
-		// Just for RPi
-		ChiakiPihwDecoder* pi_hw_decoder;	
+		// RPi stuff - public for testing...
+		ChiakiPihwDecoder* pi_hw_decoder;
+		
+		
+		
 };
 
 #endif // CHIAKI_VIDEODECODER_H
