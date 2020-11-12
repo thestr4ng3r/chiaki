@@ -150,9 +150,6 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	mouse_timer = new QTimer(this);
 	connect(mouse_timer, &QTimer::timeout, this, &AVOpenGLWidget::HideMouse);
 	ResetMouseTimeout();
-	//RPi
-	this->setAttribute(Qt::WA_TransparentForMouseEvents, 1);
-	this->setMouseTracking(0);
 }
 
 AVOpenGLWidget::~AVOpenGLWidget()
