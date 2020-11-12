@@ -191,11 +191,6 @@ void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
 	ResetMouseTimeout();
 }
 
-void AVOpenGLWidget::resizeEvent(QResizeEvent *event)
-{
-	QWidget::resizeEvent(event);
-}
-
 void AVOpenGLWidget::ResetMouseTimeout()
 {
 	unsetCursor();
