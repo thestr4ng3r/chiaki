@@ -256,6 +256,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setChannelCount(channels);
 	audio_format.setSampleSize(16);
 	audio_format.setCodec("audio/pcm");
+	audio_format.setByteOrder(QAudioFormat::LittleEndian);
 	audio_format.setSampleType(QAudioFormat::SignedInt);
 
 	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
@@ -265,10 +266,10 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 					channels, rate,
 					audio_device_info.deviceName().toLocal8Bit().constData());
 		return;
-	}
-
+	}	
+	
 	audio_output = new QAudioOutput(audio_format, this);
-	audio_output->setBufferSize(audio_buffer_size);
+	audio_output->setBufferSize(64000);
 	audio_io = audio_output->start();
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",

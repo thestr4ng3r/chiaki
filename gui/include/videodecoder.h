@@ -18,6 +18,7 @@ extern "C"
 
 #include <cstdint>
 
+#include <chiaki/pihwdecoder.h>
 
 typedef enum {
 	HW_DECODE_NONE = 0,
@@ -72,6 +73,9 @@ class VideoDecoder: public QObject
 
 		enum AVPixelFormat hw_pix_fmt;
 		AVBufferRef *hw_device_ctx;
+		
+		// Just for RPi
+		ChiakiPihwDecoder* pi_hw_decoder;	
 };
 
 #endif // CHIAKI_VIDEODECODER_H

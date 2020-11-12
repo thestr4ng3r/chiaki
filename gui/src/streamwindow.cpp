@@ -61,6 +61,21 @@ void StreamWindow::Init()
 
 	resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	show();
+	
+	// Start in full screen mode.
+	// Fred - No! - Actually on RPi we don't want this window at all!
+	//ToggleFullscreen();
+	// Need a Quit hotkey as with the Pi the main framebuffer is used by the hw decoder
+	// and it seems hard to quit.
+	
+	auto rpi_quit_action = new QAction(tr("Quit"), this);
+	rpi_quit_action->setShortcut(Qt::Key_Escape);
+	addAction(rpi_quit_action);
+	connect(rpi_quit_action, &QAction::triggered, this, &StreamWindow::RpiQuit);
+	
+	
+	
+	
 }
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
@@ -167,3 +182,12 @@ void StreamWindow::ToggleFullscreen()
 			av_widget->HideMouse();
 	}
 }
+
+
+void StreamWindow::RpiQuit()
+{
+	printf("\n\n\n Quitting \n\n\n");
+	qApp->exit();
+}
+
+

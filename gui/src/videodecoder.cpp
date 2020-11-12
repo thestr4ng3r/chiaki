@@ -55,6 +55,13 @@ VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log
 		avcodec_free_context(&codec_context);
 		throw VideoDecoderException("Failed to open codec context");
 	}
+	
+	if(1)  //is RPi?
+	{
+		pi_hw_decoder = new ChiakiPihwDecoder;
+		chiaki_pihw_decoder_init(pi_hw_decoder, log);
+	}
+	
 }
 
 VideoDecoder::~VideoDecoder()
@@ -71,14 +78,23 @@ void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 {
 	{
 		QMutexLocker locker(&mutex);
-
 		AVPacket packet;
 		av_init_packet(&packet);
 		packet.data = buf;
 		packet.size = buf_size;
+		
+		// RPi decode and render.
+		// The code after this is disabled to save on CPU.
+		if (buf != NULL && buf_size>0) {
+			chiaki_pihw_decoder_get_buffer(pi_hw_decoder, buf, buf_size);
+			chiaki_pihw_decoder_draw(pi_hw_decoder);
+		}
+		
+/*
 		int r;
 send_packet:
-		r = avcodec_send_packet(codec_context, &packet);
+		r = avcodec_send_packet(codec_context, &packet); // r==0 success?
+		
 		if(r != 0)
 		{
 			if(r == AVERROR(EAGAIN))
@@ -106,10 +122,11 @@ send_packet:
 				CHIAKI_LOGE(log, "Failed to push frame: %s", errbuf);
 				return;
 			}
-		}
+			
+		}*/ // comment end
 	}
 
-	emit FramesAvailable();
+	//emit FramesAvailable();
 }
 
 AVFrame *VideoDecoder::PullFrame()
@@ -137,9 +154,12 @@ AVFrame *VideoDecoder::PullFrame()
 		frame_last = frame;
 		frame = next_frame;
 		int r = avcodec_receive_frame(codec_context, frame);
+		
 		if(r == 0)
-		{
-			frame = hw_decode_engine ? GetFromHardware(frame) : frame;
+		{	
+			// Fred: Not 100% sure whats the implication of this
+			// so I took out to not waste CPU.
+			//frame = hw_decode_engine ? GetFromHardware(frame) : frame;		
 		}
 		else
 		{

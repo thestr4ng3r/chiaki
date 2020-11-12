@@ -34,7 +34,8 @@ set(HEADER_FILES
 		include/chiaki/time.h
 		include/chiaki/fec.h
 		include/chiaki/regist.h
-		include/chiaki/opusdecoder.h)
+		include/chiaki/opusdecoder.h
+		include/chiaki/pihwdecoder.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -71,7 +72,8 @@ set(SOURCE_FILES
 		src/time.c
 		src/fec
 		src/regist.c
-		src/opusdecoder.c)
+		src/opusdecoder.c
+		src/pihwdecoder.c)
 
 add_subdirectory(protobuf)
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
@@ -118,6 +120,23 @@ endif()
 
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
+
+#if(CHIAKI_ENABLE_RPI)
+
+# Should set up some auto build of libilclient.
+
+	add_compile_definitions(OMX_SKIP64BIT)
+include_directories(/opt/vc/src/hello_pi/libs/ilclient)
+include_directories(include
+	/opt/vc/include/
+	/opt/vc/include/IL)
+target_link_libraries(chiaki-lib
+	/opt/vc/src/hello_pi/libs/ilclient/libilclient.a
+	/opt/vc/lib/libbcm_host.so
+	/opt/vc/lib/libvcilcs.a
+	/opt/vc/lib/libvchiq_arm.so
+	/opt/vc/lib/libvcos.so)	
+#endif()
 
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
