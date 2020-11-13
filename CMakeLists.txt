@@ -121,6 +121,7 @@ Keep in mind that setsu is only supported on Linux!")
 	if(CHIAKI_ENABLE_SETSU)
 		add_subdirectory(setsu)
 	endif()
+	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/setsu/include")
 endif()
 
 if(CHIAKI_ENABLE_SETSU)
