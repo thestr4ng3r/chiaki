@@ -73,6 +73,12 @@ set(SOURCE_FILES
 		src/regist.c
 		src/opusdecoder.c)
 
+if(CHIAKI_ENABLE_PI_DECODER)
+	list(APPEND HEADER_FILES include/chiaki/pidecoder.h)
+	list(APPEND SOURCE_FILES src/pidecoder.c)
+endif()
+set(CHIAKI_LIB_ENABLE_PI_DECODER "${CHIAKI_ENABLE_PI_DECODER}")
+
 add_subdirectory(protobuf)
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)
 include_directories("${CHIAKI_LIB_PROTO_INCLUDE_DIR}")
@@ -118,6 +124,10 @@ endif()
 
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
+
+if(CHIAKI_ENABLE_PI_DECODER)
+	target_link_libraries(chiaki-lib ILClient::ILClient)
+endif()
 
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})

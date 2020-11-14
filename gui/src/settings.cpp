@@ -3,6 +3,8 @@
 #include <settings.h>
 #include <QKeySequence>
 
+#include <chiaki/config.h>
+
 #define SETTINGS_VERSION 1
 
 Settings::Settings(QObject *parent) : QObject(parent)
@@ -77,6 +79,28 @@ unsigned int Settings::GetAudioBufferSizeDefault() const
 unsigned int Settings::GetAudioBufferSizeRaw() const
 {
 	return settings.value("settings/audio_buffer_size", 0).toUInt();
+}
+
+static const QMap<Decoder, QString> decoder_values = {
+	{ Decoder::Ffmpeg, "ffmpeg" },
+	{ Decoder::Pi, "pi" }
+};
+
+static const Decoder decoder_default = Decoder::Pi;
+
+Decoder Settings::GetDecoder() const
+{
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	auto v = settings.value("settings/decoder", decoder_values[decoder_default]).toString();
+	return decoder_values.key(v, decoder_default);
+#else
+	return Decoder::Ffmpeg;
+#endif
+}
+
+void Settings::SetDecoder(Decoder decoder)
+{
+	settings.setValue("settings/decoder", decoder_values[decoder]);
 }
 
 static const QMap<HardwareDecodeEngine, QString> hw_decode_engine_values = {

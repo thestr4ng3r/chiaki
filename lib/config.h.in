@@ -4,5 +4,6 @@
 #define CHIAKI_CONFIG_H
 
 #cmakedefine01 CHIAKI_LIB_ENABLE_OPUS
+#cmakedefine01 CHIAKI_LIB_ENABLE_PI_DECODER
 
 #endif // CHIAKI_CONFIG_H

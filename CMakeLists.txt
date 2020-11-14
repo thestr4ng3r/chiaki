@@ -16,6 +16,7 @@ option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Pro
 option(CHIAKI_ENABLE_SWITCH "Enable Nintendo Switch (Requires devKitPro libnx)" OFF)
 tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
+tri_option(CHIAKI_ENABLE_PI_DECODER "Enable Raspberry Pi-specific video decoder (requires libraspberrypi0 and libraspberrypi-doc)" AUTO)
 option(CHIAKI_LIB_ENABLE_MBEDTLS "Use mbedtls instead of OpenSSL as part of Chiaki Lib" OFF)
 option(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT "Use OpenSSL as CMake external project" OFF)
 option(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER "Use SDL Gamecontroller for Input" ON)
@@ -98,6 +99,27 @@ endif()
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	add_definitions(-DCHIAKI_LIB_ENABLE_MBEDTLS)
 endif()
+
+if(CHIAKI_ENABLE_PI_DECODER)
+	find_package(ILClient)
+	if(ILClient_FOUND)
+		set(CHIAKI_ENABLE_PI_DECODER ON)
+	else()
+		if(NOT CHIAKI_ENABLE_PI_DECODER STREQUAL AUTO)
+			message(FATAL_ERROR "
+CHIAKI_ENABLE_PI_DECODER is set to ON, but its dependencies (ilclient source and libs) could not be resolved.
+The Raspberry Pi Decoder is only supported on Raspberry Pi OS and requires libraspberrypi0 and libraspberrypi-doc.")
+		endif()
+		set(CHIAKI_ENABLE_PI_DECODER OFF)
+	endif()
+endif()
+
+if(CHIAKI_ENABLE_PI_DECODER)
+	message(STATUS "Pi Decoder enabled")
+else()
+	message(STATUS "Pi Decoder disabled")
+endif()
+
 
 add_subdirectory(lib)
 

@@ -47,8 +47,17 @@ void StreamWindow::Init()
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
-	setCentralWidget(av_widget);
+	if(session->GetVideoDecoder())
+	{
+		av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+		setCentralWidget(av_widget);
+	}
+	else
+	{
+		QWidget *bg_widget = new QWidget(this);
+		bg_widget->setStyleSheet("background-color: black;");
+		setCentralWidget(bg_widget);
+	}
 
 	grabKeyboard();
 
@@ -166,4 +175,35 @@ void StreamWindow::ToggleFullscreen()
 		if(av_widget)
 			av_widget->HideMouse();
 	}
+}
+
+void StreamWindow::resizeEvent(QResizeEvent *event)
+{
+	UpdateVideoTransform();
+	QMainWindow::resizeEvent(event);
+}
+
+void StreamWindow::moveEvent(QMoveEvent *event)
+{
+	UpdateVideoTransform();
+	QMainWindow::moveEvent(event);
+}
+
+void StreamWindow::changeEvent(QEvent *event)
+{
+	if(event->type() == QEvent::ActivationChange)
+		UpdateVideoTransform();
+	QMainWindow::changeEvent(event);
+}
+
+void StreamWindow::UpdateVideoTransform()
+{
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	ChiakiPiDecoder *pi_decoder = session->GetPiDecoder();
+	if(pi_decoder)
+	{
+		QRect r = geometry();
+		chiaki_pi_decoder_set_params(pi_decoder, r.x(), r.y(), r.width(), r.height(), isActiveWindow());
+	}
+#endif
 }

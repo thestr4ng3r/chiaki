@@ -6,6 +6,10 @@
 #include <chiaki/session.h>
 #include <chiaki/opusdecoder.h>
 
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+#include <chiaki/pidecoder.h>
+#endif
+
 #if CHIAKI_GUI_ENABLE_SETSU
 #include <setsu.h>
 #endif
@@ -14,6 +18,7 @@
 #include "exception.h"
 #include "sessionlog.h"
 #include "controllermanager.h"
+#include "settings.h"
 
 #include <QObject>
 #include <QImage>
@@ -35,6 +40,7 @@ struct StreamSessionConnectInfo
 {
 	Settings *settings;
 	QMap<Qt::Key, int> key_map;
+	Decoder decoder;
 	HardwareDecodeEngine hw_decode_engine;
 	uint32_t log_level_mask;
 	QString log_file;
@@ -70,7 +76,10 @@ class StreamSession : public QObject
 
 		ChiakiControllerState keyboard_state;
 
-		VideoDecoder video_decoder;
+		VideoDecoder *video_decoder;
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+		ChiakiPiDecoder *pi_decoder;
+#endif
 
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
@@ -101,7 +110,10 @@ class StreamSession : public QObject
 		void SetLoginPIN(const QString &pin);
 
 		Controller *GetController()	{ return controller; }
-		VideoDecoder *GetVideoDecoder()	{ return &video_decoder; }
+		VideoDecoder *GetVideoDecoder()	{ return video_decoder; }
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }
+#endif
 
 		void HandleKeyboardEvent(QKeyEvent *event);
 		void HandleMouseEvent(QMouseEvent *event);

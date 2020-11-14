@@ -18,6 +18,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
+	decoder = settings->GetDecoder();
 	hw_decode_engine = settings->GetHardwareDecodeEngine();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
@@ -42,11 +43,30 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	: QObject(parent),
 	log(this, connect_info.log_level_mask, connect_info.log_file),
 	controller(nullptr),
-	video_decoder(connect_info.hw_decode_engine, log.GetChiakiLog()),
+	video_decoder(nullptr),
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	pi_decoder(nullptr),
+#endif
 	audio_output(nullptr),
 	audio_io(nullptr)
 {
 	connected = false;
+
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(connect_info.decoder == Decoder::Pi)
+	{
+		pi_decoder = CHIAKI_NEW(ChiakiPiDecoder);
+		if(chiaki_pi_decoder_init(pi_decoder, log.GetChiakiLog()) != CHIAKI_ERR_SUCCESS)
+			throw ChiakiException("Failed to initialize Raspberry Pi Decoder");
+	}
+	else
+	{
+#endif
+		video_decoder = new VideoDecoder(connect_info.hw_decode_engine, log.GetChiakiLog());
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	}
+#endif
+
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	audio_buffer_size = connect_info.audio_buffer_size;
 
@@ -75,7 +95,17 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&session, &audio_sink);
 
-	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(pi_decoder)
+		chiaki_session_set_video_sample_cb(&session, chiaki_pi_decoder_video_sample_cb, pi_decoder);
+	else
+	{
+#endif
+		chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	}
+#endif
+
 	chiaki_session_set_event_cb(&session, EventCb, this);
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -107,6 +137,14 @@ StreamSession::~StreamSession()
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
 #endif
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(pi_decoder)
+	{
+		chiaki_pi_decoder_fini(pi_decoder);
+		free(pi_decoder);
+	}
+#endif
+	delete video_decoder;
 }
 
 void StreamSession::Start()
@@ -285,7 +323,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 
 void StreamSession::PushVideoSample(uint8_t *buf, size_t buf_size)
 {
-	video_decoder.PushFrame(buf, buf_size);
+	video_decoder->PushFrame(buf, buf_size);
 }
 
 void StreamSession::Event(ChiakiEvent *event)

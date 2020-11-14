@@ -25,6 +25,7 @@ class StreamWindow: public QMainWindow
 		AVOpenGLWidget *av_widget;
 
 		void Init();
+		void UpdateVideoTransform();
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
@@ -32,6 +33,9 @@ class StreamWindow: public QMainWindow
 		void closeEvent(QCloseEvent *event) override;
 		void mousePressEvent(QMouseEvent *event) override;
 		void mouseReleaseEvent(QMouseEvent *event) override;
+		void resizeEvent(QResizeEvent *event) override;
+		void moveEvent(QMoveEvent *event) override;
+		void changeEvent(QEvent *event) override;
 
 	private slots:
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
