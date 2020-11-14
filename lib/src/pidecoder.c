@@ -10,55 +10,48 @@
 
 #define MAX_DECODE_UNIT_SIZE 262144
 
-CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *log)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *log)
 {
-	decoder->video_decode = NULL;
-	decoder->video_scheduler = NULL;
-	decoder->video_render = NULL;
-	
+	memset(decoder, 0, sizeof(ChiakiPiDecoder));
+
 	bcm_host_init();
-
-	OMX_VIDEO_PARAM_PORTFORMATTYPE format;
-
-	memset(decoder->list, 0, sizeof(decoder->list));    //array of pointers
-	memset(decoder->tunnel, 0, sizeof(decoder->tunnel)); //array  
 
 	if(!(decoder->client = ilclient_init()))
 	{
 		CHIAKI_LOGE(decoder->log, "ilclient_init failed");
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	if(OMX_Init() != OMX_ErrorNone)
 	{
 		CHIAKI_LOGE(decoder->log, "OMX_Init failed");
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	if(ilclient_create_component(decoder->client, &decoder->video_decode, "video_decode",
 			ILCLIENT_DISABLE_ALL_PORTS | ILCLIENT_ENABLE_INPUT_BUFFERS) != 0)
 	{
 		CHIAKI_LOGE(decoder->log, "ilclient_create_component failed for video_decode");
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
-
-	decoder->list[0] = decoder->video_decode;
+	decoder->components[0] = decoder->video_decode;
 
 	if(ilclient_create_component(decoder->client, &decoder->video_render, "video_render", ILCLIENT_DISABLE_ALL_PORTS) != 0)
 	{
 		CHIAKI_LOGE(decoder->log, "ilclient_create_component failed for video_render");
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
-
-	decoder->list[1] = decoder->video_render;
+	decoder->components[1] = decoder->video_render;
 
 	set_tunnel(decoder->tunnel, decoder->video_decode, 131, decoder->video_render, 90);
 
 	ilclient_change_component_state(decoder->video_decode, OMX_StateIdle);
 
+	OMX_VIDEO_PARAM_PORTFORMATTYPE format;
 	memset(&format, 0, sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE));
 	format.nSize = sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE);
 	format.nVersion.nVersion = OMX_VERSION;
@@ -66,7 +59,6 @@ CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *l
 	format.eCompressionFormat = OMX_VIDEO_CodingAVC;
 
 	OMX_PARAM_DATAUNITTYPE unit;
-
 	memset(&unit, 0, sizeof(OMX_PARAM_DATAUNITTYPE));
 	unit.nSize = sizeof(OMX_PARAM_DATAUNITTYPE);
 	unit.nVersion.nVersion = OMX_VERSION;
@@ -78,8 +70,8 @@ CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *l
 		|| OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamBrcmDataUnit, &unit) != OMX_ErrorNone)
 	{
 		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for video parameters");
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	OMX_CONFIG_LATENCYTARGETTYPE latencyTarget;
@@ -98,9 +90,8 @@ CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *l
 	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigLatencyTarget, &latencyTarget) != OMX_ErrorNone)
 	{
 		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for render parameters");
-		// TODO: leak here
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	OMX_CONFIG_ROTATIONTYPE rotationType;
@@ -113,8 +104,8 @@ CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *l
 	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigCommonRotate, &rotationType) != OMX_ErrorNone)
 	{
 		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for rotation");
-		// TODO: leak here
-		return;
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	OMX_PARAM_PORTDEFINITIONTYPE port;
@@ -125,66 +116,66 @@ CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *l
 	port.nPortIndex = 130;
 	if(OMX_GetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
 	{
-		printf("Failed to get decoder port definition\n");
-		// TODO: leak here
-		return;
+		CHIAKI_LOGE(decoder->log, "Failed to get decoder port definition\n");
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	// Increase the buffer size to fit the largest possible frame
 	port.nBufferSize = MAX_DECODE_UNIT_SIZE;
 
-	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) == OMX_ErrorNone &&
-		ilclient_enable_port_buffers(decoder->video_decode, 130, NULL, NULL, NULL) == 0)
+	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
 	{
-		// TODO: make this flat and early return
-		decoder->port_settings_changed = 0;
-		decoder->first_packet = 1;
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for port");
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
+	}
 
-		ilclient_change_component_state(decoder->video_decode, OMX_StateExecuting);
-	}
-	else
+	if(ilclient_enable_port_buffers(decoder->video_decode, 130, NULL, NULL, NULL) != 0)
 	{
-		printf("Failed to get decoder port definition\n");
-		// TODO: leak here
-		return;
+		CHIAKI_LOGE(decoder->log, "ilclient_enable_port_buffers failed");
+		chiaki_pi_decoder_fini(decoder);
+		return CHIAKI_ERR_UNKNOWN;
 	}
+
+	decoder->port_settings_changed = false;
+	decoder->first_packet = true;
+
+	ilclient_change_component_state(decoder->video_decode, OMX_StateExecuting);
 
 	CHIAKI_LOGI(decoder->log, "Raspberry Pi Decoder initialized");
+	return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT void chiaki_pi_decoder_fini(ChiakiPiDecoder *decoder)
 {
-	OMX_BUFFERHEADERTYPE *buf;
-	if((buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1)) == NULL)
+	if(decoder->video_decode)
 	{
-		//printf("Can't get video buffer\n");
-		return;
+		OMX_BUFFERHEADERTYPE *buf;
+		if((buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1)))
+		{
+			buf->nFilledLen = 0;
+			buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
+			OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->video_decode), buf);
+		}
+
+		// need to flush the renderer to allow video_decode to disable its input port
+		ilclient_flush_tunnels(decoder->tunnel, 0);
+
+		ilclient_disable_port_buffers(decoder->video_decode, 130, NULL, NULL, NULL);
+
+		ilclient_disable_tunnel(decoder->tunnel);
+		ilclient_teardown_tunnels(decoder->tunnel);
+
+		ilclient_state_transition(decoder->components, OMX_StateIdle);
+		ilclient_state_transition(decoder->components, OMX_StateLoaded);
+
+		ilclient_cleanup_components(decoder->components);
 	}
-
-	buf->nFilledLen = 0;
-	buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
-
-	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->list[0]), buf) != OMX_ErrorNone)
-	{
-		//printf("Can't empty video buffer\n");
-		return;
-	}
-
-	// need to flush the renderer to allow video_decode to disable its input port
-	ilclient_flush_tunnels(decoder->tunnel, 0);
-
-	ilclient_disable_port_buffers(decoder->list[0], 130, NULL, NULL, NULL);
-
-	ilclient_disable_tunnel(decoder->tunnel);
-	ilclient_teardown_tunnels(decoder->tunnel);
-
-	ilclient_state_transition(decoder->list, OMX_StateIdle);
-	ilclient_state_transition(decoder->list, OMX_StateLoaded);
-
-	ilclient_cleanup_components(decoder->list);
 
 	OMX_Deinit();
-	ilclient_destroy(decoder->client);
+	if(decoder->client)
+		ilclient_destroy(decoder->client);
 }
 
 static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
@@ -192,27 +183,33 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 	OMX_BUFFERHEADERTYPE *omx_buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1);
 	if(!omx_buf)
 	{
-		fprintf(stderr, "Can't get video buffer\n");
+		CHIAKI_LOGE(decoder->log, "ilclient_get_input_buffer failed");
 		return false;
 	}
 	
+	if(omx_buf->nAllocLen < buf_size)
+	{
+		CHIAKI_LOGE(decoder->log, "Buffer from omx is too small for frame");
+		return false;
+	}
+
 	omx_buf->nFilledLen = 0;
 	omx_buf->nOffset = 0;
 	omx_buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS;
 	if(decoder->first_packet)
 	{
 		omx_buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
-		decoder->first_packet = 0;
+		decoder->first_packet = false;
 	}
 
 	memcpy(omx_buf->pBuffer + omx_buf->nFilledLen, buf, buf_size);
 	omx_buf->nFilledLen += buf_size;
 
-	if(decoder->port_settings_changed == 0
+	if(!decoder->port_settings_changed
 		&& ((omx_buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)
 		       	|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
 	{
-		decoder->port_settings_changed = 1;
+		decoder->port_settings_changed = true;
 	
 		if(ilclient_setup_tunnel(decoder->tunnel, 0, 0) != 0)
 		{
