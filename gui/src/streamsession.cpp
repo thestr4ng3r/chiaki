@@ -55,8 +55,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(true) // TODO: from settings
 	{
 		pi_decoder = CHIAKI_NEW(ChiakiPiDecoder);
-		chiaki_pi_decoder_init(pi_decoder, log.GetChiakiLog());
-		// TODO: check return value
+		if(chiaki_pi_decoder_init(pi_decoder, log.GetChiakiLog()) != CHIAKI_ERR_SUCCESS)
+			throw ChiakiException("Failed to initialize Raspberry Pi Decoder");
 	}
 	else
 	{
