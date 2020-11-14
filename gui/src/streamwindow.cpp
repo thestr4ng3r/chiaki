@@ -11,9 +11,6 @@
 #include <QCoreApplication>
 #include <QAction>
 
-//Fred: didn't work to put in .h I got a clash
-#include "chiaki/x11.h"		// RPi specific X functions
-
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
 	connect_info(connect_info)
@@ -234,21 +231,6 @@ bool StreamWindow::PiEventFilter(QObject *obj, QEvent *event)
 	{
 		PiScreenVisibility(0);
 		return 1;
-	} 
-				
-	if(obj == menubar || obj == statusbar)
-	{	
-		ChXMouse mouse = ChXGetMouse();
-		int buttonState = mouse.lmb;
-		
-		if(buttonState == 1) // LMB down or Alt+RMB down
-		{	
-			PiScreenVisibility(0);
-		}
-		else if(buttonState == 0) // No mouse button down
-		{
-			// seems I don't actually need this. Maybe later to clean up glitches.
-		}	
 	}
 			
 	return QWidget::eventFilter(obj, event);
