@@ -6,11 +6,6 @@
 
 #include <QImage>
 
-//fred
-//#include <stdio.h>
-//#include <iostream>
-//#include <sys/time.h> 
-
 VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log) : hw_decode_engine(hw_decode_engine), log(log)
 {
 	enum AVHWDeviceType type;
@@ -60,14 +55,6 @@ VideoDecoder::VideoDecoder(HardwareDecodeEngine hw_decode_engine, ChiakiLog *log
 		avcodec_free_context(&codec_context);
 		throw VideoDecoderException("Failed to open codec context");
 	}
-	
-	
-	if(1)  //is RPi?
-	{	
-		pi_hw_decoder = new ChiakiPihwDecoder;
-		chiaki_pihw_decoder_init(pi_hw_decoder, log);
-	}
-	
 }
 
 VideoDecoder::~VideoDecoder()
@@ -80,38 +67,18 @@ VideoDecoder::~VideoDecoder()
 	}
 }
 
-
-// Used in PushVideoSample in streamsession.cpp
 void VideoDecoder::PushFrame(uint8_t *buf, size_t buf_size)
 {
 	{
 		QMutexLocker locker(&mutex);
+
 		AVPacket packet;
 		av_init_packet(&packet);
 		packet.data = buf;
 		packet.size = buf_size;
-		
-		// RPi decode and render
-		if (buf != NULL && buf_size>0) {		
-			chiaki_pihw_decoder_get_buffer(pi_hw_decoder, buf, buf_size);
-			chiaki_pihw_decoder_draw(pi_hw_decoder);
-			
-			/*
-			// timings check
-			if(buf_size > 30000){
-				struct timeval current_time;
-				gettimeofday(&current_time, NULL);
-				printf("Frame size in videodecoder: %d\n", buf_size);
-				printf("in videodecoder: seconds : %ld.%ld\n", current_time.tv_sec, current_time.tv_usec);
-			}
-			*/
-		}
-		
-/*
 		int r;
 send_packet:
-		r = avcodec_send_packet(codec_context, &packet); // r==0 success?
-		
+		r = avcodec_send_packet(codec_context, &packet);
 		if(r != 0)
 		{
 			if(r == AVERROR(EAGAIN))
@@ -139,16 +106,12 @@ send_packet:
 				CHIAKI_LOGE(log, "Failed to push frame: %s", errbuf);
 				return;
 			}
-			
-		}*/ // comment end
+		}
 	}
 
-	//emit FramesAvailable();
-
+	emit FramesAvailable();
 }
 
-
-// Used in UpdateFrame in openglframeuploader.cpp
 AVFrame *VideoDecoder::PullFrame()
 {
 	QMutexLocker locker(&mutex);
@@ -173,16 +136,10 @@ AVFrame *VideoDecoder::PullFrame()
 		}
 		frame_last = frame;
 		frame = next_frame;
-		
-		int r = avcodec_receive_frame(codec_context, frame); //r=0 is success
-
-		
+		int r = avcodec_receive_frame(codec_context, frame);
 		if(r == 0)
-		{	
-			//ORIG only line: frame = hw_decode_engine ? GetFromHardware(frame) : frame;
-			//frame = hw_decode_engine ? GetFromHardware(frame) : frame;		
-					
-			//printf("VideoDecoder::PullFrame\n");
+		{
+			frame = hw_decode_engine ? GetFromHardware(frame) : frame;
 		}
 		else
 		{
@@ -200,8 +157,7 @@ AVFrame *VideoDecoder::GetFromHardware(AVFrame *hw_frame)
 	AVFrame *sw_frame;
 
 	sw_frame = av_frame_alloc();
-	
-	// from /home/pi/sensit/dependencies/FFmpeg/libavutil/hwcontext.c
+
 	int ret = av_hwframe_transfer_data(sw_frame, hw_frame, 0);
 
 	if(ret < 0)

@@ -1,19 +1,4 @@
-/*
- * This file is part of Chiaki.
- *
- * Chiaki is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Chiaki is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Chiaki.  If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
 
 #include <avopenglwidget.h>
 #include <videodecoder.h>
@@ -31,8 +16,7 @@
 //#define DEBUG_OPENGL
 
 static const char *shader_vert_glsl = R"glsl(
-#version 300 es
-precision mediump float;
+#version 150 core
 
 in vec2 pos_attr;
 
@@ -46,8 +30,7 @@ void main()
 )glsl";
 
 static const char *yuv420p_shader_frag_glsl = R"glsl(
-#version 300 es
-precision mediump float;
+#version 150 core
 
 uniform sampler2D plane1; // Y
 uniform sampler2D plane2; // U
@@ -71,8 +54,7 @@ void main()
 )glsl";
 
 static const char *nv12_shader_frag_glsl = R"glsl(
-#version 300 es
-precision mediump float;
+#version 150 core
 
 uniform sampler2D plane1; // Y
 uniform sampler2D plane2; // interlaced UV
@@ -133,10 +115,8 @@ QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
 	QSurfaceFormat format;
 	format.setDepthBufferSize(0);
 	format.setStencilBufferSize(0);
-	format.setVersion(3, 0);
+	format.setVersion(3, 2);
 	format.setProfile(QSurfaceFormat::CoreProfile);
-	format.setRenderableType(QSurfaceFormat::RenderableType::OpenGLES);
-	
 #ifdef DEBUG_OPENGL
 	format.setOption(QSurfaceFormat::DebugContext, true);
 #endif
@@ -167,6 +147,7 @@ AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
 	frame_uploader_thread = nullptr;
 	frame_fg = 0;
 
+	setMouseTracking(true);
 	mouse_timer = new QTimer(this);
 	connect(mouse_timer, &QTimer::timeout, this, &AVOpenGLWidget::HideMouse);
 	ResetMouseTimeout();
@@ -186,7 +167,7 @@ AVOpenGLWidget::~AVOpenGLWidget()
 }
 
 void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
-{	
+{
 	QOpenGLWidget::mouseMoveEvent(event);
 	ResetMouseTimeout();
 }
@@ -259,10 +240,8 @@ bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 	return true;
 }
 
-
 void AVOpenGLWidget::initializeGL()
 {
-	printf("Is context GLES? %s\n", context()->isOpenGLES() ? "yes" : "no");
 	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
 	const char *gl_version = (const char *)f->glGetString(GL_VERSION);
@@ -382,7 +361,6 @@ void AVOpenGLWidget::initializeGL()
 	frame_uploader_context->moveToThread(frame_uploader_thread);
 	frame_uploader->moveToThread(frame_uploader_thread);
 	frame_uploader_thread->start();
-	
 }
 
 void AVOpenGLWidget::paintGL()

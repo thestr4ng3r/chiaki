@@ -14,12 +14,11 @@ AVOpenGLFrameUploader::AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidg
 	context(context),
 	surface(surface)
 {
-	//connect(decoder, SIGNAL(FramesAvailable()), this, SLOT(UpdateFrame()));
+	connect(decoder, SIGNAL(FramesAvailable()), this, SLOT(UpdateFrame()));
 }
 
 void AVOpenGLFrameUploader::UpdateFrame()
 {
-	/*
 	if(QOpenGLContext::currentContext() != context)
 		context->makeCurrent(surface);
 
@@ -29,9 +28,7 @@ void AVOpenGLFrameUploader::UpdateFrame()
 
 	bool success = widget->GetBackgroundFrame()->Update(next_frame, decoder->GetChiakiLog());
 	av_frame_free(&next_frame);
-	
 
 	if(success)
 		widget->SwapFrames();
-	*/
 }

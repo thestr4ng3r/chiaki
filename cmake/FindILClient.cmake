@@ -21,7 +21,7 @@ endforeach()
 
 find_path(ILClient_INCLUDE_DIR bcm_host.h
 	PATHS /opt/vc/include
-       	NO_DEFAULT_PATH)
+	NO_DEFAULT_PATH)
 
 find_path(ILClient_SOURCE_DIR ilclient.c
 	PATHS /opt/vc/src/hello_pi/libs/ilclient)

@@ -1,5 +1,5 @@
 
-#include <chiaki/pihwdecoder.h>
+#include <chiaki/pidecoder.h>
 
 #include <bcm_host.h>
 
@@ -8,10 +8,10 @@
 #include <string.h>
 #include <errno.h>
 
+#define MAX_DECODE_UNIT_SIZE 262144
 
-void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
+CHIAKI_EXPORT void chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *log)
 {
-			
 	decoder->video_decode = NULL;
 	decoder->video_scheduler = NULL;
 	decoder->video_render = NULL;
@@ -19,35 +19,37 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 	bcm_host_init();
 
 	OMX_VIDEO_PARAM_PORTFORMATTYPE format;
-	OMX_TIME_CONFIG_CLOCKSTATETYPE cstate;
-	COMPONENT_T *clock = NULL;
 
 	memset(decoder->list, 0, sizeof(decoder->list));    //array of pointers
 	memset(decoder->tunnel, 0, sizeof(decoder->tunnel)); //array  
 
-	if((decoder->client = ilclient_init()) == NULL) {
-		fprintf(stderr, "Can't initialize video\n");
-		return;
-	}
-
-	if(OMX_Init() != OMX_ErrorNone) {
-		fprintf(stderr, "Can't initialize OMX\n");
-		return;
-	}
-
-	// create video_decode
-	if(ilclient_create_component(decoder->client, &decoder->video_decode, "video_decode", ILCLIENT_DISABLE_ALL_PORTS | ILCLIENT_ENABLE_INPUT_BUFFERS) != 0)
+	if(!(decoder->client = ilclient_init()))
 	{
-		fprintf(stderr, "Can't create video decode\n");
+		CHIAKI_LOGE(decoder->log, "ilclient_init failed");
+		return;
+	}
+
+	if(OMX_Init() != OMX_ErrorNone)
+	{
+		CHIAKI_LOGE(decoder->log, "OMX_Init failed");
+		// TODO: leak here
+		return;
+	}
+
+	if(ilclient_create_component(decoder->client, &decoder->video_decode, "video_decode",
+			ILCLIENT_DISABLE_ALL_PORTS | ILCLIENT_ENABLE_INPUT_BUFFERS) != 0)
+	{
+		CHIAKI_LOGE(decoder->log, "ilclient_create_component failed for video_decode");
+		// TODO: leak here
 		return;
 	}
 
 	decoder->list[0] = decoder->video_decode;
 
-	// create video_render
 	if(ilclient_create_component(decoder->client, &decoder->video_render, "video_render", ILCLIENT_DISABLE_ALL_PORTS) != 0)
 	{
-		fprintf(stderr, "Can't create video renderer\n");
+		CHIAKI_LOGE(decoder->log, "ilclient_create_component failed for video_render");
+		// TODO: leak here
 		return;
 	}
 
@@ -72,10 +74,11 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 	unit.eUnitType = OMX_DataUnitCodedPicture;
 	unit.eEncapsulationType = OMX_DataEncapsulationElementaryStream;
 
-	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamVideoPortFormat, &format) != OMX_ErrorNone ||
-		OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamBrcmDataUnit, &unit) != OMX_ErrorNone)
+	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamVideoPortFormat, &format) != OMX_ErrorNone
+		|| OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamBrcmDataUnit, &unit) != OMX_ErrorNone)
 	{
-		fprintf(stderr, "Failed to set video parameters\n");
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for video parameters");
+		// TODO: leak here
 		return;
 	}
 
@@ -94,7 +97,9 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 
 	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigLatencyTarget, &latencyTarget) != OMX_ErrorNone)
 	{
-		fprintf(stderr, "Failed to set video render parameters\n");
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for render parameters");
+		// TODO: leak here
+		// TODO: leak here
 		return;
 	}
 
@@ -103,24 +108,12 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 	rotationType.nSize = sizeof(OMX_CONFIG_ROTATIONTYPE);
 	rotationType.nVersion.nVersion = OMX_VERSION;
 	rotationType.nPortIndex = 90;
-  
-	// These work if people ask for them later.
-	/*
-	int displayRotation = drFlags & DISPLAY_ROTATE_MASK;
-	switch (displayRotation) {
-		case DISPLAY_ROTATE_90:
-		rotationType.nRotation = 90;
-		break;
-	case DISPLAY_ROTATE_180:
-		rotationType.nRotation = 180;
-		break;
-	case DISPLAY_ROTATE_270:
-		rotationType.nRotation = 270;
-		break;
-	}*/
+	//rotationType.nRotation = 90; // example
 
-	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigCommonRotate, &rotationType) != OMX_ErrorNone) {
-		fprintf(stderr, "Failed to set video rotation\n");
+	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigCommonRotate, &rotationType) != OMX_ErrorNone)
+	{
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for rotation");
+		// TODO: leak here
 		return;
 	}
 
@@ -130,8 +123,10 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 	port.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
 	port.nVersion.nVersion = OMX_VERSION;
 	port.nPortIndex = 130;
-	if(OMX_GetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
+	if(OMX_GetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
+	{
 		printf("Failed to get decoder port definition\n");
+		// TODO: leak here
 		return;
 	}
 
@@ -141,31 +136,27 @@ void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)
 	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) == OMX_ErrorNone &&
 		ilclient_enable_port_buffers(decoder->video_decode, 130, NULL, NULL, NULL) == 0)
 	{
+		// TODO: make this flat and early return
+		decoder->port_settings_changed = 0;
+		decoder->first_packet = 1;
 
-	decoder->port_settings_changed = 0;
-	decoder->first_packet = 1;
-
-	ilclient_change_component_state(decoder->video_decode, OMX_StateExecuting);
-	} else
+		ilclient_change_component_state(decoder->video_decode, OMX_StateExecuting);
+	}
+	else
 	{
-		fprintf(stderr, "Can't setup video\n");
+		printf("Failed to get decoder port definition\n");
+		// TODO: leak here
 		return;
 	}
-	
-	// For video saveout
-	//decoder->outf = fopen("chiaki_video_dump.h264", "w"); // Need to check this!
-	
 
-	printf("[I] RPi hardware setup successful\n");
+	CHIAKI_LOGI(decoder->log, "Raspberry Pi Decoder initialized");
 }
 
-
-
-void chiaki_pihw_decoder_fini(ChiakiPihwDecoder *decoder)
+CHIAKI_EXPORT void chiaki_pi_decoder_fini(ChiakiPiDecoder *decoder)
 {
-	
 	OMX_BUFFERHEADERTYPE *buf;
-	if((buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1)) == NULL){
+	if((buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1)) == NULL)
+	{
 		//printf("Can't get video buffer\n");
 		return;
 	}
@@ -173,7 +164,8 @@ void chiaki_pihw_decoder_fini(ChiakiPihwDecoder *decoder)
 	buf->nFilledLen = 0;
 	buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
 
-	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->list[0]), buf) != OMX_ErrorNone){
+	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->list[0]), buf) != OMX_ErrorNone)
+	{
 		//printf("Can't empty video buffer\n");
 		return;
 	}
@@ -193,94 +185,62 @@ void chiaki_pihw_decoder_fini(ChiakiPihwDecoder *decoder)
 
 	OMX_Deinit();
 	ilclient_destroy(decoder->client);
-	free(decoder->pBuf);
 }
 
-
-
-void chiaki_pihw_decoder_get_buffer(ChiakiPihwDecoder *decoder, uint8_t *buffer, size_t buf_size)
+static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 {
-	if(buf_size > 0 && buffer != NULL)
+	OMX_BUFFERHEADERTYPE *omx_buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1);
+	if(!omx_buf)
 	{
-		decoder->pBuf = buffer;
-		decoder->_buf_size = buf_size;
+		fprintf(stderr, "Can't get video buffer\n");
+		return false;
 	}
-}
+	
+	omx_buf->nFilledLen = 0;
+	omx_buf->nOffset = 0;
+	omx_buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS;
+	if(decoder->first_packet)
+	{
+		omx_buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
+		decoder->first_packet = 0;
+	}
 
-void chiaki_pihw_decoder_draw(ChiakiPihwDecoder *decoder)
-{
-	OMX_BUFFERHEADERTYPE *buf = NULL;
-   
-   while(decoder->pBuf != NULL)
-   {  
-      if (buf == NULL)
-      {
-         if((buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1)) == NULL)
-         {
-            fprintf(stderr, "Can't get video buffer\n");
-            return;
-         }
-         
-         buf->nFilledLen = 0;
-         buf->nOffset = 0;
-         buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS;
-         if(decoder->first_packet)
-         {
-           buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
-           decoder->first_packet = 0;
-         }
+	memcpy(omx_buf->pBuffer + omx_buf->nFilledLen, buf, buf_size);
+	omx_buf->nFilledLen += buf_size;
 
-      }
-    
-
-	memcpy(buf->pBuffer + buf->nFilledLen, decoder->pBuf, decoder->_buf_size);
-	buf->nFilledLen += decoder->_buf_size;
-
-
-	if(decoder->port_settings_changed == 0 && ((buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0) || (buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
+	if(decoder->port_settings_changed == 0
+		&& ((omx_buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)
+		       	|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
 	{
 		decoder->port_settings_changed = 1;
-
+	
 		if(ilclient_setup_tunnel(decoder->tunnel, 0, 0) != 0)
 		{
-			printf("ERR decodeFrameData:  A\n");
-			return;
+			CHIAKI_LOGE(decoder->log, "ilclient_setup_tunnel failed");
+			return false;
 		}
 		
 		ilclient_change_component_state(decoder->video_render, OMX_StateExecuting);
 	}
 
-
-
-	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->video_decode), buf) != OMX_ErrorNone)
+	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->video_decode), omx_buf) != OMX_ErrorNone)
 	{
-		printf("Can't empty video buffer\n");
-		return;
+		CHIAKI_LOGE(decoder->log, "OMX_EmptyThisBuffer failed");
+		return false;
 	}
-	
-	
-	// Saves h264 video dump.
-	if(0)
-	{
-		//int r = 0;
-		//r = fwrite(decoder->pBuf, 1, decoder->_buf_size, decoder->outf);
-		// commandline to convert to mp4:
-		// ffmpeg -framerate 60000/1001 -i chiaki_video_dump.h264 -c copy output.mp4
-		// edit length doesn't work because lack of keyframes? Use Premiere.
-	}
-	
-
-	buf = NULL;
-	decoder->pBuf=NULL;
-	}
-
-   return;
+	return true;
 }
 
+#define OMX_INIT_STRUCTURE(a) \
+  memset(&(a), 0, sizeof(a)); \
+  (a).nSize = sizeof(a); \
+  (a).nVersion.s.nVersionMajor = OMX_VERSION_MAJOR; \
+  (a).nVersion.s.nVersionMinor = OMX_VERSION_MINOR; \
+  (a).nVersion.s.nRevision = OMX_VERSION_REVISION; \
+  (a).nVersion.s.nStep = OMX_VERSION_STEP
 
-CHIAKI_EXPORT void chiaki_pihw_decoder_transform(ChiakiPihwDecoder *decoder, int x, int y, int w, int h)
+CHIAKI_EXPORT void chiaki_pi_decoder_transform(ChiakiPiDecoder *decoder, int x, int y, int w, int h)
 {	
-	
 	OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
 	OMX_INIT_STRUCTURE(configDisplay);
 	configDisplay.nPortIndex = 90;
@@ -293,22 +253,14 @@ CHIAKI_EXPORT void chiaki_pihw_decoder_transform(ChiakiPihwDecoder *decoder, int
 	configDisplay.dest_rect.width     = w;
 	configDisplay.dest_rect.height    = h;
 	configDisplay.alpha = 255;
-	
+
   	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-	{
-		printf(stderr, "Failed to set DISPLAY REGION\n");
-		return;
-	}
-	
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for display region");
 }
 
-CHIAKI_EXPORT void chiaki_pihw_decoder_visibility(ChiakiPihwDecoder *decoder, int vis)
+CHIAKI_EXPORT void chiaki_pi_decoder_visibility(ChiakiPiDecoder *decoder, bool visible)
 {
-	
-	int opacity=255; 
-	if(vis == 0)
-		opacity=0;
-	
+	int opacity = visible ? 255 : 0; 
 	OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
 	OMX_INIT_STRUCTURE(configDisplay);
 	configDisplay.nPortIndex = 90;
@@ -317,11 +269,12 @@ CHIAKI_EXPORT void chiaki_pihw_decoder_visibility(ChiakiPihwDecoder *decoder, in
 	configDisplay.fullscreen = OMX_FALSE;
 	configDisplay.noaspect   = OMX_FALSE;
 	configDisplay.alpha = opacity;
-	
-	
+
 	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-	{
-		printf(stderr, "Failed to set DISPLAY REGION\n");
-		return;
-	}
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for visibility");
+}
+
+CHIAKI_EXPORT bool chiaki_pi_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, void *user)
+{
+	return push_buffer(user, buf, buf_size);
 }

@@ -34,8 +34,7 @@ set(HEADER_FILES
 		include/chiaki/time.h
 		include/chiaki/fec.h
 		include/chiaki/regist.h
-		include/chiaki/opusdecoder.h
-		include/chiaki/pihwdecoder.h)
+		include/chiaki/opusdecoder.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -72,8 +71,13 @@ set(SOURCE_FILES
 		src/time.c
 		src/fec
 		src/regist.c
-		src/opusdecoder.c
-		src/pihwdecoder.c)
+		src/opusdecoder.c)
+
+if(CHIAKI_ENABLE_PI_DECODER)
+	list(APPEND HEADER_FILES include/chiaki/pidecoder.h)
+	list(APPEND SOURCE_FILES src/pidecoder.c)
+endif()
+set(CHIAKI_LIB_ENABLE_PI_DECODER "${CHIAKI_ENABLE_PI_DECODER}")
 
 add_subdirectory(protobuf)
 set_source_files_properties(${CHIAKI_LIB_PROTO_SOURCE_FILES} ${CHIAKI_LIB_PROTO_HEADER_FILES} PROPERTIES GENERATED TRUE)

@@ -47,8 +47,17 @@ void StreamWindow::Init()
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
-	setCentralWidget(av_widget);
+	if(session->GetVideoDecoder())
+	{
+		av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+		setCentralWidget(av_widget);
+	}
+	else
+	{
+		QWidget *bg_widget = new QWidget(this);
+		bg_widget->setStyleSheet("background-color: black;");
+		setCentralWidget(bg_widget);
+	}
 
 	grabKeyboard();
 
@@ -61,13 +70,6 @@ void StreamWindow::Init()
 
 	resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	show();
-	
-	menubar = this->menuBar();
-	menubar->installEventFilter(this);
-	statusbar = new QStatusBar(this);
-	statusbar->installEventFilter(this);
-	     
-    this->setUpdatesEnabled(true);
 }
 
 void StreamWindow::keyPressEvent(QKeyEvent *event)
@@ -175,63 +177,34 @@ void StreamWindow::ToggleFullscreen()
 	}
 }
 
-void StreamWindow::resizeEvent(QResizeEvent* event)
+void StreamWindow::resizeEvent(QResizeEvent *event)
 {
-	// RPi
-	QRect r = geometry();
-	VideoDecoder *vdec = session->GetVideoDecoder();
-	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
-	chiaki_pihw_decoder_transform(pi_hw_decoder, r.x(), r.y(), r.width(), r.height());
-	
+	UpdateVideoTransform();
 	QMainWindow::resizeEvent(event);
 }
 
-void StreamWindow::moveEvent(QMoveEvent* event)
-{	
-	// RPi
-	QRect r = geometry();
-	VideoDecoder *vdec = session->GetVideoDecoder();
-	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
-	chiaki_pihw_decoder_transform(pi_hw_decoder, r.x(), r.y(), r.width(), r.height());
-	
+void StreamWindow::moveEvent(QMoveEvent *event)
+{
+	UpdateVideoTransform();
 	QMainWindow::moveEvent(event);
 }
 
-void StreamWindow::PiScreenTransform(int x, int y, int width, int height)
+void StreamWindow::changeEvent(QEvent *event)
 {
-	VideoDecoder *vdec = session->GetVideoDecoder();
-	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
-	chiaki_pihw_decoder_transform(pi_hw_decoder, x, y, width, height);
+	if(event->type() == QEvent::ActivationChange)
+		UpdateVideoTransform();
+	QMainWindow::changeEvent(event);
 }
 
-void StreamWindow::PiScreenVisibility(int vis)
-{	
-	VideoDecoder *vdec = session->GetVideoDecoder();
-	ChiakiPihwDecoder *pi_hw_decoder = vdec->GetPihwDecoder();
-	chiaki_pihw_decoder_visibility(pi_hw_decoder, vis);
-}
-
-bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
+void StreamWindow::UpdateVideoTransform()
 {
-	PiEventFilter(obj, event);
-	
-	return QWidget::eventFilter(obj, event);
-}
-
-
-bool StreamWindow::PiEventFilter(QObject *obj, QEvent *event)
-{	
-	
-	if(event->type() == QEvent::WindowActivate || event->type() == QEvent::Show)
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	ChiakiPiDecoder *pi_decoder = session->GetPiDecoder();
+	if(pi_decoder)
 	{
-		PiScreenVisibility(1);
-		return 1;
-	} else
-	if(event->type() == QEvent::WindowDeactivate || event->type() == QEvent::Hide)
-	{
-		PiScreenVisibility(0);
-		return 1;
+		QRect r = geometry();
+		chiaki_pi_decoder_transform(pi_decoder, r.x(), r.y(), r.width(), r.height());
+		chiaki_pi_decoder_visibility(pi_decoder, isActiveWindow());
 	}
-			
-	return QWidget::eventFilter(obj, event);
+#endif
 }

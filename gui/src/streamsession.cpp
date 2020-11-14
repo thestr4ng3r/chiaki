@@ -42,11 +42,30 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	: QObject(parent),
 	log(this, connect_info.log_level_mask, connect_info.log_file),
 	controller(nullptr),
-	video_decoder(connect_info.hw_decode_engine, log.GetChiakiLog()),
+	video_decoder(nullptr),
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	pi_decoder(nullptr),
+#endif
 	audio_output(nullptr),
 	audio_io(nullptr)
 {
 	connected = false;
+
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(true) // TODO: from settings
+	{
+		pi_decoder = CHIAKI_NEW(ChiakiPiDecoder);
+		chiaki_pi_decoder_init(pi_decoder, log.GetChiakiLog());
+		// TODO: check return value
+	}
+	else
+	{
+#endif
+		video_decoder = new VideoDecoder(connect_info.hw_decode_engine, log.GetChiakiLog());
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	}
+#endif
+
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	audio_buffer_size = connect_info.audio_buffer_size;
 
@@ -75,7 +94,17 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&session, &audio_sink);
 
-	chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(pi_decoder)
+		chiaki_session_set_video_sample_cb(&session, chiaki_pi_decoder_video_sample_cb, pi_decoder);
+	else
+	{
+#endif
+		chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	}
+#endif
+
 	chiaki_session_set_event_cb(&session, EventCb, this);
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -107,6 +136,14 @@ StreamSession::~StreamSession()
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
 #endif
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(pi_decoder)
+	{
+		chiaki_pi_decoder_fini(pi_decoder);
+		free(pi_decoder);
+	}
+#endif
+	delete video_decoder;
 }
 
 void StreamSession::Start()
@@ -256,7 +293,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setChannelCount(channels);
 	audio_format.setSampleSize(16);
 	audio_format.setCodec("audio/pcm");
-	audio_format.setByteOrder(QAudioFormat::LittleEndian);
 	audio_format.setSampleType(QAudioFormat::SignedInt);
 
 	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
@@ -266,10 +302,10 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 					channels, rate,
 					audio_device_info.deviceName().toLocal8Bit().constData());
 		return;
-	}	
-	
+	}
+
 	audio_output = new QAudioOutput(audio_format, this);
-	audio_output->setBufferSize(64000);
+	audio_output->setBufferSize(audio_buffer_size);
 	audio_io = audio_output->start();
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",
@@ -286,7 +322,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 
 void StreamSession::PushVideoSample(uint8_t *buf, size_t buf_size)
 {
-	video_decoder.PushFrame(buf, buf_size);
+	video_decoder->PushFrame(buf, buf_size);
 }
 
 void StreamSession::Event(ChiakiEvent *event)

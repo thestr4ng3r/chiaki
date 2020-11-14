@@ -88,16 +88,6 @@ if(CHIAKI_ENABLE_SETSU)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SETSU)
 endif()
 
-#if(CHIAKI_ENABLE_RPI)
-# RPi addons
-add_compile_definitions(OMX_SKIP64BIT)
-include_directories(include
-	/opt/vc/src/hello_pi/libs/ilclient
-	/opt/vc/include/
-	/opt/vc/include/IL
-)
-#endif()
-
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
