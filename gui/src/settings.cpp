@@ -94,7 +94,7 @@ Decoder Settings::GetDecoder() const
 	auto v = settings.value("settings/decoder", decoder_values[decoder_default]).toString();
 	return decoder_values.key(v, decoder_default);
 #else
-	return Decoder:Ffmpeg;
+	return Decoder::Ffmpeg;
 #endif
 }
 
