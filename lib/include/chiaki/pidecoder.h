@@ -31,6 +31,6 @@ CHIAKI_EXPORT bool chiaki_pi_decoder_video_sample_cb(uint8_t *buf, size_t buf_si
 
 #ifdef __cplusplus
 }
-#endif 
+#endif
 
 #endif // CHIAKI_PI_DECODER_H

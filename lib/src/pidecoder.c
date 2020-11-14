@@ -186,7 +186,7 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 		CHIAKI_LOGE(decoder->log, "ilclient_get_input_buffer failed");
 		return false;
 	}
-	
+
 	if(omx_buf->nAllocLen < buf_size)
 	{
 		CHIAKI_LOGE(decoder->log, "Buffer from omx is too small for frame");
@@ -207,16 +207,16 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 
 	if(!decoder->port_settings_changed
 		&& ((omx_buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)
-		       	|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
+			|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
 	{
 		decoder->port_settings_changed = true;
-	
+
 		if(ilclient_setup_tunnel(decoder->tunnel, 0, 0) != 0)
 		{
 			CHIAKI_LOGE(decoder->log, "ilclient_setup_tunnel failed");
 			return false;
 		}
-		
+
 		ilclient_change_component_state(decoder->video_render, OMX_StateExecuting);
 	}
 
@@ -237,7 +237,7 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
   (a).nVersion.s.nStep = OMX_VERSION_STEP
 
 CHIAKI_EXPORT void chiaki_pi_decoder_set_params(ChiakiPiDecoder *decoder, int x, int y, int w, int h, bool visible)
-{	
+{
 	OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
 	OMX_INIT_STRUCTURE(configDisplay);
 	configDisplay.nPortIndex = 90;
@@ -251,7 +251,7 @@ CHIAKI_EXPORT void chiaki_pi_decoder_set_params(ChiakiPiDecoder *decoder, int x,
 	configDisplay.dest_rect.height    = h;
 	configDisplay.alpha = visible ? 255 : 0;
 
-  	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
+	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
 		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for display params");
 }
 
