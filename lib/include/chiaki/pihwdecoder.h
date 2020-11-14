@@ -4,10 +4,7 @@
 #include <chiaki/config.h>
 #include <chiaki/log.h>
 
-#include "bcm_host.h"
-#include "OMX_Broadcom.h"
-#include "ilclient.h"
-
+#include <ilclient.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,10 +1,12 @@
+
+#include <chiaki/pihwdecoder.h>
+
+#include <bcm_host.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
-#include <chiaki/pihwdecoder.h>
-#include <X11/Xlib.h>   // for getting screen resolution
 
 
 void chiaki_pihw_decoder_init(ChiakiPihwDecoder *decoder, ChiakiLog *log)

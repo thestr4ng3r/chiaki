@@ -2,13 +2,6 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-
-#if(CHIAKI_ENABLE_RPI)
-set(Qt5Core_DIR "/usr/lib/qt5.12/lib/cmake/Qt53DCore")
-set(Qt5_DIR "/usr/lib/qt5.12/lib/cmake/Qt5")
-set(QT_QMAKE_EXECUTABLE "/usr/lib/qt5.12/bin/qmake")
-#endif()
-
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Multimedia OpenGL Svg)
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)

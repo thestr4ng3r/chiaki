@@ -121,24 +121,9 @@ endif()
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
-#if(CHIAKI_ENABLE_RPI)
-
-# RPi needs:  cmake -DCMAKE_PREFIX_PATH=/usr/lib/qt5.12 ..
-add_compile_definitions(OMX_SKIP64BIT)
-
-# Should set up some auto build of libilclient.
-
-include_directories(/opt/vc/src/hello_pi/libs/ilclient)
-include_directories(include
-	/opt/vc/include/
-	/opt/vc/include/IL)
-target_link_libraries(chiaki-lib
-	/opt/vc/src/hello_pi/libs/ilclient/libilclient.a
-	/opt/vc/lib/libbcm_host.so
-	/opt/vc/lib/libvcilcs.a
-	/opt/vc/lib/libvchiq_arm.so
-	/opt/vc/lib/libvcos.so)
-#endif()
+if(CHIAKI_ENABLE_PI_DECODER)
+	target_link_libraries(chiaki-lib ILClient::ILClient)
+endif()
 
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
