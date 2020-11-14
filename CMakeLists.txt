@@ -114,10 +114,10 @@ The Raspberry Pi Decoder is only supported on Raspberry Pi OS and requires libra
 	endif()
 endif()
 
-if(CHIAKI_ENABLE_SETSU)
-	message(STATUS "Setsu enabled")
+if(CHIAKI_ENABLE_PI_DECODER)
+	message(STATUS "Pi Decoder enabled")
 else()
-	message(STATUS "Setsu disabled")
+	message(STATUS "Pi Decoder disabled")
 endif()
 
 

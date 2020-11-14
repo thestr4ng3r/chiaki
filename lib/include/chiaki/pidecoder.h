@@ -26,8 +26,7 @@ typedef struct chiaki_pi_decoder_t
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *log);
 CHIAKI_EXPORT void chiaki_pi_decoder_fini(ChiakiPiDecoder *decoder);
-CHIAKI_EXPORT void chiaki_pi_decoder_transform(ChiakiPiDecoder *decoder, int x, int y, int w, int h);
-CHIAKI_EXPORT void chiaki_pi_decoder_visibility(ChiakiPiDecoder *decoder, bool visible);
+CHIAKI_EXPORT void chiaki_pi_decoder_set_params(ChiakiPiDecoder *decoder, int x, int y, int w, int h, bool visible);
 CHIAKI_EXPORT bool chiaki_pi_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, void *user);
 
 #ifdef __cplusplus

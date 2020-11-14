@@ -236,7 +236,7 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
   (a).nVersion.s.nRevision = OMX_VERSION_REVISION; \
   (a).nVersion.s.nStep = OMX_VERSION_STEP
 
-CHIAKI_EXPORT void chiaki_pi_decoder_transform(ChiakiPiDecoder *decoder, int x, int y, int w, int h)
+CHIAKI_EXPORT void chiaki_pi_decoder_set_params(ChiakiPiDecoder *decoder, int x, int y, int w, int h, bool visible)
 {	
 	OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
 	OMX_INIT_STRUCTURE(configDisplay);
@@ -249,26 +249,10 @@ CHIAKI_EXPORT void chiaki_pi_decoder_transform(ChiakiPiDecoder *decoder, int x, 
 	configDisplay.dest_rect.y_offset  = y;
 	configDisplay.dest_rect.width     = w;
 	configDisplay.dest_rect.height    = h;
-	configDisplay.alpha = 255;
+	configDisplay.alpha = visible ? 255 : 0;
 
   	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for display region");
-}
-
-CHIAKI_EXPORT void chiaki_pi_decoder_visibility(ChiakiPiDecoder *decoder, bool visible)
-{
-	int opacity = visible ? 255 : 0; 
-	OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
-	OMX_INIT_STRUCTURE(configDisplay);
-	configDisplay.nPortIndex = 90;
-	configDisplay.set        = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT | OMX_DISPLAY_SET_MODE | OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_PIXEL | OMX_DISPLAY_SET_ALPHA);
-	configDisplay.mode = OMX_DISPLAY_MODE_LETTERBOX;
-	configDisplay.fullscreen = OMX_FALSE;
-	configDisplay.noaspect   = OMX_FALSE;
-	configDisplay.alpha = opacity;
-
-	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_render), OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for visibility");
+		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for display params");
 }
 
 CHIAKI_EXPORT bool chiaki_pi_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, void *user)

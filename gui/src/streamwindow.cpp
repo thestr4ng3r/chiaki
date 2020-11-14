@@ -203,8 +203,7 @@ void StreamWindow::UpdateVideoTransform()
 	if(pi_decoder)
 	{
 		QRect r = geometry();
-		chiaki_pi_decoder_transform(pi_decoder, r.x(), r.y(), r.width(), r.height());
-		chiaki_pi_decoder_visibility(pi_decoder, isActiveWindow());
+		chiaki_pi_decoder_set_params(pi_decoder, r.x(), r.y(), r.width(), r.height(), isActiveWindow());
 	}
 #endif
 }
