@@ -195,10 +195,10 @@ static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 
 	omx_buf->nFilledLen = 0;
 	omx_buf->nOffset = 0;
-	omx_buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS;
+	omx_buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
 	if(decoder->first_packet)
 	{
-		omx_buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
+		omx_buf->nFlags |= OMX_BUFFERFLAG_STARTTIME;
 		decoder->first_packet = false;
 	}
 
