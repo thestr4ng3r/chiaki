@@ -18,6 +18,7 @@
 #include "exception.h"
 #include "sessionlog.h"
 #include "controllermanager.h"
+#include "settings.h"
 
 #include <QObject>
 #include <QImage>
@@ -39,6 +40,7 @@ struct StreamSessionConnectInfo
 {
 	Settings *settings;
 	QMap<Qt::Key, int> key_map;
+	Decoder decoder;
 	HardwareDecodeEngine hw_decode_engine;
 	uint32_t log_level_mask;
 	QString log_file;

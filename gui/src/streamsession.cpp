@@ -18,6 +18,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
+	decoder = settings->GetDecoder();
 	hw_decode_engine = settings->GetHardwareDecodeEngine();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
@@ -52,7 +53,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connected = false;
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
-	if(true) // TODO: from settings
+	if(connect_info.decoder == Decoder::Pi)
 	{
 		pi_decoder = CHIAKI_NEW(ChiakiPiDecoder);
 		if(chiaki_pi_decoder_init(pi_decoder, log.GetChiakiLog()) != CHIAKI_ERR_SUCCESS)

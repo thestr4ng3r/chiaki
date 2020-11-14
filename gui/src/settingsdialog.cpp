@@ -20,6 +20,8 @@
 #include <QCheckBox>
 #include <QLineEdit>
 
+#include <chiaki/config.h>
+
 const char * const about_string =
 	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
 	""
@@ -157,6 +159,18 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	auto decode_settings_layout = new QFormLayout();
 	decode_settings->setLayout(decode_settings_layout);
 
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	pi_decoder_check_box = new QCheckBox(this);
+	pi_decoder_check_box->setChecked(settings->GetDecoder() == Decoder::Pi);
+	connect(pi_decoder_check_box, &QCheckBox::toggled, this, [this](bool checked) {
+		this->settings->SetDecoder(checked ? Decoder::Pi : Decoder::Ffmpeg);
+		UpdateHardwareDecodeEngineComboBox();
+	});
+	decode_settings_layout->addRow(tr("Use Raspberry Pi Decoder:"), pi_decoder_check_box);
+#else
+	pi_decoder_check_box = nullptr;
+#endif
+
 	hardware_decode_combo_box = new QComboBox(this);
 	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
 		{ HW_DECODE_NONE, "none"},
@@ -173,6 +187,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	}
 	connect(hardware_decode_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
 	decode_settings_layout->addRow(tr("Hardware decode method:"), hardware_decode_combo_box);
+	UpdateHardwareDecodeEngineComboBox();
 
 	// Registered Consoles
 
@@ -279,6 +294,11 @@ void SettingsDialog::AudioBufferSizeEdited()
 void SettingsDialog::HardwareDecodeEngineSelected()
 {
 	settings->SetHardwareDecodeEngine((HardwareDecodeEngine)hardware_decode_combo_box->currentData().toInt());
+}
+
+void SettingsDialog::UpdateHardwareDecodeEngineComboBox()
+{
+	hardware_decode_combo_box->setEnabled(settings->GetDecoder() == Decoder::Ffmpeg);
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

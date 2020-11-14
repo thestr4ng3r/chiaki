@@ -30,6 +30,12 @@ enum class DisconnectAction
 	Ask
 };
 
+enum class Decoder
+{
+	Ffmpeg,
+	Pi
+};
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -68,6 +74,9 @@ class Settings : public QObject
 
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
+
+		Decoder GetDecoder() const;
+		void SetDecoder(Decoder decoder);
 
 		HardwareDecodeEngine GetHardwareDecodeEngine() const;
 		void SetHardwareDecodeEngine(HardwareDecodeEngine enabled);
