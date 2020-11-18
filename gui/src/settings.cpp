@@ -130,6 +130,25 @@ unsigned int Settings::GetAudioBufferSize() const
 	return v ? v : GetAudioBufferSizeDefault();
 }
 
+QAudioDeviceInfo Settings::GetAudioOutDevice() const
+{
+	QAudioDeviceInfo outDev;
+
+	QString s = settings.value("settings/audio_out_device", "default").toString();
+	for (QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+	{
+		if(di.deviceName() == s)
+			outDev = di;
+	}
+
+	return outDev;
+}
+
+void Settings::SetAudioOutDevice(QString device_name)
+{
+	settings.setValue("settings/audio_out_device", device_name);
+}
+
 void Settings::SetAudioBufferSize(unsigned int size)
 {
 	settings.setValue("settings/audio_buffer_size", size);

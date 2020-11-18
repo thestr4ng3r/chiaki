@@ -295,8 +295,12 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setSampleSize(16);
 	audio_format.setCodec("audio/pcm");
 	audio_format.setSampleType(QAudioFormat::SignedInt);
+	
+	Settings user_settings;
+	QAudioDeviceInfo audio_device_info = user_settings.GetAudioOutDevice();
+	if(audio_device_info.isNull())
+		audio_device_info = QAudioDeviceInfo::defaultOutputDevice();
 
-	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
 	if(!audio_device_info.isFormatSupported(audio_format))
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by Audio Device %s",
@@ -305,7 +309,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		return;
 	}
 
-	audio_output = new QAudioOutput(audio_format, this);
+	audio_output = new QAudioOutput(audio_device_info, audio_format, this);
 	audio_output->setBufferSize(audio_buffer_size);
 	audio_io = audio_output->start();
 

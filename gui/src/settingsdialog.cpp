@@ -151,6 +151,21 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
+	audio_device_combo_box = new QComboBox(this);
+	QList<QString> audio_out_device_list = {};
+	for (QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+	{
+		audio_out_device_list.append(di.deviceName());
+	}	
+	audio_device_combo_box->addItems(audio_out_device_list);
+	auto current_audio_out_device = settings->GetAudioOutDevice();
+	int retrieved_device_index = 0;
+	if(audio_out_device_list.indexOf(current_audio_out_device.deviceName()) >= 0)
+		retrieved_device_index = audio_out_device_list.indexOf(current_audio_out_device.deviceName());
+	audio_device_combo_box->setCurrentIndex(retrieved_device_index);
+	connect(audio_device_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(AudioOutputSelected()));
+	general_layout->addRow(tr("Audio Out Device"), audio_device_combo_box);
+
 	// Decode Settings
 
 	auto decode_settings = new QGroupBox(tr("Decode Settings"));
@@ -289,6 +304,11 @@ void SettingsDialog::BitrateEdited()
 void SettingsDialog::AudioBufferSizeEdited()
 {
 	settings->SetAudioBufferSize(audio_buffer_size_edit->text().toUInt());
+}
+
+void SettingsDialog::AudioOutputSelected()
+{
+	settings->SetAudioOutDevice(audio_device_combo_box->currentText());
 }
 
 void SettingsDialog::HardwareDecodeEngineSelected()
