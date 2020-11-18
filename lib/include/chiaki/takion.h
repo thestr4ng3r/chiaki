@@ -58,8 +58,8 @@ typedef ChiakiErrorCode (*ChiakiTakionAVPacketParse)(ChiakiTakionAVPacket *packe
 typedef struct chiaki_takion_congestion_packet_t
 {
 	uint16_t word_0;
-	uint16_t word_1;
-	uint16_t word_2;
+	uint16_t received;
+	uint16_t lost;
 } ChiakiTakionCongestionPacket;
 
 
@@ -167,10 +167,13 @@ CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 /**
  * Must be called from within the Takion thread, i.e. inside the callback!
  */
-static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote) {
+static inline void chiaki_takion_set_crypt(ChiakiTakion *takion, ChiakiGKCrypt *gkcrypt_local, ChiakiGKCrypt *gkcrypt_remote)
+{
 	takion->gkcrypt_local = gkcrypt_local;
 	takion->gkcrypt_remote = gkcrypt_remote;
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint64_t key_pos, uint8_t *mac_out, uint8_t *mac_old_out);
 
 /**
  * Get a new key pos and advance by data_size.
@@ -229,6 +232,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size);
+
+#define CHIAKI_TAKION_CONGESTION_PACKET_SIZE 0xf
+
+CHIAKI_EXPORT void chiaki_takion_format_congestion(uint8_t *buf, ChiakiTakionCongestionPacket *packet, uint64_t key_pos);
 
 #ifdef __cplusplus
 }

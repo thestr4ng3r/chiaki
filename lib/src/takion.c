@@ -361,7 +361,7 @@ static ChiakiErrorCode chiaki_takion_packet_read_key_pos(ChiakiTakion *takion, u
 	return CHIAKI_ERR_SUCCESS;
 }
 
-static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint64_t key_pos, uint8_t *mac_out, uint8_t *mac_old_out)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *buf, size_t buf_size, uint64_t key_pos, uint8_t *mac_out, uint8_t *mac_old_out)
 {
 	if(buf_size < 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
@@ -383,17 +383,18 @@ static ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uint8_t *b
 	if(crypt)
 	{
 		uint8_t key_pos_tmp[sizeof(uint32_t)];
-		if(base_type == TAKION_PACKET_TYPE_CONTROL)
+		if(base_type == TAKION_PACKET_TYPE_CONTROL || base_type == TAKION_PACKET_TYPE_CONGESTION)
 		{
 			memcpy(key_pos_tmp, buf + key_pos_offset, sizeof(uint32_t));
 			memset(buf + key_pos_offset, 0, sizeof(uint32_t));
 		}
 		chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
-		if(base_type == TAKION_PACKET_TYPE_CONTROL)
+		if(base_type == TAKION_PACKET_TYPE_CONTROL || base_type == TAKION_PACKET_TYPE_CONGESTION)
 			memcpy(buf + key_pos_offset, key_pos_tmp, sizeof(uint32_t));
 	}
 
-	memcpy(mac_out, buf + mac_offset, CHIAKI_GKCRYPT_GMAC_SIZE);
+	if(mac_out)
+		memcpy(mac_out, buf + mac_offset, CHIAKI_GKCRYPT_GMAC_SIZE);
 
 	return CHIAKI_ERR_SUCCESS;
 }
@@ -484,23 +485,25 @@ static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion,
 	return chiaki_takion_send(takion, buf, sizeof(buf), key_pos);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet)
+CHIAKI_EXPORT void chiaki_takion_format_congestion(uint8_t *buf, ChiakiTakionCongestionPacket *packet, uint64_t key_pos)
 {
-	uint8_t buf[0xf];
-	memset(buf, 0, sizeof(buf));
 	buf[0] = TAKION_PACKET_TYPE_CONGESTION;
 	*((chiaki_unaligned_uint16_t *)(buf + 1)) = htons(packet->word_0);
-	*((chiaki_unaligned_uint16_t *)(buf + 3)) = htons(packet->word_1);
-	*((chiaki_unaligned_uint16_t *)(buf + 5)) = htons(packet->word_2);
+	*((chiaki_unaligned_uint16_t *)(buf + 3)) = htons(packet->received);
+	*((chiaki_unaligned_uint16_t *)(buf + 5)) = htons(packet->lost);
+	*((chiaki_unaligned_uint32_t *)(buf + 7)) = 0;
+	*((chiaki_unaligned_uint32_t *)(buf + 0xb)) = htonl((uint32_t)key_pos);
+}
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_congestion(ChiakiTakion *takion, ChiakiTakionCongestionPacket *packet)
+{
 	uint64_t key_pos;
-	ChiakiErrorCode err = chiaki_takion_crypt_advance_key_pos(takion, sizeof(buf), &key_pos);
+	ChiakiErrorCode err = chiaki_takion_crypt_advance_key_pos(takion, CHIAKI_TAKION_CONGESTION_PACKET_SIZE, &key_pos);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	*((chiaki_unaligned_uint32_t *)(buf + 0xb)) = htonl((uint32_t)key_pos); // TODO: is this correct? shouldn't key_pos be 0 for mac calculation?
 
-	//chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, buf, sizeof(buf));
-
+	uint8_t buf[CHIAKI_TAKION_CONGESTION_PACKET_SIZE];
+	chiaki_takion_format_congestion(buf, packet, key_pos);	
 	return chiaki_takion_send(takion, buf, sizeof(buf), key_pos);
 }
 
@@ -675,9 +678,6 @@ static void *takion_thread_func(void *user)
 	if(chiaki_takion_send_buffer_init(&takion->send_buffer, takion, TAKION_SEND_BUFFER_SIZE) != CHIAKI_ERR_SUCCESS)
 		goto error_reoder_queue;
 
-	// TODO ChiakiCongestionControl congestion_control;
-	// if(chiaki_congestion_control_start(&congestion_control, takion) != CHIAKI_ERR_SUCCESS)
-	// 	goto beach;
 
 	if(takion->cb)
 	{

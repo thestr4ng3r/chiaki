@@ -160,7 +160,40 @@ static MunitResult test_takion_send_buffer(const MunitParameter params[], void *
 #undef nums_count
 }
 
+static MunitResult test_takion_format_congestion(const MunitParameter params[], void *user)
+{
+	static const uint8_t handshake_key[] = { 0x54, 0x65, 0x4c, 0x34, 0x5c, 0xac, 0x56, 0xb8, 0xea, 0xe6, 0x15, 0x2a, 0xde, 0x1c, 0xe2, 0xe8 };
+	static const uint8_t ecdh_secret[] = { 0x00, 0x34, 0xf8, 0x21, 0xc7, 0xd9, 0xde, 0xa9, 0xe9, 0x11, 0xca, 0x5a, 0xd6, 0x7d, 0x11, 0xce, 0x4f, 0x02, 0xb1, 0xce, 0x1e, 0xe7, 0xc3, 0x8d, 0x54, 0x39, 0xfa, 0x64, 0xe3, 0xdb, 0xd8, 0x0d };
 
+	ChiakiGKCrypt gkcrypt;
+	ChiakiErrorCode err = chiaki_gkcrypt_init(&gkcrypt, NULL, 0, 2, handshake_key, ecdh_secret);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return MUNIT_ERROR;
+
+	ChiakiTakionCongestionPacket packet;
+	packet.word_0 = 0x42;
+	packet.received = 26;
+	packet.lost = 10;
+
+	const uint64_t key_pos = 0x1e5;
+
+	uint8_t buf[CHIAKI_TAKION_CONGESTION_PACKET_SIZE];
+	chiaki_takion_format_congestion(buf, &packet, key_pos);
+
+	static const uint8_t buf_expected[] = { 0x05, 0x00, 0x42, 0x00, 0x1a, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xe5 };
+	munit_assert_memory_equal(sizeof(buf), buf, buf_expected);
+
+	err = chiaki_takion_packet_mac(&gkcrypt, buf, sizeof(buf), key_pos, NULL, NULL);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return MUNIT_ERROR;
+
+	static const uint8_t buf_expected_mac[] = { 0x05, 0x00, 0x42, 0x00, 0x1a, 0x00, 0x0a, 0x64, 0x8a, 0x7c, 0x74, 0x00, 0x00, 0x01, 0xe5 };
+	munit_assert_memory_equal(sizeof(buf), buf, buf_expected_mac);
+
+	chiaki_gkcrypt_fini(&gkcrypt);
+
+	return MUNIT_OK;
+}
 
 MunitTest tests_takion[] = {
 	{
@@ -182,6 +215,14 @@ MunitTest tests_takion[] = {
 	{
 		"/send_buffer",
 		test_takion_send_buffer,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/format_congestion",
+		test_takion_format_congestion,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
