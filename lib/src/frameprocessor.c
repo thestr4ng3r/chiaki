@@ -196,7 +196,7 @@ static ChiakiErrorCode chiaki_frame_processor_fec(ChiakiFrameProcessor *frame_pr
 
 	ChiakiErrorCode err = chiaki_fec_decode(frame_processor->frame_buf,
 			frame_processor->buf_size_per_unit, frame_processor->buf_stride_per_unit,
-			frame_processor->units_source_expected, frame_processor->units_fec_received,
+			frame_processor->units_source_expected, frame_processor->units_fec_expected,
 			erasures, erasures_count);
 
 	if(err != CHIAKI_ERR_SUCCESS)
