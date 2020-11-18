@@ -8,6 +8,9 @@
 #include "log.h"
 #include "ecdh.h"
 #include "gkcrypt.h"
+#include "audioreceiver.h"
+#include "videoreceiver.h"
+#include "congestioncontrol.h"
 
 #include <stdbool.h>
 
@@ -25,6 +28,10 @@ typedef struct chiaki_stream_connection_t
 	uint8_t *ecdh_secret;
 	ChiakiGKCrypt *gkcrypt_local;
 	ChiakiGKCrypt *gkcrypt_remote;
+
+	ChiakiPacketStats packet_stats;
+	ChiakiAudioReceiver *audio_receiver;
+	ChiakiVideoReceiver *video_receiver;
 
 	ChiakiFeedbackSender feedback_sender;
 	/**

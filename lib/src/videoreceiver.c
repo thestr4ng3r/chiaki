@@ -7,7 +7,7 @@
 
 static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *video_receiver);
 
-CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session)
+CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats)
 {
 	video_receiver->session = session;
 	video_receiver->log = session->log;
@@ -19,6 +19,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 	video_receiver->frame_index_prev = -1;
 
 	chiaki_frame_processor_init(&video_receiver->frame_processor, video_receiver->log);
+	video_receiver->packet_stats = packet_stats;
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver)
@@ -81,6 +82,9 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	if(video_receiver->frame_index_cur < 0 ||
 		chiaki_seq_num_16_gt(frame_index, (ChiakiSeqNum16)video_receiver->frame_index_cur))
 	{
+		if(video_receiver->packet_stats)
+			chiaki_frame_processor_report_packet_stats(&video_receiver->frame_processor, video_receiver->packet_stats);
+
 		// last frame not flushed yet?
 		if(video_receiver->frame_index_cur >= 0 && video_receiver->frame_index_prev != video_receiver->frame_index_cur)
 			chiaki_video_receiver_flush_frame(video_receiver);
@@ -97,11 +101,11 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 	}
 
+	chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
+
 	// if we are currently building up a frame
 	if(video_receiver->frame_index_cur != video_receiver->frame_index_prev)
 	{
-		chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
-
 		// if we already have enough for the whole frame, flush it already
 		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor))
 			chiaki_video_receiver_flush_frame(video_receiver);

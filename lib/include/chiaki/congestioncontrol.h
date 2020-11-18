@@ -5,6 +5,7 @@
 
 #include "takion.h"
 #include "thread.h"
+#include "packetstats.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,11 +14,12 @@ extern "C" {
 typedef struct chiaki_congestion_control_t
 {
 	ChiakiTakion *takion;
+	ChiakiPacketStats *stats;
 	ChiakiThread thread;
 	ChiakiBoolPredCond stop_cond;
 } ChiakiCongestionControl;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion, ChiakiPacketStats *stats);
 
 /**
  * Stop control and join the thread

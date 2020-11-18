@@ -7,10 +7,11 @@
 
 static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, uint8_t *buf, size_t buf_size);
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, ChiakiSession *session)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, ChiakiSession *session, ChiakiPacketStats *packet_stats)
 {
 	audio_receiver->session = session;
 	audio_receiver->log = session->log;
+	audio_receiver->packet_stats = packet_stats;
 
 	audio_receiver->frame_index_prev = 0;
 	audio_receiver->frame_index_startup = true;
@@ -101,8 +102,11 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 			frame_index = packet->frame_index - fec_units_count + fec_index;
 		}
 
-		chiaki_audio_receiver_frame(audio_receiver->session->audio_receiver, frame_index, packet->data + unit_size * i, unit_size);
+		chiaki_audio_receiver_frame(audio_receiver, frame_index, packet->data + unit_size * i, unit_size);
 	}
+
+	if(audio_receiver->packet_stats)
+		chiaki_packet_stats_push_seq(audio_receiver->packet_stats, packet->frame_index);
 }
 
 static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, uint8_t *buf, size_t buf_size)

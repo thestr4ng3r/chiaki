@@ -2,9 +2,7 @@
 
 #include <chiaki/congestioncontrol.h>
 
-
 #define CONGESTION_CONTROL_INTERVAL_MS 200
-
 
 static void *congestion_control_thread_func(void *user)
 {
@@ -20,8 +18,14 @@ static void *congestion_control_thread_func(void *user)
 		if(err != CHIAKI_ERR_TIMEOUT)
 			break;
 
-		//CHIAKI_LOGD(control->takion->log, "Sending Congestion Control Packet");
-		ChiakiTakionCongestionPacket packet = { 0 }; // TODO: fill with real values
+		uint64_t received;
+		uint64_t lost;
+		chiaki_packet_stats_get(control->stats, true, &received, &lost);
+		ChiakiTakionCongestionPacket packet = { 0 };
+		packet.received = (uint16_t)received;
+		packet.lost = (uint16_t)lost;
+		CHIAKI_LOGV(control->takion->log, "Sending Congestion Control Packet, received: %u, lost: %u",
+				(unsigned int)packet.received, (unsigned int)packet.lost);
 		chiaki_takion_send_congestion(control->takion, &packet);
 	}
 
@@ -29,9 +33,10 @@ static void *congestion_control_thread_func(void *user)
 	return NULL;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion, ChiakiPacketStats *stats)
 {
 	control->takion = takion;
+	control->stats = stats;
 
 	ChiakiErrorCode err = chiaki_bool_pred_cond_init(&control->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)

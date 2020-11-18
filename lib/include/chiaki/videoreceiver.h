@@ -27,9 +27,10 @@ typedef struct chiaki_video_receiver_t
 	int32_t frame_index_prev; // last frame that has been at least partially decoded
 	int32_t frame_index_prev_complete; // last frame that has been completely decoded
 	ChiakiFrameProcessor frame_processor;
+	ChiakiPacketStats *packet_stats;
 } ChiakiVideoReceiver;
 
-CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session);
+CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats);
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver);
 
 /**
@@ -43,12 +44,12 @@ CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_
 
 CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *packet);
 
-static inline ChiakiVideoReceiver *chiaki_video_receiver_new(struct chiaki_session_t *session)
+static inline ChiakiVideoReceiver *chiaki_video_receiver_new(struct chiaki_session_t *session, ChiakiPacketStats *packet_stats)
 {
 	ChiakiVideoReceiver *video_receiver = CHIAKI_NEW(ChiakiVideoReceiver);
 	if(!video_receiver)
 		return NULL;
-	chiaki_video_receiver_init(video_receiver, session);
+	chiaki_video_receiver_init(video_receiver, session, packet_stats);
 	return video_receiver;
 }
 

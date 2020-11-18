@@ -17,7 +17,6 @@ for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potent
 Everything necessary for a full streaming session, including the initial
 registration and wakeup of the console, is supported.
 The following features however are yet to be implemented:
-* Congestion Control
 * H264 Error Concealment (FEC and active error recovery however are implemented)
 * Touchpad support (Triggering the Touchpad Button is currently possible from the keyboard though)
 * Rumble

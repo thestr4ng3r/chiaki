@@ -12,8 +12,6 @@
 #include "takion.h"
 #include "ecdh.h"
 #include "audio.h"
-#include "audioreceiver.h"
-#include "videoreceiver.h"
 #include "controller.h"
 #include "stoppipe.h"
 
@@ -199,8 +197,6 @@ typedef struct chiaki_session_t
 	ChiakiLog *log;
 
 	ChiakiStreamConnection stream_connection;
-	ChiakiAudioReceiver *audio_receiver;
-	ChiakiVideoReceiver *video_receiver;
 
 	ChiakiControllerState controller_state;
 } ChiakiSession;

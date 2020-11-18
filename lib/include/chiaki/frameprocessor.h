@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "takion.h"
+#include "packetstats.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -12,6 +13,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct chiaki_stream_stats_t
+{
+	uint64_t frames;
+	uint64_t bytes;
+} ChiakiStreamStats;
+
+CHIAKI_EXPORT void chiaki_stream_stats_reset(ChiakiStreamStats *stats);
+CHIAKI_EXPORT void chiaki_stream_stats_frame(ChiakiStreamStats *stats, uint64_t size);
+CHIAKI_EXPORT uint64_t chiaki_stream_stats_bitrate(ChiakiStreamStats *stats, uint64_t framerate);
 
 struct chiaki_frame_unit_t;
 typedef struct chiaki_frame_unit_t ChiakiFrameUnit;
@@ -29,6 +40,8 @@ typedef struct chiaki_frame_processor_t
 	unsigned int units_fec_received;
 	ChiakiFrameUnit *unit_slots;
 	size_t unit_slots_size;
+	bool flushed; // whether we have already flushed the current frame, i.e. are only interested in stats, not data.
+	ChiakiStreamStats stream_stats;
 } ChiakiFrameProcessor;
 
 typedef enum chiaki_frame_flush_result_t {
@@ -41,6 +54,7 @@ typedef enum chiaki_frame_flush_result_t {
 CHIAKI_EXPORT void chiaki_frame_processor_init(ChiakiFrameProcessor *frame_processor, ChiakiLog *log);
 CHIAKI_EXPORT void chiaki_frame_processor_fini(ChiakiFrameProcessor *frame_processor);
 
+CHIAKI_EXPORT void chiaki_frame_processor_report_packet_stats(ChiakiFrameProcessor *frame_processor, ChiakiPacketStats *packet_stats);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet);
 

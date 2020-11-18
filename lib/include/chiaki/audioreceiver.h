@@ -8,6 +8,7 @@
 #include "audio.h"
 #include "takion.h"
 #include "thread.h"
+#include "packetstats.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,19 +34,20 @@ typedef struct chiaki_audio_receiver_t
 	ChiakiMutex mutex;
 	ChiakiSeqNum16 frame_index_prev;
 	bool frame_index_startup; // whether frame_index_prev has definitely not wrapped yet
+	ChiakiPacketStats *packet_stats;
 } ChiakiAudioReceiver;
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats);
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver);
 CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_receiver, ChiakiAudioHeader *audio_header);
 CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_receiver, ChiakiTakionAVPacket *packet);
 
-static inline ChiakiAudioReceiver *chiaki_audio_receiver_new(struct chiaki_session_t *session)
+static inline ChiakiAudioReceiver *chiaki_audio_receiver_new(struct chiaki_session_t *session, ChiakiPacketStats *packet_stats)
 {
 	ChiakiAudioReceiver *audio_receiver = CHIAKI_NEW(ChiakiAudioReceiver);
 	if(!audio_receiver)
 		return NULL;
-	ChiakiErrorCode err = chiaki_audio_receiver_init(audio_receiver, session);
+	ChiakiErrorCode err = chiaki_audio_receiver_init(audio_receiver, session, packet_stats);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		free(audio_receiver);

@@ -71,9 +71,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_state_mutex;
 
-	err = chiaki_mutex_init(&stream_connection->feedback_sender_mutex, false);
+	err = chiaki_packet_stats_init(&stream_connection->packet_stats);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_state_cond;
+
+	stream_connection->video_receiver = NULL;
+	stream_connection->audio_receiver = NULL;
+
+	err = chiaki_mutex_init(&stream_connection->feedback_sender_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_packet_stats;
 
 	stream_connection->state = STATE_IDLE;
 	stream_connection->state_finished = false;
@@ -84,6 +91,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 
 	return CHIAKI_ERR_SUCCESS;
 
+error_packet_stats:
+	chiaki_packet_stats_fini(&stream_connection->packet_stats);
 error_state_cond:
 	chiaki_cond_fini(&stream_connection->state_cond);
 error_state_mutex:
@@ -100,6 +109,8 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
 	free(stream_connection->ecdh_secret);
+
+	chiaki_packet_stats_fini(&stream_connection->packet_stats);
 
 	chiaki_mutex_fini(&stream_connection->feedback_sender_mutex);
 
@@ -145,6 +156,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		goto quit_label; \
 	} } while(0)
 
+	stream_connection->audio_receiver = chiaki_audio_receiver_new(session, &stream_connection->packet_stats);
+	if(!stream_connection->audio_receiver)
+	{
+		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Audio Receiver");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	stream_connection->video_receiver = chiaki_video_receiver_new(session, &stream_connection->packet_stats);
+	if(!stream_connection->video_receiver)
+	{
+		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Video Receiver");
+		err = CHIAKI_ERR_UNKNOWN;
+		goto err_audio_receiver;
+	}
+
 	stream_connection->state = STATE_TAKION_CONNECT;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
@@ -154,7 +180,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection connect failed");
 		chiaki_mutex_unlock(&stream_connection->state_mutex);
-		return err;
+		goto err_video_receiver;
+	}
+
+	ChiakiCongestionControl congestion_control;
+	err = chiaki_congestion_control_start(&congestion_control, &stream_connection->takion, &stream_connection->packet_stats);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(session->log, "StreamConnection failed to start Congestion Control");
+		goto close_takion;
 	}
 
 	err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
@@ -163,7 +197,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection Takion connect failed");
-		goto close_takion;
+		goto err_congestion_control;
 	}
 
 	CHIAKI_LOGI(session->log, "StreamConnection sending big");
@@ -273,11 +307,22 @@ disconnect:
 		err = CHIAKI_ERR_DISCONNECTED;
 	}
 
+err_congestion_control:
+	chiaki_congestion_control_stop(&congestion_control);
+
 close_takion:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 	chiaki_takion_close(&stream_connection->takion);
 	CHIAKI_LOGI(session->log, "StreamConnection closed takion");
+
+err_video_receiver:
+	chiaki_video_receiver_free(stream_connection->video_receiver);
+	stream_connection->video_receiver = NULL;
+
+err_audio_receiver:
+	chiaki_audio_receiver_free(stream_connection->audio_receiver);
+	stream_connection->audio_receiver = NULL;
 
 	return err;
 }
@@ -613,9 +658,9 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 
 	ChiakiAudioHeader audio_header_s;
 	chiaki_audio_header_load(&audio_header_s, audio_header);
-	chiaki_audio_receiver_stream_info(stream_connection->session->audio_receiver, &audio_header_s);
+	chiaki_audio_receiver_stream_info(stream_connection->audio_receiver, &audio_header_s);
 
-	chiaki_video_receiver_stream_info(stream_connection->session->video_receiver,
+	chiaki_video_receiver_stream_info(stream_connection->video_receiver,
 			decode_resolutions_context.video_profiles,
 			decode_resolutions_context.video_profiles_count);
 
@@ -794,9 +839,9 @@ static void stream_connection_takion_av(ChiakiStreamConnection *stream_connectio
 	chiaki_gkcrypt_decrypt(stream_connection->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
 
 	if(packet->is_video)
-		chiaki_video_receiver_av_packet(stream_connection->session->video_receiver, packet);
+		chiaki_video_receiver_av_packet(stream_connection->video_receiver, packet);
 	else
-		chiaki_audio_receiver_av_packet(stream_connection->session->audio_receiver, packet);
+		chiaki_audio_receiver_av_packet(stream_connection->audio_receiver, packet);
 }
 
 
