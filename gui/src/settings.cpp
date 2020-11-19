@@ -141,7 +141,7 @@ QAudioDeviceInfo Settings::GetAudioOutDevice() const
 			return di;
 	}
 
-	return outDev;
+	return QAudioDeviceInfo::defaultOutputDevice();
 }
 
 void Settings::SetAudioOutDevice(QString device_name)
