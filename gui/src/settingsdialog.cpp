@@ -166,7 +166,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(audio_device_combo_box, &QComboBox::currentIndexChanged, this, [this, audio_device_combo_box]{
 		settings->SetAudioOutDevice(audio_device_combo_box->currentData());
 	});
-	general_layout->addRow(tr("Audio Out Device"), audio_device_combo_box);
+	general_layout->addRow(tr("Audio Output Device:"), audio_device_combo_box);
 
 	// Decode Settings
 
