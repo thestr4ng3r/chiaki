@@ -297,7 +297,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setSampleType(QAudioFormat::SignedInt);
 	
 	Settings user_settings;
-	QAudioDeviceInfo audio_device_info = user_settings.GetAudioOutDevice();
+	QAudioDeviceInfo audio_device_info = settings->GetAudioOutDevice();
 	if(audio_device_info.isNull())
 		audio_device_info = QAudioDeviceInfo::defaultOutputDevice();
 
