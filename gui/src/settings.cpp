@@ -135,7 +135,7 @@ QAudioDeviceInfo Settings::GetAudioOutDevice() const
 	QAudioDeviceInfo outDev;
 
 	QString s = settings.value("settings/audio_out_device", "default").toString();
-	for (QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+	for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
 	{
 		if(di.deviceName() == s)
 			outDev = di;
