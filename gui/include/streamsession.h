@@ -82,7 +82,7 @@ class StreamSession : public QObject
 		ChiakiPiDecoder *pi_decoder;
 #endif
 
-		QString audio_out_device;
+		QAudioDeviceInfo audio_out_device_info;
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
 		QIODevice *audio_io;
