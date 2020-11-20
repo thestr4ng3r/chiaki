@@ -309,7 +309,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setSampleSize(16);
 	audio_format.setCodec("audio/pcm");
 	audio_format.setSampleType(QAudioFormat::SignedInt);
-	
+
 	QAudioDeviceInfo audio_device_info = audio_out_device_info;
 	if(!audio_device_info.isFormatSupported(audio_format))
 	{
