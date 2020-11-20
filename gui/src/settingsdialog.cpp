@@ -163,8 +163,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	if(audio_out_device_list.indexOf(current_audio_out_device.deviceName()) >= 0)
 		retrieved_device_index = audio_out_device_list.indexOf(current_audio_out_device.deviceName());
 	audio_device_combo_box->setCurrentIndex(retrieved_device_index);
-	connect(audio_device_combo_box, &QComboBox::currentIndexChanged, this, [this, audio_device_combo_box]{
-		settings->SetAudioOutDevice(audio_device_combo_box->currentData());
+	connect(audio_device_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](){
+		this->settings->SetAudioOutDevice(audio_device_combo_box->currentData().toString());
 	});
 	general_layout->addRow(tr("Audio Output Device:"), audio_device_combo_box);
 
