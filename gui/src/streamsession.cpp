@@ -20,6 +20,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, QString h
 	key_map = settings->GetControllerMappingForDecoding();
 	decoder = settings->GetDecoder();
 	hw_decode_engine = settings->GetHardwareDecodeEngine();
+	audio_out_device = settings->GetAudioOutDevice();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
 	video_profile = settings->GetVideoProfile();
@@ -66,6 +67,19 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
+
+	audio_out_device_info = QAudioDeviceInfo::defaultOutputDevice();
+	if(!connect_info.audio_out_device.isEmpty())
+	{
+		for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+		{
+			if(di.deviceName() == connect_info.audio_out_device)
+			{
+				audio_out_device_info = di;
+				break;
+			}
+		}
+	}
 
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	audio_buffer_size = connect_info.audio_buffer_size;
@@ -296,7 +310,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setCodec("audio/pcm");
 	audio_format.setSampleType(QAudioFormat::SignedInt);
 
-	QAudioDeviceInfo audio_device_info(QAudioDeviceInfo::defaultOutputDevice());
+	QAudioDeviceInfo audio_device_info = audio_out_device_info;
 	if(!audio_device_info.isFormatSupported(audio_format))
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by Audio Device %s",
@@ -305,7 +319,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		return;
 	}
 
-	audio_output = new QAudioOutput(audio_format, this);
+	audio_output = new QAudioOutput(audio_device_info, audio_format, this);
 	audio_output->setBufferSize(audio_buffer_size);
 	audio_io = audio_output->start();
 

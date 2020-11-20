@@ -130,6 +130,16 @@ unsigned int Settings::GetAudioBufferSize() const
 	return v ? v : GetAudioBufferSizeDefault();
 }
 
+QString Settings::GetAudioOutDevice() const
+{
+	return settings.value("settings/audio_out_device").toString();
+}
+
+void Settings::SetAudioOutDevice(QString device_name)
+{
+	settings.setValue("settings/audio_out_device", device_name);
+}
+
 void Settings::SetAudioBufferSize(unsigned int size)
 {
 	settings.setValue("settings/audio_buffer_size", size);

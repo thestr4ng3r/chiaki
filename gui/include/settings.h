@@ -9,6 +9,7 @@
 #include "videodecoder.h"
 
 #include <QSettings>
+#include <QAudioDeviceInfo>
 
 enum class ControllerButtonExt
 {
@@ -93,6 +94,9 @@ class Settings : public QObject
 		 */
 		unsigned int GetAudioBufferSize() const;
 		void SetAudioBufferSize(unsigned int size);
+		
+		QString GetAudioOutDevice() const;
+		void SetAudioOutDevice(QString device_name);
 
 		ChiakiConnectVideoProfile GetVideoProfile();
 
