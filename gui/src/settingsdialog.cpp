@@ -152,17 +152,12 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
 	audio_device_combo_box = new QComboBox(this);
-	QList<QString> audio_out_device_list = {};
-	for (QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
-	{
-		audio_out_device_list.append(di.deviceName());
-	}	
-	audio_device_combo_box->addItems(audio_out_device_list);
-	auto current_audio_out_device = settings->GetAudioOutDevice();
-	int retrieved_device_index = 0;
-	if(audio_out_device_list.indexOf(current_audio_out_device.deviceName()) >= 0)
-		retrieved_device_index = audio_out_device_list.indexOf(current_audio_out_device.deviceName());
-	audio_device_combo_box->setCurrentIndex(retrieved_device_index);
+	audio_device_combo_box->addItem(tr("Auto"));
+	auto available_devices = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
+	for (QAudioDeviceInfo di : available_devices)
+		audio_device_combo_box->addItem(di.deviceName(), di.deviceName());
+	int audio_out_device_index = audio_device_combo_box->findData(settings->GetAudioOutDevice());
+	audio_device_combo_box->setCurrentIndex(audio_out_device_index < 0 ? 0 : audio_out_device_index);
 	connect(audio_device_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](){
 		this->settings->SetAudioOutDevice(audio_device_combo_box->currentData().toString());
 	});

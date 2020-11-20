@@ -95,7 +95,7 @@ class Settings : public QObject
 		unsigned int GetAudioBufferSize() const;
 		void SetAudioBufferSize(unsigned int size);
 		
-		QAudioDeviceInfo GetAudioOutDevice() const;
+		QString GetAudioOutDevice() const;
 		void SetAudioOutDevice(QString device_name);
 
 		ChiakiConnectVideoProfile GetVideoProfile();

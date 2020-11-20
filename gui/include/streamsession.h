@@ -42,7 +42,7 @@ struct StreamSessionConnectInfo
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
 	HardwareDecodeEngine hw_decode_engine;
-	QAudioDeviceInfo audio_out_device;
+	QString audio_out_device;
 	uint32_t log_level_mask;
 	QString log_file;
 	QString host;
@@ -82,7 +82,7 @@ class StreamSession : public QObject
 		ChiakiPiDecoder *pi_decoder;
 #endif
 
-		QAudioDeviceInfo audio_out_device;
+		QString audio_out_device;
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
 		QIODevice *audio_io;

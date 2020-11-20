@@ -298,9 +298,19 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_format.setCodec("audio/pcm");
 	audio_format.setSampleType(QAudioFormat::SignedInt);
 	
-	QAudioDeviceInfo audio_device_info = audio_out_device;
-	if(audio_device_info.isNull())
-		audio_device_info = QAudioDeviceInfo::defaultOutputDevice();
+	QAudioDeviceInfo audio_device_info = QAudioDeviceInfo::defaultOutputDevice();
+	if(!audio_out_device.isEmpty())
+	{
+		for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
+		{
+			if(di.deviceName() == audio_out_device)
+			{
+				audio_device_info = di;
+				break;
+			}
+		}
+	}
+
 	if(!audio_device_info.isFormatSupported(audio_format))
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by Audio Device %s",
