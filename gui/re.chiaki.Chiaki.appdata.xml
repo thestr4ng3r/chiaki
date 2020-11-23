@@ -9,7 +9,7 @@
   <project_license>GPL-3.0</project_license>
   <developer_name>Florian Märkl</developer_name>
   <url type="homepage">https://github.com/thestr4ng3r/chiaki</url>
-  <url typr="help">https://github.com/thestr4ng3r/chiaki/blob/master/README.md#usage</url>
+  <url type="help">https://github.com/thestr4ng3r/chiaki/blob/master/README.md#usage</url>
   <description>
     <p>
       Chiaki is a Free and Open Source Client for PlayStation 4 Remote Play. It can be used to play in real time on a PlayStation 4 as long as there is a network connection.
