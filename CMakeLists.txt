@@ -64,6 +64,8 @@ if(CHIAKI_ENABLE_SWITCH)
 	    # use symbolic links to load font ..
 	    add_definitions(-DBOREALIS_RESOURCES="romfs:/")
     endif()
+else()
+	set(CMAKE_CXX_STANDARD 11)
 endif()
 
 if(CHIAKI_USE_SYSTEM_JERASURE)
