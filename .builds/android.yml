@@ -1,0 +1,22 @@
+image: alpine/latest
+
+packages:
+- docker
+
+sources:
+- https://github.com/thestr4ng3r/chiaki.git
+
+artifacts:
+- Chiaki.apk
+- Chiaki.aab
+
+tasks:
+- build: |
+    sudo service docker start
+    sleep 1
+    sudo docker run \
+      -v /home/build/chiaki:/build \
+      thestr4ng3r/android:f064ea6 \
+      /bin/bash -c "cd /build/android && ./gradlew assembleRelease bundleRelease"
+    cp app/build/outputs/apk/release/app-release.apk "../Chiaki.apk"
+    cp app/build/outputs/bundle/release/app-release.aab "../Chiaki.aab"
