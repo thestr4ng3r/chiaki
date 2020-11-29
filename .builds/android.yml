@@ -10,8 +10,13 @@ artifacts:
 - Chiaki.apk
 - Chiaki.aab
 
+secrets:
+- 163950ff-2ac4-423d-a280-d2d9edbef000
+- f4bce41f-f96b-4633-80d8-0ff5dd74dc2a
+
 tasks:
 - build: |
+    cp -v ~/chiaki-local.properties chiaki/android/local.properties || echo "Secrets not available"
     sudo service docker start
     sleep 1
     sudo docker run \
