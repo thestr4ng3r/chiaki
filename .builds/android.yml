@@ -18,10 +18,11 @@ tasks:
 - build: |
     cp -v ~/chiaki-local.properties chiaki/android/local.properties || echo "Secrets not available"
     sudo service docker start
-    sleep 1
+    timeout 15 sh -c "until docker info; do sleep 0.5; done"
     sudo docker run \
-      -v /home/build/chiaki:/build \
+      -v /home/build:/home/build \
+      -u $(id -u):$(id -g) \
       thestr4ng3r/android:f064ea6 \
-      /bin/bash -c "cd /build/android && ./gradlew assembleRelease bundleRelease"
+      /bin/bash -c "cd /home/build/chiaki/android && ./gradlew assembleRelease bundleRelease"
     cp app/build/outputs/apk/release/app-release.apk "../Chiaki.apk"
     cp app/build/outputs/bundle/release/app-release.aab "../Chiaki.aab"
