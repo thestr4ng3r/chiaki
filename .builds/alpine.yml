@@ -1,5 +1,5 @@
 
-image: alpine/edge
+image: alpine/latest
 
 sources:
   - https://github.com/thestr4ng3r/chiaki.git
@@ -14,6 +14,7 @@ packages:
   - qt5-qtmultimedia-dev
   - ffmpeg-dev
   - sdl2-dev
+  - sdl2-static # this is gone on alpine edge so might be necessary to remove later
 
 tasks:
   - build: |
