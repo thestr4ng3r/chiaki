@@ -18,7 +18,7 @@ tasks:
 - build: |
     cp -v ~/chiaki-local.properties chiaki/android/local.properties || echo "Secrets not available"
     sudo service docker start
-    timeout 15 sh -c "until docker info; do sleep 0.5; done"
+    timeout 15 sh -c "until sudo docker info; do sleep 0.5; done"
     sudo docker run \
       -v /home/build:/home/build \
       -u $(id -u):$(id -g) \
