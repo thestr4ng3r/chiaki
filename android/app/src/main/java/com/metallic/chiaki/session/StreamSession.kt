@@ -112,7 +112,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 
 		val surfaceTexture = surfaceTexture
 		if(surfaceTexture != null)
-			textureView.surfaceTexture = surfaceTexture
+			textureView.setSurfaceTexture(surfaceTexture)
 	}
 
 	fun setLoginPin(pin: String)

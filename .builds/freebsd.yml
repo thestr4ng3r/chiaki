@@ -14,6 +14,7 @@ packages:
   - qt5-buildtools
   - qt5-gui
   - qt5-widgets
+  - qt5-concurrent
   - qt5-svg
   - qt5-opengl
   - qt5-multimedia
