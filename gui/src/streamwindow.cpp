@@ -96,6 +96,14 @@ void StreamWindow::mouseReleaseEvent(QMouseEvent *event)
 		session->HandleMouseEvent(event);
 }
 
+void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
+{
+	ToggleFullscreen();
+
+	if(session)
+		session->HandleMouseEvent(event);
+}
+
 void StreamWindow::closeEvent(QCloseEvent *event)
 {
 	if(session)
