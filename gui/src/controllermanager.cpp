@@ -109,12 +109,12 @@ ControllerManager::~ControllerManager()
 void ControllerManager::UpdateAvailableControllers()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	QList<SDL_JoystickID> current_controllers;
+	QSet<SDL_JoystickID> current_controllers;
 	for(int i=0; i<SDL_NumJoysticks(); i++)
 	{
 		if(!SDL_IsGameController(i))
 			continue;
-		
+
 		// We'll try to identify pads with Motion Control
 		SDL_JoystickGUID guid = SDL_JoystickGetGUID(SDL_JoystickOpen(i));
 		char guid_str[256];
@@ -132,7 +132,7 @@ void ControllerManager::UpdateAvailableControllers()
 			}
 		}
 
-		current_controllers.append(SDL_JoystickGetDeviceInstanceID(i));
+		current_controllers.insert(SDL_JoystickGetDeviceInstanceID(i));
 	}
 
 	if(current_controllers != available_controllers)
@@ -174,7 +174,7 @@ void ControllerManager::ControllerEvent(int device_id)
 	open_controllers[device_id]->UpdateState();
 }
 
-QList<int> ControllerManager::GetAvailableControllers()
+QSet<int> ControllerManager::GetAvailableControllers()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	return available_controllers;
