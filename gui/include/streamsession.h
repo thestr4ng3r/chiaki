@@ -68,7 +68,7 @@ class StreamSession : public QObject
 		ChiakiOpusDecoder opus_decoder;
 		bool connected;
 
-		Controller *controller;
+		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;
 		QMap<QPair<QString, SetsuTrackingId>, uint8_t> setsu_ids;
@@ -111,7 +111,7 @@ class StreamSession : public QObject
 
 		void SetLoginPIN(const QString &pin);
 
-		Controller *GetController()	{ return controller; }
+		QList<Controller *> GetControllers()	{ return controllers.values(); }
 		VideoDecoder *GetVideoDecoder()	{ return video_decoder; }
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }

@@ -41,7 +41,7 @@ class ControllerManager : public QObject
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
 
-		QList<int> GetAvailableControllers();
+		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);
 
 	signals:

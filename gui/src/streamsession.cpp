@@ -43,7 +43,6 @@ static void SessionSetsuCb(SetsuEvent *event, void *user);
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
 	log(this, connect_info.log_level_mask, connect_info.log_file),
-	controller(nullptr),
 	video_decoder(nullptr),
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	pi_decoder(nullptr),
@@ -146,7 +145,8 @@ StreamSession::~StreamSession()
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	delete controller;
+	for(auto controller : controllers)
+		delete controller;
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
@@ -253,25 +253,31 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 void StreamSession::UpdateGamepads()
 {
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!controller || !controller->IsConnected())
+	for(auto controller_id : controllers.keys())
 	{
-		if(controller)
+		auto controller = controllers[controller_id];
+		if(!controller->IsConnected())
 		{
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
+			controllers.remove(controller_id);
 			delete controller;
-			controller = nullptr;
 		}
-		const auto available_controllers = ControllerManager::GetInstance()->GetAvailableControllers();
-		if(!available_controllers.isEmpty())
+	}
+
+	const auto available_controllers = ControllerManager::GetInstance()->GetAvailableControllers();
+	for(auto controller_id : available_controllers)
+	{
+		if(!controllers.contains(controller_id))
 		{
-			controller = ControllerManager::GetInstance()->OpenController(available_controllers[0]);
+			auto controller = ControllerManager::GetInstance()->OpenController(controller_id);
 			if(!controller)
 			{
-				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open controller %d", available_controllers[0]);
-				return;
+				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open controller %d", controller_id);
+				continue;
 			}
-			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", available_controllers[0], controller->GetName().toLocal8Bit().constData());
+			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", controller_id, controller->GetName().toLocal8Bit().constData());
 			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
+			controllers[controller_id] = controller;
 		}
 	}
 
@@ -285,8 +291,11 @@ void StreamSession::SendFeedbackState()
 	chiaki_controller_state_set_idle(&state);
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(controller)
-		state = controller->GetState();
+	for(auto controller : controllers)
+	{
+		auto controller_state = controller->GetState();
+		chiaki_controller_state_or(&state, &state, &controller_state);
+	}
 #endif
 
 #if CHIAKI_GUI_ENABLE_SETSU
