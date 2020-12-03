@@ -145,10 +145,8 @@ StreamSession::~StreamSession()
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	for (auto controller : controllers)
-	{
+	for(auto controller : controllers)
 		delete controller;
-	}
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
@@ -255,10 +253,10 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 void StreamSession::UpdateGamepads()
 {
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	for (auto controller_id : controllers.keys())
+	for(auto controller_id : controllers.keys())
 	{
 		auto controller = controllers[controller_id];
-		if (!controller->IsConnected())
+		if(!controller->IsConnected())
 		{
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
 			controllers.remove(controller_id);
@@ -267,9 +265,9 @@ void StreamSession::UpdateGamepads()
 	}
 
 	const auto available_controllers = ControllerManager::GetInstance()->GetAvailableControllers();
-	for (auto controller_id : available_controllers)
+	for(auto controller_id : available_controllers)
 	{
-		if (!controllers.contains(controller_id))
+		if(!controllers.contains(controller_id))
 		{
 			auto controller = ControllerManager::GetInstance()->OpenController(controller_id);
 			if(!controller)
@@ -293,7 +291,7 @@ void StreamSession::SendFeedbackState()
 	chiaki_controller_state_set_idle(&state);
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	for (auto controller : controllers)
+	for(auto controller : controllers)
 	{
 		auto controller_state = controller->GetState();
 		chiaki_controller_state_or(&state, &state, &controller_state);
