@@ -33,6 +33,7 @@ class StreamWindow: public QMainWindow
 		void closeEvent(QCloseEvent *event) override;
 		void mousePressEvent(QMouseEvent *event) override;
 		void mouseReleaseEvent(QMouseEvent *event) override;
+		void mouseDoubleClickEvent(QMouseEvent *event) override;
 		void resizeEvent(QResizeEvent *event) override;
 		void moveEvent(QMoveEvent *event) override;
 		void changeEvent(QEvent *event) override;
