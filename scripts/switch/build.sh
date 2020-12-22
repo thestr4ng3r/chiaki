@@ -3,10 +3,8 @@
 set -xveo pipefail
 
 arg1=$1
-CHIAKI_SWITCH_ENABLE_LINUX="ON"
 build="./build"
 if [ "$arg1" != "linux" ]; then
-	CHIAKI_SWITCH_ENABLE_LINUX="OFF"
 	# source /opt/devkitpro/switchvars.sh
 	# toolchain="${DEVKITPRO}/switch.cmake"
 	toolchain="cmake/switch.cmake"
@@ -28,8 +26,7 @@ build_chiaki (){
 			-DCHIAKI_ENABLE_CLI=OFF \
 			-DCHIAKI_ENABLE_GUI=OFF \
 			-DCHIAKI_ENABLE_ANDROID=OFF \
-			-DCHIAKI_ENABLE_SWITCH=ON \
-			-DCHIAKI_SWITCH_ENABLE_LINUX="${CHIAKI_SWITCH_ENABLE_LINUX}" \
+			-DCHIAKI_ENABLE_BOREALIS=ON \
 			-DCHIAKI_LIB_ENABLE_MBEDTLS=ON \
 			# -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
 			# -DCMAKE_FIND_DEBUG_MODE=ON
