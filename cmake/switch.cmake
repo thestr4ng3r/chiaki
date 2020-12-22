@@ -77,3 +77,5 @@ function(add_nro_target target title author version icon romfs)
 	add_custom_target(${target_we}_nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro)
 endfunction()
 
+set(CMAKE_USE_SYSTEM_ENVIRONMENT_PATH OFF)
+set(CMAKE_PREFIX_PATH "/")
