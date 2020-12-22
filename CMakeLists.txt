@@ -45,18 +45,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_CURRENT
 
 set(CMAKE_CXX_STANDARD 11)
 
-# configure nintendo switch toolchain
 if(CHIAKI_IS_SWITCH)
-	# load switch.cmake toolchain form ./cmake folder
-	# include(switch)
-	# to compile borealis third party
-	# set(CMAKE_CXX_STANDARD 17)
-	# TODO check if android ... or other versions are enabled
 	# force mbedtls as crypto lib
 	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)
 	add_definitions(-D__SWITCH__)
-else()
-	set(CHIAKI_BOREALIS_RESOURCES BOREALIS_RESOURCES="./switch/res/")
 endif()
 
 if(CHIAKI_USE_SYSTEM_JERASURE)

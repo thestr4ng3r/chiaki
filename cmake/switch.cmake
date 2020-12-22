@@ -60,21 +60,20 @@ function(__add_nacp target APP_TITLE APP_AUTHOR APP_VERSION)
 		)
 endfunction()
 
-function(add_nro_target target title author version icon romfs)
-	get_filename_component(target_we ${target} NAME_WE)
-	if(NOT ${target_we}.nacp)
-		__add_nacp(${target_we}.nacp ${title} ${author} ${version})
+function(add_nro_target output_name target title author version icon romfs)
+	if(NOT ${output_name}.nacp)
+		__add_nacp(${output_name}.nacp ${title} ${author} ${version})
 	endif()
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro
 		COMMAND ${ELF2NRO} $<TARGET_FILE:${target}>
-		${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro
+		${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro
 		--icon=${icon}
-		--nacp=${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nacp
+		--nacp=${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nacp
 		--romfsdir=${romfs}
-		DEPENDS ${target} ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nacp
+		DEPENDS ${target} ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nacp
 		VERBATIM
 		)
-	add_custom_target(${target_we}_nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro)
+	add_custom_target(${output_name}_nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro)
 endfunction()
 
 set(CMAKE_USE_SYSTEM_ENVIRONMENT_PATH OFF)

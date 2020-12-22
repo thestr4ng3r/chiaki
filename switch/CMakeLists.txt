@@ -1,6 +1,4 @@
 
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 ##################
 # borealis dependency
 ##################
@@ -126,7 +124,8 @@ install(TARGETS chiaki-borealis
 	BUNDLE DESTINATION bin)
 
 if(CHIAKI_IS_SWITCH)
-	add_nro_target(chiaki-borealis
+	add_nro_target(chiaki
+		chiaki-borealis
 		"chiaki"
 		"Chiaki team"
 		"${CHIAKI_VERSION}"
