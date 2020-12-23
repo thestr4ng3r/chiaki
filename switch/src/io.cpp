@@ -243,8 +243,25 @@ void IO::InitAudioCB(unsigned int channels, unsigned int rate)
 
 void IO::AudioCB(int16_t * buf, size_t samples_count)
 {
-	//int az = SDL_GetQueuedAudioSize(host->audio_device_id);
-	// len the number of bytes (not samples!) to which (data) points
+	for(int x=0; x < samples_count*2; x++)
+	{
+		// boost audio volume
+		int sample = buf[x]*1.80;
+		// Hard clipping (audio compression)
+		// truncate value that overflow/underflow int16
+		if(sample > INT16_MAX)
+		{
+			buf[x] = INT16_MAX;
+			CHIAKI_LOGD(this->log, "Audio Hard clipping INT16_MAX < %d", sample);
+		}
+		else if(sample < INT16_MIN)
+		{
+			buf[x] = INT16_MIN;
+			CHIAKI_LOGD(this->log, "Audio Hard clipping INT16_MIN > %d", sample);
+		}
+		else
+			buf[x] = (int16_t) sample;
+	}
 	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t)*samples_count*2);
 	if(success != 0)
 		CHIAKI_LOGE(this->log, "SDL_QueueAudio failed: %s\n", SDL_GetError());
