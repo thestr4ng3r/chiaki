@@ -1,13 +1,15 @@
+
 # Find DEVKITPRO
-if(NOT DEFINED ENV{DEVKITPRO} OR NOT DEFINED ENV{PORTLIBS_PREFIX})
+set(DEVKITPRO "$ENV{DEVKITPRO}" CACHE PATH "Path to DevKitPro")
+set(PORTLIBS_PREFIX "$ENV{PORTLIBS_PREFIX}" CACHE PATH "Path to portlibs inside DevKitPro")
+if(NOT DEVKITPRO OR NOT PORTLIBS_PREFIX)
 	message(FATAL_ERROR "Please set DEVKITPRO & PORTLIBS_PREFIX env before calling cmake. https://devkitpro.org/wiki/Getting_Started")
 endif()
 
-set(DEVKITPRO "$ENV{DEVKITPRO}")
-set(PORTLIBS_PREFIX "$ENV{PORTLIBS_PREFIX}")
-
 # include devkitpro toolchain
 include("${DEVKITPRO}/switch.cmake")
+
+set(NSWITCH TRUE)
 
 # Enable gcc -g, to use
 # /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -e build_switch/switch/chiaki -f -p -C -a 0xCCB5C

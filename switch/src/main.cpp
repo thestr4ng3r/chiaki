@@ -20,7 +20,7 @@ bool appletMainLoop()
 }
 #endif
 
-#if 0
+#if __SWITCH__
 #define CHIAKI_ENABLE_SWITCH_NXLINK 1
 #endif
 
