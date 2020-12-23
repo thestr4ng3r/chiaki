@@ -318,7 +318,7 @@ bool IO::FreeVideo()
 
 bool IO::ReadUserKeyboard(char *buffer, size_t buffer_size)
 {
-#ifdef CHIAKI_SWITCH_ENABLE_LINUX
+#ifndef __SWITCH__
 	// use cin to get user input from linux
 	std::cin.getline(buffer, buffer_size);
 	CHIAKI_LOGI(this->log, "Got user input: %s\n", buffer);

@@ -23,7 +23,7 @@ typedef struct chiaki_stop_pipe_t
 {
 #ifdef _WIN32
 	WSAEVENT event;
-#elif defined(__SWITCH__) || defined(CHIAKI_ENABLE_SWITCH_LINUX)
+#elif defined(__SWITCH__)
 	// due to a lack pipe/event/socketpair
 	// on switch env, we use a physical socket
 	// to send/trigger the cancel signal

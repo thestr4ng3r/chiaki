@@ -20,7 +20,7 @@ bool appletMainLoop()
 }
 #endif
 
-#ifndef CHIAKI_SWITCH_ENABLE_LINUX
+#if __SWITCH__
 #define CHIAKI_ENABLE_SWITCH_NXLINK 1
 #endif
 
@@ -109,15 +109,11 @@ int main(int argc, char* argv[])
 {
 	// init chiaki lib
 	ChiakiLog log;
-#if defined(CHIAKI_ENABLE_SWITCH_NXLINK) || defined(CHIAKI_SWITCH_ENABLE_LINUX)
-#ifdef __SWITCH__
-	chiaki_log_init(&log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
-#else
-	chiaki_log_init(&log, CHIAKI_LOG_ALL, chiaki_log_cb_print, NULL);
-#endif
-#else
+#if defined(__SWITCH__) && !defined(CHIAKI_ENABLE_SWITCH_NXLINK)
 	// null log for switch version
 	chiaki_log_init(&log, 0, chiaki_log_cb_print, NULL);
+#else
+	chiaki_log_init(&log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
 #endif
 
 	// load chiaki lib

@@ -42,6 +42,11 @@ function(join OUTPUT GLUE)
 endfunction()
 
 function (_ffmpeg_find component headername)
+  if(TARGET "FFMPEG::${component}")
+    # already found before
+    return()
+  endif()
+
   # Try pkg-config first
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)

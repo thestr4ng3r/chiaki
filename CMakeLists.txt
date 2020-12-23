@@ -13,7 +13,7 @@ option(CHIAKI_ENABLE_TESTS "Enable tests for Chiaki" ON)
 option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" OFF)
 option(CHIAKI_ENABLE_GUI "Enable Qt GUI" ON)
 option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Project)" OFF)
-option(CHIAKI_ENABLE_SWITCH "Enable Nintendo Switch (Requires devKitPro libnx)" OFF)
+option(CHIAKI_ENABLE_BOREALIS "Enable Borealis GUI (For Nintendo Switch or PC)" OFF)
 tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
 tri_option(CHIAKI_ENABLE_PI_DECODER "Enable Raspberry Pi-specific video decoder (requires libraspberrypi0 and libraspberrypi-doc)" AUTO)
@@ -39,33 +39,16 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 include(CPack)
 
+set(CHIAKI_IS_SWITCH ${NSWITCH})
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_CURRENT_SOURCE_DIR}/setsu/cmake")
 
-# configure nintendo switch toolchain
-if(CHIAKI_ENABLE_SWITCH)
-	# load switch.cmake toolchain form ./cmake folder
-	# include(switch)
-	# to compile borealis third party
-	set(CMAKE_CXX_STANDARD 17)
-	# TODO check if android ... or other versions are enabled
+set(CMAKE_CXX_STANDARD 11)
+
+if(CHIAKI_IS_SWITCH)
 	# force mbedtls as crypto lib
 	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)
-
-    if(CHIAKI_SWITCH_ENABLE_LINUX)
-        # CHIAKI_SWITCH_ENABLE_LINUX is a special testing version
-        # the aim is to troubleshoot nitendo switch chiaki verison
-        # from a x86 linux os
-        add_definitions(-DCHIAKI_SWITCH_ENABLE_LINUX)
-        add_definitions(-DBOREALIS_RESOURCES="./switch/res/")
-        set(CMAKE_BUILD_TYPE Debug)
-        add_definitions(-DDEBUG_OPENGL)
-    else()
-	    add_definitions(-D__SWITCH__)
-	    # use symbolic links to load font ..
-	    add_definitions(-DBOREALIS_RESOURCES="romfs:/")
-    endif()
-else()
-	set(CMAKE_CXX_STANDARD 11)
+	add_definitions(-D__SWITCH__)
 endif()
 
 if(CHIAKI_USE_SYSTEM_JERASURE)
@@ -167,6 +150,6 @@ if(CHIAKI_ENABLE_ANDROID)
 	add_subdirectory(android/app)
 endif()
 
-if(CHIAKI_ENABLE_SWITCH)
+if(CHIAKI_ENABLE_BOREALIS)
 	add_subdirectory(switch)
 endif()

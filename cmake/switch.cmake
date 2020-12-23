@@ -1,13 +1,15 @@
+
 # Find DEVKITPRO
-if(NOT DEFINED ENV{DEVKITPRO} OR NOT DEFINED ENV{PORTLIBS_PREFIX})
+set(DEVKITPRO "$ENV{DEVKITPRO}" CACHE PATH "Path to DevKitPro")
+set(PORTLIBS_PREFIX "$ENV{PORTLIBS_PREFIX}" CACHE PATH "Path to portlibs inside DevKitPro")
+if(NOT DEVKITPRO OR NOT PORTLIBS_PREFIX)
 	message(FATAL_ERROR "Please set DEVKITPRO & PORTLIBS_PREFIX env before calling cmake. https://devkitpro.org/wiki/Getting_Started")
 endif()
 
-set(DEVKITPRO "$ENV{DEVKITPRO}")
-set(PORTLIBS_PREFIX "$ENV{PORTLIBS_PREFIX}")
-
 # include devkitpro toolchain
 include("${DEVKITPRO}/switch.cmake")
+
+set(NSWITCH TRUE)
 
 # Enable gcc -g, to use
 # /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -e build_switch/switch/chiaki -f -p -C -a 0xCCB5C
@@ -60,20 +62,21 @@ function(__add_nacp target APP_TITLE APP_AUTHOR APP_VERSION)
 		)
 endfunction()
 
-function(add_nro_target target title author version icon romfs)
-	get_filename_component(target_we ${target} NAME_WE)
-	if(NOT ${target_we}.nacp)
-		__add_nacp(${target_we}.nacp ${title} ${author} ${version})
+function(add_nro_target output_name target title author version icon romfs)
+	if(NOT ${output_name}.nacp)
+		__add_nacp(${output_name}.nacp ${title} ${author} ${version})
 	endif()
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro
 		COMMAND ${ELF2NRO} $<TARGET_FILE:${target}>
-		${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro
+		${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro
 		--icon=${icon}
-		--nacp=${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nacp
+		--nacp=${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nacp
 		--romfsdir=${romfs}
-		DEPENDS ${target} ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nacp
+		DEPENDS ${target} ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nacp
 		VERBATIM
 		)
-	add_custom_target(${target_we}_nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${target_we}.nro)
+	add_custom_target(${output_name}_nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.nro)
 endfunction()
 
+set(CMAKE_USE_SYSTEM_ENVIRONMENT_PATH OFF)
+set(CMAKE_PREFIX_PATH "/")
