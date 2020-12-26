@@ -61,6 +61,9 @@ You will then need to register your PS4 with Chiaki. You will need two more piec
 
 ### Obtaining your PSN AccountID
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/136TkKlSeOPI8K2-QMJodT-fZ375CoC7y?usp=sharing)
+
+
 Starting with PS4 7.0, it is necessary to use a so-called "AccountID" as opposed to the "Online-ID" for registration (streaming itself did not change).
 This ID seems to be a unique identifier for a PSN Account and it can be obtained from the PSN after logging in using OAuth.
 A Python 3 script which does this is provided in [scripts/psn-account-id.py](scripts/psn-account-id.py).
