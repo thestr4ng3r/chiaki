@@ -1,6 +1,8 @@
 #!/bin/bash
 
 cd $(dirname "${BASH_SOURCE[0]}")/..
+cd "./$1"
+shift
 ROOT="`pwd`"
 
 TAG=n4.2

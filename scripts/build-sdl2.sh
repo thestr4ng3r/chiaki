@@ -1,6 +1,9 @@
 #!/bin/bash
 
+set -xe
+
 cd $(dirname "${BASH_SOURCE[0]}")/..
+cd "./$1"
 ROOT="`pwd`"
 
 URL=https://www.libsdl.org/release/SDL2-2.0.10.tar.gz
@@ -8,8 +11,8 @@ FILE=SDL2-2.0.10.tar.gz
 DIR=SDL2-2.0.10
 
 if [ ! -d "$DIR" ]; then
-	wget "$URL" || exit 1
-	tar -xf "$FILE" || exit 1
+	curl -L "$URL" -O
+	tar -xf "$FILE"
 fi
 
 cd "$DIR" || exit 1
@@ -33,9 +36,9 @@ cmake \
 	-DSDL_THREADS=ON \
 	-DSDL_TIMERS=OFF \
 	-DSDL_VIDEO=OFF \
-	.. || exit 1
+	..
 # SDL_THREADS is not needed, but it doesn't compile without
 
-make -j4 || exit 1
-make install || exit 1
+make -j4
+make install
 
