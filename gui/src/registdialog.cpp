@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LicenseRef-GPL-3.0-or-later-OpenSSL
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <registdialog.h>
 #include <settings.h>
