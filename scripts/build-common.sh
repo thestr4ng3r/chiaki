@@ -11,3 +11,4 @@ cmake \
 	.. || exit 1
 make -j4 || exit 1
 test/chiaki-unit || exit 1
+

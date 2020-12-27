@@ -1,4 +1,6 @@
-image: 'Visual Studio 2017'
+image:
+  - macOS
+  - 'Visual Studio 2019'
 
 branches:
   only:
@@ -9,26 +11,50 @@ branches:
 configuration:
   - Release
 
-install:
-  - git submodule update --init --recursive
+for:
+  - matrix:
+      only:
+        - image: 'Visual Studio 2019'
 
-build_script:
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-  - C:\msys64\usr\bin\bash -lc "cd \"%APPVEYOR_BUILD_FOLDER%\" && scripts/appveyor.sh"
+    install:
+      - git submodule update --init --recursive
 
-artifacts:
-  - path: Chiaki
-    name: Chiaki
-  - path: Chiaki-PDB
-    name: Chiaki-PDB
+    build_script:
+      - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+      - C:\msys64\usr\bin\bash -lc "cd \"%APPVEYOR_BUILD_FOLDER%\" && scripts/appveyor-win.sh"
 
-deploy:
-  description: 'Chiaki Binaries'
-  provider: GitHub
-  draft: true
-  auth_token:
-    secure: Amvzm3PMM5nv+iFsqaU7TZ9fgyYt/YIrOLV0QMiCyOoUlLRIaiYxWiJ7maTpxhZ9
-  artifact: "Chiaki"
-  on:
-    appveyor_repo_tag: true
+    artifacts:
+      - path: Chiaki
+        name: Chiaki
+      - path: Chiaki-PDB
+        name: Chiaki-PDB
 
+  - matrix:
+      only:
+        - image: macOS
+
+    install:
+      - git submodule update --init --recursive
+      - sudo pip3 install protobuf
+      - brew install qt opus openssl@1.1 nasm sdl2 protobuf
+      - scripts/build-ffmpeg.sh
+
+    build_script:
+      - export CMAKE_PREFIX_PATH="`pwd`/ffmpeg-prefix;/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
+      - scripts/build-common.sh
+      - cp -a build/gui/chiaki.app Chiaki.app
+      - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
+
+    artifacts:
+      - path: Chiaki.dmg
+        name: Chiaki
+
+#deploy:
+#  description: 'Chiaki Binaries'
+#  provider: GitHub
+#  draft: true
+#  auth_token:
+#    secure: Amvzm3PMM5nv+iFsqaU7TZ9fgyYt/YIrOLV0QMiCyOoUlLRIaiYxWiJ7maTpxhZ9
+#  artifact: "Chiaki"
+#  on:
+#    appveyor_repo_tag: true
