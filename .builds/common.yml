@@ -1,0 +1,46 @@
+
+image: alpine/latest
+
+sources:
+  - https://github.com/thestr4ng3r/chiaki
+
+packages:
+  - cmake
+  - ninja
+  - protoc
+  - py3-protobuf
+  - opus-dev
+  - qt5-qtbase-dev
+  - qt5-qtsvg-dev
+  - qt5-qtmultimedia-dev
+  - ffmpeg-dev
+  - sdl2-dev
+  - sdl2-static # this is gone on alpine edge so might be necessary to remove later
+  - docker
+  - fuse
+
+artifacts:
+  - chiaki.nro
+  - Chiaki.AppImage
+
+tasks:
+  - start_docker: |
+      sudo service docker start
+      sudo chmod +s /usr/bin/docker # Yes, I know what I am doing
+      sudo service fuse start # Fuse for AppImages
+  - local_build_and_test: |
+      cd chiaki
+      cmake -Bbuild -GNinja
+      ninja -C build
+      build/test/chiaki-unit
+  - appimage: |
+      cd chiaki
+      scripts/run-docker-build-appimage.sh
+      cp appimage/Chiaki.AppImage ../Chiaki.AppImage
+  - switch: |
+      cd chiaki
+      scripts/switch/run-docker-build-chiaki.sh
+      cp build_switch/switch/chiaki.nro ../chiaki.nro
+  - bullseye: |
+      cd chiaki
+      scripts/run-docker-build-bullseye.sh

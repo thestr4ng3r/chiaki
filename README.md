@@ -5,7 +5,7 @@
 
 **Disclaimer:** This project is not endorsed or certified by Sony Interactive Entertainment LLC.
 
-[![Travis Build Status](https://travis-ci.com/thestr4ng3r/chiaki.svg?branch=master)](https://travis-ci.com/thestr4ng3r/chiaki) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
+[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/dnj9cmx5mmaaawer?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
 
 Chiaki is a Free and Open Source Software Client for PlayStation 4 Remote Play
 for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potentially even more platforms.
@@ -50,7 +50,7 @@ make
 ```
 
 For more detailed platform-specific instructions, see [doc/platform-build.md](doc/platform-build.md).
-
+in
 ## Usage
 
 If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
@@ -83,10 +83,10 @@ There are official groups for Chiaki on Telegram and IRC. They are bridged so yo
 ## Acknowledgements
 
 This project has only been made possible because of the following Open Source projects:
-[radare2](https://github.com/radare/radare2),
-[Cutter](https://cutter.re/),
-[Frida](https://www.frida.re/) and
-[x64dbg](https://x64dbg.com/).
+[Rizin](https://rizin.re),
+[Cutter](https://cutter.re),
+[Frida](https://www.frida.re) and
+[x64dbg](https://x64dbg.com).
 
 Also thanks to [delroth](https://github.com/delroth) for analyzing the registration and wakeup protocol,
 [grill2010](https://github.com/grill2010) for analyzing the PSN's OAuth Login,
