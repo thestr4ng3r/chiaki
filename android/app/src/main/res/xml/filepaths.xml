@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <files-path
-        name="session_logs"
-        path="session_logs/" /> <!-- must be in sync with LogManager -->
-    <cache-path
-        name="export_settings"
-        path="export_settings/"/> <!-- must be in sync with SerializedSettings.kt -->
-</paths>
